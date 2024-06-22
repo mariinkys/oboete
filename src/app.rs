@@ -2,7 +2,10 @@
 
 use std::collections::HashMap;
 
+use crate::core::database::{get_all_studysets, OboeteDb};
 use crate::fl;
+use crate::models::StudySet;
+use crate::utils::OboeteError;
 use cosmic::app::{Command, Core};
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Alignment, Length};
@@ -22,6 +25,10 @@ pub struct Oboete {
     key_binds: HashMap<menu::KeyBind, MenuAction>,
     /// A model that contains all of the pages assigned to the nav bar panel.
     nav: nav_bar::Model,
+    /// Database of the application
+    db: Option<OboeteDb>,
+    /// User StudySets
+    studysets: Vec<StudySet>,
 }
 
 /// This is the enum that contains all the possible variants that your application will need to transmit messages.
@@ -31,13 +38,14 @@ pub struct Oboete {
 pub enum Message {
     LaunchUrl(String),
     ToggleContextPage(ContextPage),
+    DbConnected(OboeteDb),
+    LoadedStudySets(Result<Vec<StudySet>, OboeteError>),
 }
 
 /// Identifies a page in the application.
 pub enum Page {
-    Page1,
-    Page2,
-    Page3,
+    StudySets,
+    AllFlashcards,
 }
 
 /// Identifies a context page to display in the context drawer.
@@ -111,31 +119,31 @@ impl Application for Oboete {
         let mut nav = nav_bar::Model::default();
 
         nav.insert()
-            .text("Page 1")
-            .data::<Page>(Page::Page1)
+            .text("Study Sets")
+            .data::<Page>(Page::StudySets)
             .icon(icon::from_name("applications-science-symbolic"))
             .activate();
 
         nav.insert()
-            .text("Page 2")
-            .data::<Page>(Page::Page2)
+            .text("All Flashcards")
+            .data::<Page>(Page::AllFlashcards)
             .icon(icon::from_name("applications-system-symbolic"));
-
-        nav.insert()
-            .text("Page 3")
-            .data::<Page>(Page::Page3)
-            .icon(icon::from_name("applications-games-symbolic"));
 
         let mut app = Oboete {
             core,
             context_page: ContextPage::default(),
             key_binds: HashMap::new(),
             nav,
+            db: None,
+            studysets: Vec::new(),
         };
 
-        let command = app.update_titles();
+        let cmd = cosmic::app::Command::perform(OboeteDb::init(), |database| {
+            cosmic::app::message::app(Message::DbConnected(database))
+        });
+        let commands = Command::batch(vec![app.update_titles(), cmd]);
 
-        (app, command)
+        (app, commands)
     }
 
     /// Elements to pack at the start of the header bar.
@@ -189,6 +197,26 @@ impl Application for Oboete {
                 // Set the title of the context drawer.
                 self.set_context_title(context_page.title());
             }
+            Message::DbConnected(db) => {
+                self.db = Some(db);
+                //TODO: How to not clone the DB for every operation
+                // return cosmic::app::Command::perform(
+                //     get_all_studysets(&self.db),
+                //     |studysets| cosmic::app::message::app(Message::LoadedStudySets(studysets)),
+                // );
+                // borrowed data escapes outside of method argument requires that `'1` must outlive `'static`
+                // app.rs(181, 15): `self` is a reference that is only valid in the method body
+                // app.rs(181, 15): let's call the lifetime of this reference `'1`
+
+                return cosmic::app::Command::perform(
+                    get_all_studysets(self.db.clone()),
+                    |studysets| cosmic::app::message::app(Message::LoadedStudySets(studysets)),
+                );
+            }
+            Message::LoadedStudySets(studysets) => match studysets {
+                Ok(studysets) => self.studysets = studysets,
+                Err(_) => self.studysets = Vec::new(),
+            },
         }
         Command::none()
     }
