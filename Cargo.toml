@@ -1,6 +1,6 @@
 [package]
-name = "cosmic-app-template"
-version = "0.1.0"
+name = "oboete"
+version = "1.0.0"
 edition = "2021"
 license = "GPL-3.0"
 

@@ -9,11 +9,11 @@ use cosmic::iced::{Alignment, Length};
 use cosmic::widget::{self, icon, menu, nav_bar};
 use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Apply, Element};
 
-const REPOSITORY: &str = "https://github.com/edfloreshz/cosmic-app-template";
+const REPOSITORY: &str = "https://github.com/mariinkys/oboete";
 
 /// This is the struct that represents your application.
 /// It is used to define the data that will be used by your application.
-pub struct YourApp {
+pub struct Oboete {
     /// Application state which is managed by the COSMIC runtime.
     core: Core,
     /// Display a context drawer with the designated page if defined.
@@ -78,14 +78,14 @@ impl menu::action::MenuAction for MenuAction {
 /// - `Flags` is the data that your application needs to use before it starts.
 /// - `Message` is the enum that contains all the possible variants that your application will need to transmit messages.
 /// - `APP_ID` is the unique identifier of your application.
-impl Application for YourApp {
+impl Application for Oboete {
     type Executor = cosmic::executor::Default;
 
     type Flags = ();
 
     type Message = Message;
 
-    const APP_ID: &'static str = "com.example.CosmicAppTemplate";
+    const APP_ID: &'static str = "dev.mariinkys.Oboete";
 
     fn core(&self) -> &Core {
         &self.core
@@ -126,7 +126,7 @@ impl Application for YourApp {
             .data::<Page>(Page::Page3)
             .icon(icon::from_name("applications-games-symbolic"));
 
-        let mut app = YourApp {
+        let mut app = Oboete {
             core,
             context_page: ContextPage::default(),
             key_binds: HashMap::new(),
@@ -213,14 +213,13 @@ impl Application for YourApp {
     }
 }
 
-impl YourApp {
+impl Oboete {
     /// The about page for this app.
     pub fn about(&self) -> Element<Message> {
         let cosmic_theme::Spacing { space_xxs, .. } = theme::active().cosmic().spacing;
 
         let icon = widget::svg(widget::svg::Handle::from_memory(
-            &include_bytes!("../res/icons/hicolor/128x128/apps/com.example.CosmicAppTemplate.svg")
-                [..],
+            &include_bytes!("../res/icons/hicolor/128x128/apps/dev.mariinkys.Oboete.svg")[..],
         ));
 
         let title = widget::text::title3(fl!("app-title"));

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.mariinkys.Oboete</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <project_group>COSMIC</project_group>
+  <developer_name>mariinkys</developer_name>
+  <update_contact>kysdev.owjga@aleeas.com</update_contact>
+  <url type="homepage">https://github.com/mariinkys/oboete</url>
+  <url type="bugtracker">https://github.com/mariinkys/oboete/issues</url>
+  <name>Oboete</name>
+  <summary>A simple flashcards application</summary>
+  <description>
+    <p>A simple flashcards application</p>
+  </description>
+  <launchable type="desktop-id">dev.mariinkys.Oboete.desktop</launchable>
+  <icon type="remote" height="256" width="256">https://raw.githubusercontent.com/mariinkys/oboete/master/res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg</icon>
+  <screenshots>
+  </screenshots>
+  <provides>
+    <mimetypes>
+      <mimetype>text/plain</mimetype>
+    </mimetypes>
+    <binaries>
+      <binary>oboete</binary>
+    </binaries>
+  </provides>
+</component>

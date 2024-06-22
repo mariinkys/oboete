@@ -1,10 +1,10 @@
 [Desktop Entry]
-Name=COSMIC App Template
-Exec=cosmic-app-template %F
+Name=Oboete
+Exec=oboete %F
 Terminal=false
 Type=Application
 StartupNotify=true
-Icon=com.example.CosmicAppTemplate
+Icon=dev.mariinkys.Oboete
 Categories=COSMIC;Utility;
 Keywords=Folder;Manager;
 MimeType=inode/directory;
