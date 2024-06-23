@@ -42,19 +42,19 @@ impl OboeteDb {
     async fn migrate_database(db_pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {
         sqlx::query(
             r#"
-            CREATE TABLE IF NOT EXISTS StudySet (
+            CREATE TABLE IF NOT EXISTS studysets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL
             );
 
-            CREATE TABLE IF NOT EXISTS Folder (
+            CREATE TABLE IF NOT EXISTS folders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 studyset_id INTEGER NOT NULL,
                 FOREIGN KEY (studyset_id) REFERENCES StudySet(id) ON DELETE CASCADE
             );
 
-            CREATE TABLE IF NOT EXISTS Flashcard (
+            CREATE TABLE IF NOT EXISTS flashcards (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 front TEXT NOT NULL,
                 back TEXT NOT NULL,
@@ -87,7 +87,7 @@ pub async fn get_all_studysets(db: Option<OboeteDb>) -> Result<Vec<StudySet>, Ob
 
     while let Some(row) = rows.try_next().await? {
         let id = row.try_get("id").unwrap_or(0);
-        let name = row.try_get("client_name").unwrap_or("Error");
+        let name = row.try_get("name").unwrap_or("Error");
         //TODO: Get Folders
 
         let studyset = StudySet {
@@ -102,4 +102,45 @@ pub async fn get_all_studysets(db: Option<OboeteDb>) -> Result<Vec<StudySet>, Ob
     }
 
     Ok(result)
+}
+
+pub async fn upsert_studyset(db: Option<OboeteDb>, studyset: StudySet) -> Result<i64, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let command = if studyset.id.is_some() {
+        sqlx::query(
+            "UPDATE studysets
+                SET
+                    name = ?
+                WHERE
+                    id = ?
+            ",
+        )
+        .bind(studyset.name)
+        .bind(studyset.id.unwrap())
+        .execute(&pool.db_pool)
+        .await
+    } else {
+        sqlx::query(
+            "INSERT INTO studysets (
+                name
+            )
+            VALUES (?)",
+        )
+        .bind(studyset.name)
+        .execute(&pool.db_pool)
+        .await
+    };
+
+    match command {
+        Ok(result) => Ok(result.last_insert_rowid()),
+        Err(err) => Err(err.into()),
+    }
 }

@@ -2,17 +2,17 @@
 
 use std::collections::HashMap;
 
-use crate::core::database::{get_all_studysets, OboeteDb};
+use crate::core::database::{get_all_studysets, upsert_studyset, OboeteDb};
 use crate::fl;
 use crate::models::StudySet;
 use crate::utils::OboeteError;
 use cosmic::app::{Command, Core};
-use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Alignment, Length};
 use cosmic::widget::{self, icon, menu, nav_bar};
-use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Apply, Element};
+use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Element};
 
 const REPOSITORY: &str = "https://github.com/mariinkys/oboete";
+const STUDYSETS_PER_ROW: usize = 5;
 
 /// This is the struct that represents your application.
 /// It is used to define the data that will be used by your application.
@@ -25,10 +25,32 @@ pub struct Oboete {
     key_binds: HashMap<menu::KeyBind, MenuAction>,
     /// A model that contains all of the pages assigned to the nav bar panel.
     nav: nav_bar::Model,
+    /// Currently selected Page
+    current_page: Page,
     /// Database of the application
     db: Option<OboeteDb>,
-    /// User StudySets
+    /// Application State Holder
+    state: OboeteState,
+}
+
+pub struct OboeteState {
     studysets: Vec<StudySet>,
+    new_studyset: NewStudySetState,
+}
+
+impl Default for OboeteState {
+    fn default() -> Self {
+        Self {
+            studysets: Default::default(),
+            new_studyset: NewStudySetState {
+                name: String::from(""),
+            },
+        }
+    }
+}
+
+pub struct NewStudySetState {
+    name: String,
 }
 
 /// This is the enum that contains all the possible variants that your application will need to transmit messages.
@@ -40,6 +62,9 @@ pub enum Message {
     ToggleContextPage(ContextPage),
     DbConnected(OboeteDb),
     LoadedStudySets(Result<Vec<StudySet>, OboeteError>),
+    NewStudySetNameInput(String),
+    CreateStudySet,
+    StudySetCreated,
 }
 
 /// Identifies a page in the application.
@@ -53,12 +78,18 @@ pub enum Page {
 pub enum ContextPage {
     #[default]
     About,
+    NewStudySet,
+    NewFolder,
+    NewFlashcard,
 }
 
 impl ContextPage {
     fn title(&self) -> String {
         match self {
             Self::About => fl!("about"),
+            Self::NewStudySet => fl!("new-studyset"),
+            Self::NewFolder => fl!("new-folder"),
+            Self::NewFlashcard => fl!("new-flashcard"),
         }
     }
 }
@@ -134,8 +165,9 @@ impl Application for Oboete {
             context_page: ContextPage::default(),
             key_binds: HashMap::new(),
             nav,
+            current_page: Page::StudySets,
             db: None,
-            studysets: Vec::new(),
+            state: OboeteState::default(),
         };
 
         let cmd = cosmic::app::Command::perform(OboeteDb::init(), |database| {
@@ -166,12 +198,14 @@ impl Application for Oboete {
     ///
     /// To get a better sense of which widgets are available, check out the `widget` module.
     fn view(&self) -> Element<Self::Message> {
-        widget::text::title1(fl!("welcome"))
-            .apply(widget::container)
+        let content = match self.current_page {
+            Page::StudySets => self.studysets(),
+            Page::AllFlashcards => self.all_flashcards(),
+        };
+
+        widget::Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .align_x(Horizontal::Center)
-            .align_y(Vertical::Center)
             .into()
     }
 
@@ -214,9 +248,31 @@ impl Application for Oboete {
                 );
             }
             Message::LoadedStudySets(studysets) => match studysets {
-                Ok(studysets) => self.studysets = studysets,
-                Err(_) => self.studysets = Vec::new(),
+                Ok(studysets) => self.state.studysets = studysets,
+                Err(_) => self.state.studysets = Vec::new(),
             },
+            Message::NewStudySetNameInput(value) => self.state.new_studyset.name = value,
+            Message::CreateStudySet => {
+                return cosmic::app::Command::perform(
+                    upsert_studyset(
+                        self.db.clone(),
+                        StudySet {
+                            id: None,
+                            name: self.state.new_studyset.name.to_string(),
+                            folders: Vec::new(),
+                        },
+                    ),
+                    |_result| cosmic::app::message::app(Message::StudySetCreated),
+                );
+            }
+            Message::StudySetCreated => {
+                self.core.window.show_context = false;
+                self.state.new_studyset.name = String::new();
+                return cosmic::app::Command::perform(
+                    get_all_studysets(self.db.clone()),
+                    |studysets| cosmic::app::message::app(Message::LoadedStudySets(studysets)),
+                );
+            }
         }
         Command::none()
     }
@@ -229,6 +285,9 @@ impl Application for Oboete {
 
         Some(match self.context_page {
             ContextPage::About => self.about(),
+            ContextPage::NewStudySet => self.new_studyset(),
+            ContextPage::NewFolder => todo!(),
+            ContextPage::NewFlashcard => todo!(),
         })
     }
 
@@ -236,6 +295,16 @@ impl Application for Oboete {
     fn on_nav_select(&mut self, id: nav_bar::Id) -> Command<Self::Message> {
         // Activate the page in the model.
         self.nav.activate(id);
+
+        //Update the current page
+        let current_page: Option<&Page> = self.nav.active_data();
+        match current_page {
+            Some(page) => match page {
+                Page::StudySets => self.current_page = Page::StudySets,
+                Page::AllFlashcards => self.current_page = Page::AllFlashcards,
+            },
+            None => self.current_page = Page::StudySets,
+        }
 
         self.update_titles()
     }
@@ -278,5 +347,80 @@ impl Oboete {
 
         self.set_header_title(header_title);
         self.set_window_title(window_title)
+    }
+
+    /// The studysets page for this app.
+    pub fn studysets(&self) -> Element<Message> {
+        let mut studysets_grid = widget::Grid::new().width(Length::Fill);
+
+        for (index, studyset) in self.state.studysets.iter().enumerate() {
+            let studyset_button =
+                widget::button(widget::text(studyset.name.as_str())).style(theme::Button::Text);
+
+            if index % STUDYSETS_PER_ROW == 0 {
+                studysets_grid = studysets_grid.insert_row();
+            }
+
+            studysets_grid = studysets_grid.push(studyset_button);
+        }
+
+        let new_studyset_button = widget::button(widget::text("New"))
+            .style(theme::Button::Suggested)
+            .on_press(Message::ToggleContextPage(ContextPage::NewStudySet));
+        let header_row = widget::Row::new()
+            .push(new_studyset_button)
+            .width(Length::Fill);
+
+        widget::Column::new()
+            .push(header_row)
+            .push(studysets_grid)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
+
+    /// The new studyset context page for this app.
+    pub fn new_studyset(&self) -> Element<Message> {
+        let new_studyset_name_inputfield = widget::TextInput::new(
+            fl!("new-studyset-name-inputfield"),
+            &self.state.new_studyset.name,
+        )
+        .on_input(Message::NewStudySetNameInput);
+
+        let submit_button = widget::button(widget::text(fl!("new-studyset-submit-button")))
+            .on_press(Message::CreateStudySet)
+            .style(theme::Button::Suggested);
+
+        widget::Column::new()
+            .push(new_studyset_name_inputfield)
+            .push(submit_button)
+            .width(Length::Fill)
+            .into()
+    }
+
+    /// The flashcards page for this app.
+    pub fn all_flashcards(&self) -> Element<Message> {
+        // let mut flashcards_grid = widget::Grid::new().width(Length::Fill);
+
+        // for (index, flashcard) in self.flashcards.iter().enumerate() {
+        //     let flashcard_button =
+        //         widget::button(widget::text(flashcard.front.as_str())).style(theme::Button::Text);
+
+        //     if index % FLASHCARDS_PER_ROW == 0 {
+        //         flashcards_grid = flashcards_grid.insert_row();
+        //     }
+
+        //     flashcards_grid = flashcards_grid.push(flashcard_button);
+        // }
+
+        let study_button = widget::button(widget::text("Study")).style(theme::Button::Suggested);
+        let header_row = widget::Row::new().push(study_button).width(Length::Fill);
+
+        widget::Column::new()
+            .push(header_row)
+            //.push(studysets_grid)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }
