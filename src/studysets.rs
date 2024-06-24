@@ -1,4 +1,7 @@
-use cosmic::{iced::Length, theme, widget, Element};
+use cosmic::{
+    iced::{Length, Padding},
+    theme, widget, Element,
+};
 
 use crate::{fl, models::StudySet};
 
@@ -64,11 +67,21 @@ impl StudySets {
     }
 
     pub fn view(&self) -> Element<Message> {
-        let mut studysets_grid = widget::Grid::new().width(Length::Fill);
+        //TODO: Fix design, what happens when a item has a name that is longer?...
+        //All studysets should have the same with ej: 25% 25% 25% 25%...
+        let mut studysets_grid = widget::Grid::new()
+            .width(Length::Fill)
+            .column_alignment(cosmic::iced::Alignment::Center);
 
         for (index, studyset) in self.studysets.iter().enumerate() {
-            let studyset_button =
-                widget::button(widget::text(studyset.name.as_str())).style(theme::Button::Text);
+            let studyset_button = widget::button(
+                widget::container::Container::new(widget::text(studyset.name.as_str()))
+                    .style(theme::Container::Card)
+                    .padding(Padding::new(10.0)),
+            )
+            .on_press_down(Message::ToggleCreatePage) //TODO: This should open the studyset, this is just for testing
+            .style(theme::Button::Text)
+            .width(Length::Shrink);
 
             if index % STUDYSETS_PER_ROW == 0 {
                 studysets_grid = studysets_grid.insert_row();
