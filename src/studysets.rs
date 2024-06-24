@@ -1,12 +1,12 @@
 use cosmic::{iced::Length, theme, widget, Element};
 
-use crate::{fl, models::StudySet, utils::OboeteError};
+use crate::{fl, models::StudySet};
 
 const STUDYSETS_PER_ROW: usize = 5;
 
 pub struct StudySets {
-    studysets: Vec<StudySet>,
-    new_studyset: NewStudySetState,
+    pub studysets: Vec<StudySet>,
+    pub new_studyset: NewStudySetState,
 }
 
 pub struct NewStudySetState {
@@ -16,12 +16,16 @@ pub struct NewStudySetState {
 #[derive(Debug, Clone)]
 pub enum Message {
     Create,
-    StudySetsLoaded(Result<Vec<StudySet>, OboeteError>),
-    StudySetCreated,
+    Created,
+    GetStudySets,
+    SetStudySets(Vec<StudySet>),
+    ToggleCreatePage,
     NewStudySetNameInput(String),
 }
 
 pub enum Command {
+    LoadStudySets,
+    ToggleCreateStudySetPage,
     CreateStudySet(StudySet),
 }
 
@@ -39,17 +43,21 @@ impl StudySets {
         let mut commands = Vec::new();
 
         match message {
+            Message::GetStudySets => commands.push(Command::LoadStudySets),
             Message::Create => commands.push(Command::CreateStudySet(StudySet {
                 id: None,
                 name: self.new_studyset.name.to_string(),
                 folders: Vec::new(),
             })),
-            Message::StudySetsLoaded(studysets) => match studysets {
-                Ok(value) => self.studysets = value,
-                Err(_) => self.studysets = Vec::new(),
-            },
+            Message::SetStudySets(studysets) => self.studysets = studysets,
+            Message::ToggleCreatePage => commands.push(Command::ToggleCreateStudySetPage),
             Message::NewStudySetNameInput(value) => self.new_studyset.name = value,
-            Message::StudySetCreated => todo!(),
+            Message::Created => {
+                self.new_studyset = NewStudySetState {
+                    name: String::new(),
+                };
+                commands.push(Command::LoadStudySets)
+            }
         }
 
         commands
@@ -69,9 +77,9 @@ impl StudySets {
             studysets_grid = studysets_grid.push(studyset_button);
         }
 
-        let new_studyset_button =
-            widget::button(widget::text("New")).style(theme::Button::Suggested);
-        //.on_press(Message::ToggleContextPage(ContextPage::NewStudySet));
+        let new_studyset_button = widget::button(widget::text("New"))
+            .style(theme::Button::Suggested)
+            .on_press(Message::ToggleCreatePage);
 
         let header_row = widget::Row::new()
             .push(new_studyset_button)

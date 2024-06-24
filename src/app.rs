@@ -3,9 +3,7 @@
 use std::collections::HashMap;
 
 use crate::core::database::{get_all_studysets, upsert_studyset, OboeteDb};
-use crate::models::StudySet;
 use crate::studysets::StudySets;
-use crate::utils::OboeteError;
 use crate::{fl, studysets};
 use cosmic::app::{message, Core, Message as CosmicMessage};
 use cosmic::iced::{Alignment, Length};
@@ -186,36 +184,49 @@ impl Application for Oboete {
                 self.set_context_title(context_page.title());
             }
             Message::DbConnected(db) => {
-                self.db = Some(db);
                 //TODO: How to not clone the DB for every operation
-                // return cosmic::app::Command::perform(
-                //     get_all_studysets(&self.db),
-                //     |studysets| cosmic::app::message::app(Message::LoadedStudySets(studysets)),
-                // );
-                // borrowed data escapes outside of method argument requires that `'1` must outlive `'static`
-                // app.rs(181, 15): `self` is a reference that is only valid in the method body
-                // app.rs(181, 15): let's call the lifetime of this reference `'1`
-
-                let command = cosmic::app::Command::perform(
-                    get_all_studysets(self.db.clone()),
-                    |studysets| todo!(),
-                );
-
-                // let command = self.update(Message::StudySets(studysets::Message::StudySetsLoaded(
-                //     studysets,
-                // )));
-
+                self.db = Some(db);
+                let command = self.update(Message::StudySets(studysets::Message::GetStudySets));
                 commands.push(command);
             }
             Message::StudySets(message) => {
                 let studyset_commands = self.studysets.update(message);
+
                 for studyset_command in studyset_commands {
                     match studyset_command {
+                        studysets::Command::ToggleCreateStudySetPage => {
+                            if self.context_page == ContextPage::NewStudySet {
+                                // Close the context drawer if the toggled context page is the same.
+                                self.core.window.show_context = !self.core.window.show_context;
+                            } else {
+                                // Open the context drawer to display the requested context page.
+                                self.context_page = ContextPage::NewStudySet;
+                                self.core.window.show_context = true;
+                            }
+
+                            // Set the title of the context drawer.
+                            self.set_context_title(ContextPage::NewStudySet.title());
+                        }
                         studysets::Command::CreateStudySet(studyset) => {
                             let command = Command::perform(
                                 upsert_studyset(self.db.clone(), studyset),
-                                |_result| message::none(),
+                                |_result| {
+                                    message::app(Message::StudySets(studysets::Message::Created))
+                                },
                             );
+                            self.core.window.show_context = false;
+                            commands.push(command);
+                        }
+                        studysets::Command::LoadStudySets => {
+                            let command =
+                                Command::perform(get_all_studysets(self.db.clone()), |result| {
+                                    match result {
+                                        Ok(studysets) => message::app(Message::StudySets(
+                                            studysets::Message::SetStudySets(studysets),
+                                        )),
+                                        Err(_) => message::none(),
+                                    }
+                                });
 
                             commands.push(command);
                         }
@@ -235,7 +246,10 @@ impl Application for Oboete {
 
         Some(match self.context_page {
             ContextPage::About => self.about(),
-            ContextPage::NewStudySet => todo!(),
+            ContextPage::NewStudySet => self
+                .studysets
+                .new_studyset_contextpage()
+                .map(Message::StudySets),
             ContextPage::NewFolder => todo!(),
             ContextPage::NewFlashcard => todo!(),
         })
