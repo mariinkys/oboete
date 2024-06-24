@@ -4,7 +4,7 @@ use futures::TryStreamExt;
 use sqlx::{sqlite::SqlitePool, Pool, Row, Sqlite};
 
 use crate::{
-    models::{Folder, StudySet},
+    models::{Flashcard, Folder, StudySet},
     utils::OboeteError,
 };
 
@@ -51,7 +51,7 @@ impl OboeteDb {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 studyset_id INTEGER NOT NULL,
-                FOREIGN KEY (studyset_id) REFERENCES StudySet(id) ON DELETE CASCADE
+                FOREIGN KEY (studyset_id) REFERENCES studysets(id) ON DELETE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS flashcards (
@@ -60,7 +60,7 @@ impl OboeteDb {
                 back TEXT NOT NULL,
                 status INTEGER NOT NULL,
                 folder_id INTEGER NOT NULL,
-                FOREIGN KEY (folder_id) REFERENCES Folder(id) ON DELETE CASCADE
+                FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
             );
             "#,
         )
@@ -135,6 +135,89 @@ pub async fn upsert_studyset(db: Option<OboeteDb>, studyset: StudySet) -> Result
             VALUES (?)",
         )
         .bind(studyset.name)
+        .execute(&pool.db_pool)
+        .await
+    };
+
+    match command {
+        Ok(result) => Ok(result.last_insert_rowid()),
+        Err(err) => Err(err.into()),
+    }
+}
+
+pub async fn get_studyset_folders(
+    db: Option<OboeteDb>,
+    id: i32,
+) -> Result<Vec<Folder>, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let mut rows = sqlx::query("SELECT * FROM folders WHERE studyset_id = ? ORDER BY id ASC")
+        .bind(id)
+        .fetch(&pool.db_pool);
+
+    let mut result = Vec::<Folder>::new();
+
+    while let Some(row) = rows.try_next().await? {
+        let id = row.try_get("id").unwrap_or(0);
+        let name = row.try_get("name").unwrap_or("Error");
+
+        let folder = Folder {
+            id: Some(id),
+            name: String::from(name),
+            flashcards: Vec::<Flashcard>::new(),
+        };
+
+        if let Some(_id) = folder.id {
+            result.push(folder);
+        }
+    }
+
+    Ok(result)
+}
+
+pub async fn upsert_folder(
+    db: Option<OboeteDb>,
+    folder: Folder,
+    studyset_id: i32,
+) -> Result<i64, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let command = if folder.id.is_some() {
+        sqlx::query(
+            "UPDATE folders
+                SET
+                    name = ?
+                WHERE
+                    id = ?
+            ",
+        )
+        .bind(folder.name)
+        .bind(folder.id.unwrap())
+        .execute(&pool.db_pool)
+        .await
+    } else {
+        sqlx::query(
+            r#"
+            INSERT INTO folders (name, studyset_id)
+            VALUES (?, ?)
+            "#,
+        )
+        .bind(folder.name)
+        .bind(studyset_id)
         .execute(&pool.db_pool)
         .await
     };

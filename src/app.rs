@@ -2,7 +2,10 @@
 
 use std::collections::HashMap;
 
-use crate::core::database::{get_all_studysets, upsert_studyset, OboeteDb};
+use crate::core::database::{
+    get_all_studysets, get_studyset_folders, upsert_folder, upsert_studyset, OboeteDb,
+};
+use crate::folders::{self, Folders};
 use crate::studysets::StudySets;
 use crate::{fl, studysets};
 use cosmic::app::{message, Core, Message as CosmicMessage};
@@ -29,6 +32,8 @@ pub struct Oboete {
     db: Option<OboeteDb>,
     /// StudySets Page
     studysets: StudySets,
+    /// Folders Page
+    folders: Folders,
 }
 
 #[derive(Debug, Clone)]
@@ -37,11 +42,13 @@ pub enum Message {
     ToggleContextPage(ContextPage),
     DbConnected(OboeteDb),
     StudySets(studysets::Message),
+    Folders(folders::Message),
 }
 
 /// Identifies a page in the application.
 pub enum Page {
     StudySets,
+    Folders,
     AllFlashcards,
 }
 
@@ -125,6 +132,7 @@ impl Application for Oboete {
             current_page: Page::StudySets,
             db: None,
             studysets: StudySets::new(),
+            folders: Folders::new(),
         };
 
         let commands = vec![
@@ -153,6 +161,7 @@ impl Application for Oboete {
     fn view(&self) -> Element<Self::Message> {
         let content = match self.current_page {
             Page::StudySets => self.studysets.view().map(Message::StudySets),
+            Page::Folders => self.folders.view().map(Message::Folders),
             Page::AllFlashcards => todo!(),
         };
 
@@ -230,6 +239,82 @@ impl Application for Oboete {
 
                             commands.push(command);
                         }
+                        studysets::Command::OpenStudySet(id) => {
+                            let command = Command::perform(
+                                get_studyset_folders(self.db.clone(), id),
+                                |result| match result {
+                                    Ok(folders) => message::app(Message::Folders(
+                                        folders::Message::SetFolders(folders),
+                                    )),
+                                    Err(_) => message::none(),
+                                },
+                            );
+                            self.current_page = Page::Folders;
+                            self.folders.current_studyset_id = id;
+
+                            commands.push(command);
+                        }
+                    }
+                }
+            }
+            Message::Folders(message) => {
+                let folder_commands = self.folders.update(message);
+
+                for folder_command in folder_commands {
+                    match folder_command {
+                        folders::Command::LoadFolders(studyset_id) => {
+                            //TODO: This is the same as studysets::Command::OpenStudySet
+                            let command = Command::perform(
+                                get_studyset_folders(self.db.clone(), studyset_id),
+                                |result| match result {
+                                    Ok(folders) => message::app(Message::Folders(
+                                        folders::Message::SetFolders(folders),
+                                    )),
+                                    Err(_) => message::none(),
+                                },
+                            );
+
+                            commands.push(command);
+                        }
+                        folders::Command::ToggleCreateFolderPage => {
+                            if self.context_page == ContextPage::NewFolder {
+                                // Close the context drawer if the toggled context page is the same.
+                                self.core.window.show_context = !self.core.window.show_context;
+                            } else {
+                                // Open the context drawer to display the requested context page.
+                                self.context_page = ContextPage::NewFolder;
+                                self.core.window.show_context = true;
+                            }
+
+                            // Set the title of the context drawer.
+                            self.set_context_title(ContextPage::NewFolder.title());
+                        }
+                        folders::Command::CreateFolder(folder) => {
+                            let command = Command::perform(
+                                upsert_folder(
+                                    self.db.clone(),
+                                    folder,
+                                    self.folders.current_studyset_id,
+                                ),
+                                |_result| message::app(Message::Folders(folders::Message::Created)),
+                            );
+                            self.core.window.show_context = false;
+                            commands.push(command);
+                        }
+                        folders::Command::OpenFolder(id) => {
+                            // let command = Command::perform(
+                            //     get_folder_flashcards(self.db.clone(), id),
+                            //     |result| match result {
+                            //         Ok(flashcards) => message::app(Message::Flashcards(
+                            //             flashcards::Message::SetFlashcards(flashcards),
+                            //         )),
+                            //         Err(_) => message::none(),
+                            //     },
+                            // );
+
+                            //commands.push(command);
+                            todo!()
+                        }
                     }
                 }
             }
@@ -250,7 +335,7 @@ impl Application for Oboete {
                 .studysets
                 .new_studyset_contextpage()
                 .map(Message::StudySets),
-            ContextPage::NewFolder => todo!(),
+            ContextPage::NewFolder => self.folders.new_folder_contextpage().map(Message::Folders),
             ContextPage::NewFlashcard => todo!(),
         })
     }
@@ -265,6 +350,7 @@ impl Application for Oboete {
         match current_page {
             Some(page) => match page {
                 Page::StudySets => self.current_page = Page::StudySets,
+                Page::Folders => self.current_page = Page::Folders,
                 Page::AllFlashcards => self.current_page = Page::AllFlashcards,
             },
             None => self.current_page = Page::StudySets,

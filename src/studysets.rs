@@ -24,12 +24,15 @@ pub enum Message {
     SetStudySets(Vec<StudySet>),
     ToggleCreatePage,
     NewStudySetNameInput(String),
+    OpenStudySet(i32),
 }
 
 pub enum Command {
     LoadStudySets,
     ToggleCreateStudySetPage,
     CreateStudySet(StudySet),
+    //The i32 is the StudySetId
+    OpenStudySet(i32),
 }
 
 impl StudySets {
@@ -61,6 +64,7 @@ impl StudySets {
                 };
                 commands.push(Command::LoadStudySets)
             }
+            Message::OpenStudySet(id) => commands.push(Command::OpenStudySet(id)),
         }
 
         commands
@@ -79,7 +83,7 @@ impl StudySets {
                     .style(theme::Container::Card)
                     .padding(Padding::new(10.0)),
             )
-            .on_press_down(Message::ToggleCreatePage) //TODO: This should open the studyset, this is just for testing
+            .on_press_down(Message::OpenStudySet(studyset.id.unwrap())) //TODO: This is always safe to unwrap, I belive.
             .style(theme::Button::Text)
             .width(Length::Shrink);
 

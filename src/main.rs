@@ -4,6 +4,7 @@ use app::Oboete;
 /// The `app` module is used by convention to indicate the main component of our application.
 mod app;
 mod core;
+mod folders;
 mod models;
 mod studysets;
 mod utils;
