@@ -3,16 +3,14 @@
 use std::collections::HashMap;
 
 use crate::core::database::{get_all_studysets, upsert_studyset, OboeteDb};
-use crate::fl;
-use crate::models::StudySet;
-use crate::utils::OboeteError;
-use cosmic::app::{Command, Core};
+use crate::studysets::StudySets;
+use crate::{fl, studysets};
+use cosmic::app::{message, Core, Message as CosmicMessage};
 use cosmic::iced::{Alignment, Length};
 use cosmic::widget::{self, icon, menu, nav_bar};
-use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Element};
+use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Command, Element};
 
 const REPOSITORY: &str = "https://github.com/mariinkys/oboete";
-const STUDYSETS_PER_ROW: usize = 5;
 
 /// This is the struct that represents your application.
 /// It is used to define the data that will be used by your application.
@@ -29,42 +27,16 @@ pub struct Oboete {
     current_page: Page,
     /// Database of the application
     db: Option<OboeteDb>,
-    /// Application State Holder
-    state: OboeteState,
+    /// StudySets Page
+    studysets: StudySets,
 }
 
-pub struct OboeteState {
-    studysets: Vec<StudySet>,
-    new_studyset: NewStudySetState,
-}
-
-impl Default for OboeteState {
-    fn default() -> Self {
-        Self {
-            studysets: Default::default(),
-            new_studyset: NewStudySetState {
-                name: String::from(""),
-            },
-        }
-    }
-}
-
-pub struct NewStudySetState {
-    name: String,
-}
-
-/// This is the enum that contains all the possible variants that your application will need to transmit messages.
-/// This is used to communicate between the different parts of your application.
-/// If your application does not need to send messages, you can use an empty enum or `()`.
 #[derive(Debug, Clone)]
 pub enum Message {
     LaunchUrl(String),
     ToggleContextPage(ContextPage),
     DbConnected(OboeteDb),
-    LoadedStudySets(Result<Vec<StudySet>, OboeteError>),
-    NewStudySetNameInput(String),
-    CreateStudySet,
-    StudySetCreated,
+    StudySets(studysets::Message),
 }
 
 /// Identifies a page in the application.
@@ -109,14 +81,6 @@ impl menu::action::MenuAction for MenuAction {
     }
 }
 
-/// Implement the `Application` trait for your application.
-/// This is where you define the behavior of your application.
-///
-/// The `Application` trait requires you to define the following types and constants:
-/// - `Executor` is the async executor that will be used to run your application's commands.
-/// - `Flags` is the data that your application needs to use before it starts.
-/// - `Message` is the enum that contains all the possible variants that your application will need to transmit messages.
-/// - `APP_ID` is the unique identifier of your application.
 impl Application for Oboete {
     type Executor = cosmic::executor::Default;
 
@@ -139,14 +103,7 @@ impl Application for Oboete {
         Some(&self.nav)
     }
 
-    /// This is the entry point of your application, it is where you initialize your application.
-    ///
-    /// Any work that needs to be done before the application starts should be done here.
-    ///
-    /// - `core` is used to passed on for you by libcosmic to use in the core of your own application.
-    /// - `flags` is used to pass in any data that your application needs to use before it starts.
-    /// - `Command` type is used to send messages to your application. `Command::none()` can be used to send no messages to your application.
-    fn init(core: Core, _flags: Self::Flags) -> (Self, Command<Self::Message>) {
+    fn init(core: Core, _flags: Self::Flags) -> (Self, Command<CosmicMessage<Self::Message>>) {
         let mut nav = nav_bar::Model::default();
 
         nav.insert()
@@ -167,15 +124,17 @@ impl Application for Oboete {
             nav,
             current_page: Page::StudySets,
             db: None,
-            state: OboeteState::default(),
+            studysets: StudySets::new(),
         };
 
-        let cmd = cosmic::app::Command::perform(OboeteDb::init(), |database| {
-            cosmic::app::message::app(Message::DbConnected(database))
-        });
-        let commands = Command::batch(vec![app.update_titles(), cmd]);
+        let commands = vec![
+            Command::perform(OboeteDb::init(), |database| {
+                message::app(Message::DbConnected(database))
+            }),
+            app.update_titles(),
+        ];
 
-        (app, commands)
+        (app, Command::batch(commands))
     }
 
     /// Elements to pack at the start of the header bar.
@@ -191,16 +150,10 @@ impl Application for Oboete {
         vec![menu_bar.into()]
     }
 
-    /// This is the main view of your application, it is the root of your widget tree.
-    ///
-    /// The `Element` type is used to represent the visual elements of your application,
-    /// it has a `Message` associated with it, which dictates what type of message it can send.
-    ///
-    /// To get a better sense of which widgets are available, check out the `widget` module.
     fn view(&self) -> Element<Self::Message> {
         let content = match self.current_page {
-            Page::StudySets => self.studysets(),
-            Page::AllFlashcards => self.all_flashcards(),
+            Page::StudySets => self.studysets.view().map(Message::StudySets),
+            Page::AllFlashcards => todo!(),
         };
 
         widget::Container::new(content)
@@ -209,10 +162,9 @@ impl Application for Oboete {
             .into()
     }
 
-    /// Application messages are handled here. The application state can be modified based on
-    /// what message was received. Commands may be returned for asynchronous execution on a
-    /// background thread managed by the application's executor.
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(&mut self, message: Self::Message) -> Command<CosmicMessage<Self::Message>> {
+        let mut commands = vec![];
+
         match message {
             Message::LaunchUrl(url) => {
                 let _result = open::that_detached(url);
@@ -232,49 +184,58 @@ impl Application for Oboete {
                 self.set_context_title(context_page.title());
             }
             Message::DbConnected(db) => {
-                self.db = Some(db);
                 //TODO: How to not clone the DB for every operation
-                // return cosmic::app::Command::perform(
-                //     get_all_studysets(&self.db),
-                //     |studysets| cosmic::app::message::app(Message::LoadedStudySets(studysets)),
-                // );
-                // borrowed data escapes outside of method argument requires that `'1` must outlive `'static`
-                // app.rs(181, 15): `self` is a reference that is only valid in the method body
-                // app.rs(181, 15): let's call the lifetime of this reference `'1`
+                self.db = Some(db);
+                let command = self.update(Message::StudySets(studysets::Message::GetStudySets));
+                commands.push(command);
+            }
+            Message::StudySets(message) => {
+                let studyset_commands = self.studysets.update(message);
 
-                return cosmic::app::Command::perform(
-                    get_all_studysets(self.db.clone()),
-                    |studysets| cosmic::app::message::app(Message::LoadedStudySets(studysets)),
-                );
-            }
-            Message::LoadedStudySets(studysets) => match studysets {
-                Ok(studysets) => self.state.studysets = studysets,
-                Err(_) => self.state.studysets = Vec::new(),
-            },
-            Message::NewStudySetNameInput(value) => self.state.new_studyset.name = value,
-            Message::CreateStudySet => {
-                return cosmic::app::Command::perform(
-                    upsert_studyset(
-                        self.db.clone(),
-                        StudySet {
-                            id: None,
-                            name: self.state.new_studyset.name.to_string(),
-                            folders: Vec::new(),
-                        },
-                    ),
-                    |_result| cosmic::app::message::app(Message::StudySetCreated),
-                );
-            }
-            Message::StudySetCreated => {
-                self.core.window.show_context = false;
-                self.state.new_studyset.name = String::new();
-                return cosmic::app::Command::perform(
-                    get_all_studysets(self.db.clone()),
-                    |studysets| cosmic::app::message::app(Message::LoadedStudySets(studysets)),
-                );
+                for studyset_command in studyset_commands {
+                    match studyset_command {
+                        studysets::Command::ToggleCreateStudySetPage => {
+                            if self.context_page == ContextPage::NewStudySet {
+                                // Close the context drawer if the toggled context page is the same.
+                                self.core.window.show_context = !self.core.window.show_context;
+                            } else {
+                                // Open the context drawer to display the requested context page.
+                                self.context_page = ContextPage::NewStudySet;
+                                self.core.window.show_context = true;
+                            }
+
+                            // Set the title of the context drawer.
+                            self.set_context_title(ContextPage::NewStudySet.title());
+                        }
+                        studysets::Command::CreateStudySet(studyset) => {
+                            let command = Command::perform(
+                                upsert_studyset(self.db.clone(), studyset),
+                                |_result| {
+                                    message::app(Message::StudySets(studysets::Message::Created))
+                                },
+                            );
+                            self.core.window.show_context = false;
+                            commands.push(command);
+                        }
+                        studysets::Command::LoadStudySets => {
+                            let command =
+                                Command::perform(get_all_studysets(self.db.clone()), |result| {
+                                    match result {
+                                        Ok(studysets) => message::app(Message::StudySets(
+                                            studysets::Message::SetStudySets(studysets),
+                                        )),
+                                        Err(_) => message::none(),
+                                    }
+                                });
+
+                            commands.push(command);
+                        }
+                    }
+                }
             }
         }
-        Command::none()
+
+        Command::batch(commands)
     }
 
     /// Display a context drawer if the context page is requested.
@@ -285,14 +246,17 @@ impl Application for Oboete {
 
         Some(match self.context_page {
             ContextPage::About => self.about(),
-            ContextPage::NewStudySet => self.new_studyset(),
+            ContextPage::NewStudySet => self
+                .studysets
+                .new_studyset_contextpage()
+                .map(Message::StudySets),
             ContextPage::NewFolder => todo!(),
             ContextPage::NewFlashcard => todo!(),
         })
     }
 
     /// Called when a nav item is selected.
-    fn on_nav_select(&mut self, id: nav_bar::Id) -> Command<Self::Message> {
+    fn on_nav_select(&mut self, id: nav_bar::Id) -> Command<CosmicMessage<Self::Message>> {
         // Activate the page in the model.
         self.nav.activate(id);
 
@@ -335,7 +299,7 @@ impl Oboete {
     }
 
     /// Updates the header and window titles.
-    pub fn update_titles(&mut self) -> Command<Message> {
+    pub fn update_titles(&mut self) -> Command<CosmicMessage<Message>> {
         let mut window_title = fl!("app-title");
         let mut header_title = String::new();
 
@@ -347,80 +311,5 @@ impl Oboete {
 
         self.set_header_title(header_title);
         self.set_window_title(window_title)
-    }
-
-    /// The studysets page for this app.
-    pub fn studysets(&self) -> Element<Message> {
-        let mut studysets_grid = widget::Grid::new().width(Length::Fill);
-
-        for (index, studyset) in self.state.studysets.iter().enumerate() {
-            let studyset_button =
-                widget::button(widget::text(studyset.name.as_str())).style(theme::Button::Text);
-
-            if index % STUDYSETS_PER_ROW == 0 {
-                studysets_grid = studysets_grid.insert_row();
-            }
-
-            studysets_grid = studysets_grid.push(studyset_button);
-        }
-
-        let new_studyset_button = widget::button(widget::text("New"))
-            .style(theme::Button::Suggested)
-            .on_press(Message::ToggleContextPage(ContextPage::NewStudySet));
-        let header_row = widget::Row::new()
-            .push(new_studyset_button)
-            .width(Length::Fill);
-
-        widget::Column::new()
-            .push(header_row)
-            .push(studysets_grid)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
-    }
-
-    /// The new studyset context page for this app.
-    pub fn new_studyset(&self) -> Element<Message> {
-        let new_studyset_name_inputfield = widget::TextInput::new(
-            fl!("new-studyset-name-inputfield"),
-            &self.state.new_studyset.name,
-        )
-        .on_input(Message::NewStudySetNameInput);
-
-        let submit_button = widget::button(widget::text(fl!("new-studyset-submit-button")))
-            .on_press(Message::CreateStudySet)
-            .style(theme::Button::Suggested);
-
-        widget::Column::new()
-            .push(new_studyset_name_inputfield)
-            .push(submit_button)
-            .width(Length::Fill)
-            .into()
-    }
-
-    /// The flashcards page for this app.
-    pub fn all_flashcards(&self) -> Element<Message> {
-        // let mut flashcards_grid = widget::Grid::new().width(Length::Fill);
-
-        // for (index, flashcard) in self.flashcards.iter().enumerate() {
-        //     let flashcard_button =
-        //         widget::button(widget::text(flashcard.front.as_str())).style(theme::Button::Text);
-
-        //     if index % FLASHCARDS_PER_ROW == 0 {
-        //         flashcards_grid = flashcards_grid.insert_row();
-        //     }
-
-        //     flashcards_grid = flashcards_grid.push(flashcard_button);
-        // }
-
-        let study_button = widget::button(widget::text("Study")).style(theme::Button::Suggested);
-        let header_row = widget::Row::new().push(study_button).width(Length::Fill);
-
-        widget::Column::new()
-            .push(header_row)
-            //.push(studysets_grid)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
     }
 }

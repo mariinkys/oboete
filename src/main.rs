@@ -5,6 +5,7 @@ use app::Oboete;
 mod app;
 mod core;
 mod models;
+mod studysets;
 mod utils;
 
 /// The `cosmic::app::run()` function is the starting point of your application.
