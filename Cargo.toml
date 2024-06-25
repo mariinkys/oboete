@@ -1,7 +1,11 @@
 [package]
 name = "oboete"
 version = "1.0.0"
+authors = ["mariinkys (Alex Marín)"]
 edition = "2021"
+description = "A simple flashcards application for the COSMIC™ desktop"
+readme = "https://github.com/mariinkys/oboete/blob/main/README.md"
+repository = "https://github.com/mariinkys/oboete"
 license = "GPL-3.0"
 
 [dependencies]
