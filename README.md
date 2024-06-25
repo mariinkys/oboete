@@ -1,12 +1,14 @@
-# COSMIC Application Template
+<div align="center">
+  <br>
+  <img src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg" width="150" />
+  <h1>Oboete</h1>
 
-A template for COSMIC applications.
+  <h3>A simple flashcards application for the COSMIC™ desktop</h3>
 
-## Getting Started
-
-To get started, click the "Use this template" button above. This will create a new repository in your account with the contents of this template.
-
-Once you have created a new repository from this template, you can clone it to your local machine and start developing your COSMIC application.
+  <!-- TODO: Application Screenshots-->
+  <!-- ![]()
+  ![]() -->
+</div>
 
 ## Development
 
