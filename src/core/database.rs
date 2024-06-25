@@ -88,7 +88,6 @@ pub async fn get_all_studysets(db: Option<OboeteDb>) -> Result<Vec<StudySet>, Ob
     while let Some(row) = rows.try_next().await? {
         let id = row.try_get("id").unwrap_or(0);
         let name = row.try_get("name").unwrap_or("Error");
-        //TODO: Get Folders
 
         let studyset = StudySet {
             id: Some(id),

@@ -17,8 +17,6 @@ use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Command, Element}
 
 const REPOSITORY: &str = "https://github.com/mariinkys/oboete";
 
-/// This is the struct that represents your application.
-/// It is used to define the data that will be used by your application.
 pub struct Oboete {
     /// Application state which is managed by the COSMIC runtime.
     core: Core,
@@ -142,6 +140,7 @@ impl Application for Oboete {
             flashcards: Flashcards::new(),
         };
 
+        //Connect to the Database and Run the needed migrations
         let commands = vec![
             Command::perform(OboeteDb::init(), |database| {
                 message::app(Message::DbConnected(database))
@@ -211,6 +210,7 @@ impl Application for Oboete {
 
                 for studyset_command in studyset_commands {
                     match studyset_command {
+                        //Opens the NewStudySet ContextPage
                         studysets::Command::ToggleCreateStudySetPage => {
                             if self.context_page == ContextPage::NewStudySet {
                                 // Close the context drawer if the toggled context page is the same.
@@ -224,6 +224,7 @@ impl Application for Oboete {
                             // Set the title of the context drawer.
                             self.set_context_title(ContextPage::NewStudySet.title());
                         }
+                        //Creates a StudySet
                         studysets::Command::CreateStudySet(studyset) => {
                             let command = Command::perform(
                                 upsert_studyset(self.db.clone(), studyset),
@@ -234,6 +235,7 @@ impl Application for Oboete {
                             self.core.window.show_context = false;
                             commands.push(command);
                         }
+                        //Loads the studysets
                         studysets::Command::LoadStudySets => {
                             let command =
                                 Command::perform(get_all_studysets(self.db.clone()), |result| {
@@ -247,9 +249,10 @@ impl Application for Oboete {
 
                             commands.push(command);
                         }
-                        studysets::Command::OpenStudySet(id) => {
+                        //Opens a studyset => Loads the folders of a given studyset => Updates the current_studyset_id
+                        studysets::Command::OpenStudySet(studyset_id) => {
                             let command = Command::perform(
-                                get_studyset_folders(self.db.clone(), id),
+                                get_studyset_folders(self.db.clone(), studyset_id),
                                 |result| match result {
                                     Ok(folders) => message::app(Message::Folders(
                                         folders::Message::SetFolders(folders),
@@ -258,7 +261,7 @@ impl Application for Oboete {
                                 },
                             );
                             self.current_page = Page::Folders;
-                            self.folders.current_studyset_id = id;
+                            self.folders.current_studyset_id = studyset_id;
 
                             commands.push(command);
                         }
@@ -270,6 +273,7 @@ impl Application for Oboete {
 
                 for folder_command in folder_commands {
                     match folder_command {
+                        //Loads the folders of a given studyset
                         folders::Command::LoadFolders(studyset_id) => {
                             let command = Command::perform(
                                 get_studyset_folders(self.db.clone(), studyset_id),
@@ -283,6 +287,7 @@ impl Application for Oboete {
 
                             commands.push(command);
                         }
+                        //Opens the NewFolder ContextPage
                         folders::Command::ToggleCreateFolderPage => {
                             if self.context_page == ContextPage::NewFolder {
                                 // Close the context drawer if the toggled context page is the same.
@@ -296,6 +301,7 @@ impl Application for Oboete {
                             // Set the title of the context drawer.
                             self.set_context_title(ContextPage::NewFolder.title());
                         }
+                        //Creates a Folder inside a StudySet
                         folders::Command::CreateFolder(folder) => {
                             let command = Command::perform(
                                 upsert_folder(
@@ -308,9 +314,10 @@ impl Application for Oboete {
                             self.core.window.show_context = false;
                             commands.push(command);
                         }
-                        folders::Command::OpenFolder(id) => {
+                        //Opens a folder => Loads the flashcards of a given folder => Updates the current_folder_id
+                        folders::Command::OpenFolder(folder_id) => {
                             let command = Command::perform(
-                                get_folder_flashcards(self.db.clone(), id),
+                                get_folder_flashcards(self.db.clone(), folder_id),
                                 |result| match result {
                                     Ok(flashcards) => message::app(Message::Flashcards(
                                         flashcards::Message::SetFlashcards(flashcards),
@@ -319,7 +326,7 @@ impl Application for Oboete {
                                 },
                             );
                             self.current_page = Page::FolderFlashcards;
-                            self.flashcards.current_folder_id = id;
+                            self.flashcards.current_folder_id = folder_id;
 
                             commands.push(command);
                         }
@@ -331,9 +338,10 @@ impl Application for Oboete {
 
                 for flashcard_command in flashcard_commands {
                     match flashcard_command {
-                        flashcards::Command::LoadFlashcards(id) => {
+                        //Loads the flashcards of a given folder
+                        flashcards::Command::LoadFlashcards(folder_id) => {
                             let command = Command::perform(
-                                get_folder_flashcards(self.db.clone(), id),
+                                get_folder_flashcards(self.db.clone(), folder_id),
                                 |result| match result {
                                     Ok(flashcards) => message::app(Message::Flashcards(
                                         flashcards::Message::SetFlashcards(flashcards),
@@ -344,6 +352,7 @@ impl Application for Oboete {
 
                             commands.push(command);
                         }
+                        //Opens the NewFlashcard ContextPage
                         flashcards::Command::ToggleCreateFlashcardPage => {
                             if self.context_page == ContextPage::NewFlashcard {
                                 // Close the context drawer if the toggled context page is the same.
@@ -357,6 +366,7 @@ impl Application for Oboete {
                             // Set the title of the context drawer.
                             self.set_context_title(ContextPage::NewFlashcard.title());
                         }
+                        //Creates a Flashcard inside a Folder
                         flashcards::Command::CreateFlashcard(flashcard) => {
                             let command = Command::perform(
                                 upsert_flashcard(
@@ -371,7 +381,7 @@ impl Application for Oboete {
                             self.core.window.show_context = false;
                             commands.push(command);
                         }
-                        flashcards::Command::OpenFlashcard(id) => todo!(),
+                        flashcards::Command::OpenFlashcard(flashcard_id) => todo!(),
                     }
                 }
             }

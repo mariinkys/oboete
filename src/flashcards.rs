@@ -30,6 +30,7 @@ pub enum Message {
 }
 
 pub enum Command {
+    //The i32 is the Folder Id
     LoadFlashcards(i32),
     ToggleCreateFlashcardPage,
     CreateFlashcard(Flashcard),

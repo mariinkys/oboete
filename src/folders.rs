@@ -28,6 +28,7 @@ pub enum Message {
 }
 
 pub enum Command {
+    //The i32 is the Studyset Id
     LoadFolders(i32),
     ToggleCreateFolderPage,
     CreateFolder(Folder),
@@ -83,7 +84,7 @@ impl Folders {
                     .style(theme::Container::Card)
                     .padding(Padding::new(10.0)),
             )
-            .on_press_down(Message::OpenFolder(folder.id.unwrap())) //TODO: This is always safe to unwrap, I belive.
+            .on_press_down(Message::OpenFolder(folder.id.unwrap()))
             .style(theme::Button::Text)
             .width(Length::Shrink);
 

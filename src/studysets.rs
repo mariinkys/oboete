@@ -83,7 +83,7 @@ impl StudySets {
                     .style(theme::Container::Card)
                     .padding(Padding::new(10.0)),
             )
-            .on_press_down(Message::OpenStudySet(studyset.id.unwrap())) //TODO: This is always safe to unwrap, I belive.
+            .on_press_down(Message::OpenStudySet(studyset.id.unwrap()))
             .style(theme::Button::Text)
             .width(Length::Shrink);
 
