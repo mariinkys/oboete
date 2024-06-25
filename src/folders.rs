@@ -71,6 +71,23 @@ impl Folders {
         commands
     }
 
+    fn folder_header_row(&self) -> Element<Message> {
+        let spacing = theme::active().cosmic().spacing;
+
+        let new_folder_button = widget::button(widget::text("New"))
+            .style(theme::Button::Suggested)
+            .padding(spacing.space_xxs)
+            .on_press(Message::ToggleCreatePage);
+
+        widget::row::with_capacity(2)
+            .align_items(cosmic::iced::Alignment::Center)
+            .spacing(spacing.space_s)
+            .padding([spacing.space_none, spacing.space_xxs])
+            .push(widget::text::title3("Folders").width(Length::Fill)) //TODO: The Title should be the StudySet name
+            .push(new_folder_button)
+            .into()
+    }
+
     pub fn view(&self) -> Element<Message> {
         //TODO: Fix design, what happens when a item has a name that is longer?...
         //All studysets should have the same with ej: 25% 25% 25% 25%...
@@ -95,16 +112,8 @@ impl Folders {
             folders_grid = folders_grid.push(folder_button);
         }
 
-        let new_folder_button = widget::button(widget::text("New"))
-            .style(theme::Button::Suggested)
-            .on_press(Message::ToggleCreatePage);
-
-        let header_row = widget::Row::new()
-            .push(new_folder_button)
-            .width(Length::Fill);
-
         widget::Column::new()
-            .push(header_row)
+            .push(self.folder_header_row())
             .push(folders_grid)
             .width(Length::Fill)
             .height(Length::Fill)

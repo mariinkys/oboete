@@ -70,6 +70,23 @@ impl StudySets {
         commands
     }
 
+    fn studysets_header_row(&self) -> Element<Message> {
+        let spacing = theme::active().cosmic().spacing;
+
+        let new_studyset_button = widget::button(widget::text("New"))
+            .style(theme::Button::Suggested)
+            .padding(spacing.space_xxs)
+            .on_press(Message::ToggleCreatePage);
+
+        widget::row::with_capacity(2)
+            .align_items(cosmic::iced::Alignment::Center)
+            .spacing(spacing.space_s)
+            .padding([spacing.space_none, spacing.space_xxs])
+            .push(widget::text::title3("Study Sets").width(Length::Fill))
+            .push(new_studyset_button)
+            .into()
+    }
+
     pub fn view(&self) -> Element<Message> {
         //TODO: Fix design, what happens when a item has a name that is longer?...
         //All studysets should have the same with ej: 25% 25% 25% 25%...
@@ -94,16 +111,8 @@ impl StudySets {
             studysets_grid = studysets_grid.push(studyset_button);
         }
 
-        let new_studyset_button = widget::button(widget::text("New"))
-            .style(theme::Button::Suggested)
-            .on_press(Message::ToggleCreatePage);
-
-        let header_row = widget::Row::new()
-            .push(new_studyset_button)
-            .width(Length::Fill);
-
         widget::Column::new()
-            .push(header_row)
+            .push(self.studysets_header_row())
             .push(studysets_grid)
             .width(Length::Fill)
             .height(Length::Fill)
