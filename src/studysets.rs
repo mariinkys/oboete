@@ -121,18 +121,34 @@ impl StudySets {
 
     /// The new studyset context page for this app.
     pub fn new_studyset_contextpage(&self) -> Element<Message> {
-        let new_studyset_name_inputfield =
-            widget::TextInput::new(fl!("new-studyset-name-inputfield"), &self.new_studyset.name)
-                .on_input(Message::NewStudySetNameInput);
+        let spacing = theme::active().cosmic().spacing;
 
-        let submit_button = widget::button(widget::text(fl!("new-studyset-submit-button")))
-            .on_press(Message::Create)
-            .style(theme::Button::Suggested);
-
-        widget::Column::new()
-            .push(new_studyset_name_inputfield)
-            .push(submit_button)
-            .width(Length::Fill)
-            .into()
+        widget::settings::view_column(vec![widget::settings::view_section(fl!("new-studyset"))
+            .add(
+                widget::column::with_children(vec![
+                    widget::text::body(fl!("new-studyset-name-title")).into(),
+                    widget::text_input(
+                        fl!("new-studyset-name-inputfield"),
+                        &self.new_studyset.name,
+                    )
+                    .on_input(Message::NewStudySetNameInput)
+                    .into(),
+                ])
+                .spacing(spacing.space_xxs)
+                .padding([0, 15, 0, 15]),
+            )
+            .add(
+                widget::button(
+                    widget::text(fl!("new-studyset-submit-button"))
+                        .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                        .width(Length::Fill),
+                )
+                .on_press(Message::Create)
+                .style(theme::Button::Suggested)
+                .padding([10, 0, 10, 0])
+                .width(Length::Fill),
+            )
+            .into()])
+        .into()
     }
 }

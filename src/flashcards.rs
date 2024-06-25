@@ -129,27 +129,47 @@ impl Flashcards {
 
     /// The new flashcard context page for this app.
     pub fn new_flashcard_contextpage(&self) -> Element<Message> {
-        let new_flashcard_front_inputfield = widget::TextInput::new(
-            fl!("new-flashcard-front-inputfield"),
-            &self.new_flashcard.front,
-        )
-        .on_input(Message::NewFlashcardFrontInput);
+        let spacing = theme::active().cosmic().spacing;
 
-        let new_flashcard_back_inputfield = widget::TextInput::new(
-            fl!("new-flashcard-back-inputfield"),
-            &self.new_flashcard.back,
-        )
-        .on_input(Message::NewFlashcardBackInput);
-
-        let submit_button = widget::button(widget::text(fl!("new-flashcard-submit-button")))
-            .on_press(Message::Create)
-            .style(theme::Button::Suggested);
-
-        widget::Column::new()
-            .push(new_flashcard_front_inputfield)
-            .push(new_flashcard_back_inputfield)
-            .push(submit_button)
-            .width(Length::Fill)
-            .into()
+        widget::settings::view_column(vec![widget::settings::view_section(fl!("new-flashcard"))
+            .add(
+                widget::column::with_children(vec![
+                    widget::text::body(fl!("new-flashcard-front-title")).into(),
+                    widget::text_input(
+                        fl!("new-flashcard-front-inputfield"),
+                        &self.new_flashcard.front,
+                    )
+                    .on_input(Message::NewFlashcardFrontInput)
+                    .into(),
+                ])
+                .spacing(spacing.space_xxs)
+                .padding([0, 15, 0, 15]),
+            )
+            .add(
+                widget::column::with_children(vec![
+                    widget::text::body(fl!("new-flashcard-back-title")).into(),
+                    widget::text_input(
+                        fl!("new-flashcard-back-inputfield"),
+                        &self.new_flashcard.back,
+                    )
+                    .on_input(Message::NewFlashcardBackInput)
+                    .into(),
+                ])
+                .spacing(spacing.space_xxs)
+                .padding([0, 15, 0, 15]),
+            )
+            .add(
+                widget::button(
+                    widget::text(fl!("new-flashcard-submit-button"))
+                        .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                        .width(Length::Fill),
+                )
+                .on_press(Message::Create)
+                .style(theme::Button::Suggested)
+                .padding([10, 0, 10, 0])
+                .width(Length::Fill),
+            )
+            .into()])
+        .into()
     }
 }

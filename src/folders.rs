@@ -122,18 +122,31 @@ impl Folders {
 
     /// The new folder context page for this app.
     pub fn new_folder_contextpage(&self) -> Element<Message> {
-        let new_folder_name_inputfield =
-            widget::TextInput::new(fl!("new-folder-name-inputfield"), &self.new_folder.name)
-                .on_input(Message::NewFolderNameInput);
+        let spacing = theme::active().cosmic().spacing;
 
-        let submit_button = widget::button(widget::text(fl!("new-folder-submit-button")))
-            .on_press(Message::Create)
-            .style(theme::Button::Suggested);
-
-        widget::Column::new()
-            .push(new_folder_name_inputfield)
-            .push(submit_button)
-            .width(Length::Fill)
-            .into()
+        widget::settings::view_column(vec![widget::settings::view_section(fl!("new-folder"))
+            .add(
+                widget::column::with_children(vec![
+                    widget::text::body(fl!("new-folder-name-title")).into(),
+                    widget::text_input(fl!("new-folder-name-inputfield"), &self.new_folder.name)
+                        .on_input(Message::NewFolderNameInput)
+                        .into(),
+                ])
+                .spacing(spacing.space_xxs)
+                .padding([0, 15, 0, 15]),
+            )
+            .add(
+                widget::button(
+                    widget::text(fl!("new-folder-submit-button"))
+                        .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                        .width(Length::Fill),
+                )
+                .on_press(Message::Create)
+                .style(theme::Button::Suggested)
+                .padding([10, 0, 10, 0])
+                .width(Length::Fill),
+            )
+            .into()])
+        .into()
     }
 }
