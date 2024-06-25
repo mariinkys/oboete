@@ -24,6 +24,7 @@ pub enum Message {
     SetFolders(Vec<Folder>),
     ToggleCreatePage,
     NewFolderNameInput(String),
+    OpenFolder(i32),
 }
 
 pub enum Command {
@@ -63,6 +64,7 @@ impl Folders {
                 };
                 commands.push(Command::LoadFolders(self.current_studyset_id))
             }
+            Message::OpenFolder(id) => commands.push(Command::OpenFolder(id)),
         }
 
         commands
@@ -81,7 +83,7 @@ impl Folders {
                     .style(theme::Container::Card)
                     .padding(Padding::new(10.0)),
             )
-            .on_press_down(Message::ToggleCreatePage) //TODO: This should open the folder, this is just for testing
+            .on_press_down(Message::OpenFolder(folder.id.unwrap())) //TODO: This is always safe to unwrap, I belive.
             .style(theme::Button::Text)
             .width(Length::Shrink);
 

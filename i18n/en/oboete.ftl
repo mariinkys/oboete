@@ -14,3 +14,6 @@ new-folder-submit-button = Create
 
 <#-- New Flashcard Context Page -->
 new-flashcard = New Flashcard
+new-flashcard-front-inputfield = Front
+new-flashcard-back-inputfield = Back
+new-flashcard-submit-button = Create

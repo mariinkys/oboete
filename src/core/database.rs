@@ -227,3 +227,95 @@ pub async fn upsert_folder(
         Err(err) => Err(err.into()),
     }
 }
+
+pub async fn get_folder_flashcards(
+    db: Option<OboeteDb>,
+    id: i32,
+) -> Result<Vec<Flashcard>, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let mut rows = sqlx::query("SELECT * FROM flashcards WHERE folder_id = ? ORDER BY id ASC")
+        .bind(id)
+        .fetch(&pool.db_pool);
+
+    let mut result = Vec::<Flashcard>::new();
+
+    while let Some(row) = rows.try_next().await? {
+        let id = row.try_get("id").unwrap_or(0);
+        let front = row.try_get("front").unwrap_or("Error");
+        let back = row.try_get("back").unwrap_or("Error");
+        let status = row.try_get("status").unwrap_or_default();
+
+        let flashcard: Flashcard = Flashcard {
+            id: Some(id),
+            front: String::from(front),
+            back: String::from(back),
+            status: status,
+        };
+
+        if let Some(_id) = flashcard.id {
+            result.push(flashcard);
+        }
+    }
+
+    Ok(result)
+}
+
+pub async fn upsert_flashcard(
+    db: Option<OboeteDb>,
+    flashcard: Flashcard,
+    folder_id: i32,
+) -> Result<i64, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let command = if flashcard.id.is_some() {
+        sqlx::query(
+            "UPDATE flashcards
+                SET
+                    front = ?
+                    back = ?
+                    status = ?
+                WHERE
+                    id = ?
+            ",
+        )
+        .bind(flashcard.front)
+        .bind(flashcard.back)
+        .bind(flashcard.status)
+        .bind(flashcard.id.unwrap())
+        .execute(&pool.db_pool)
+        .await
+    } else {
+        sqlx::query(
+            r#"
+            INSERT INTO flashcards (front, back, status, folder_id)
+            VALUES (?, ?, ?, ?)
+            "#,
+        )
+        .bind(flashcard.front)
+        .bind(flashcard.back)
+        .bind(flashcard.status)
+        .bind(folder_id)
+        .execute(&pool.db_pool)
+        .await
+    };
+
+    match command {
+        Ok(result) => Ok(result.last_insert_rowid()),
+        Err(err) => Err(err.into()),
+    }
+}
