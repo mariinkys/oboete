@@ -2,3 +2,4 @@
 
 pub mod database;
 pub mod localization;
+pub mod settings;
