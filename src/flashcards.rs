@@ -62,21 +62,6 @@ impl Flashcards {
                 back: self.new_edit_flashcard.back.to_string(),
                 status: self.new_edit_flashcard.status,
             })),
-            Message::SetFlashcards(flashcards) => self.flashcards = flashcards,
-            Message::ToggleCreatePage(flashcard) => {
-                if flashcard.is_none() {
-                    self.new_edit_flashcard = CreateEditFlashcardState {
-                        id: None,
-                        front: String::new(),
-                        back: String::new(),
-                        status: 0,
-                    };
-                }
-
-                commands.push(Command::ToggleCreateFlashcardPage(flashcard))
-            }
-            Message::ContextPageFrontInput(value) => self.new_edit_flashcard.front = value,
-            Message::ContextPageBackInput(value) => self.new_edit_flashcard.back = value,
             Message::Upserted => {
                 self.new_edit_flashcard = CreateEditFlashcardState {
                     id: None,
@@ -94,6 +79,21 @@ impl Flashcards {
                     status: flashcard.status,
                 };
             }
+            Message::SetFlashcards(flashcards) => self.flashcards = flashcards,
+            Message::ToggleCreatePage(flashcard) => {
+                if flashcard.is_none() {
+                    self.new_edit_flashcard = CreateEditFlashcardState {
+                        id: None,
+                        front: String::new(),
+                        back: String::new(),
+                        status: 0,
+                    };
+                }
+
+                commands.push(Command::ToggleCreateFlashcardPage(flashcard))
+            }
+            Message::ContextPageFrontInput(value) => self.new_edit_flashcard.front = value,
+            Message::ContextPageBackInput(value) => self.new_edit_flashcard.back = value,
         }
 
         commands
