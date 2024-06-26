@@ -1,7 +1,7 @@
 use cosmic::{
     iced::{
         alignment::{Horizontal, Vertical},
-        Length, Padding,
+        Length, Padding, Size,
     },
     theme, widget, Element,
 };
@@ -15,6 +15,7 @@ pub struct Flashcards {
     pub flashcards: Vec<Flashcard>,
     pub new_edit_flashcard: CreateEditFlashcardState,
     pub currently_studying_flashcard: Flashcard,
+    pub currently_studying_flashcard_side: CurrentFlashcardSide,
 }
 
 pub struct CreateEditFlashcardState {
@@ -36,6 +37,7 @@ pub enum Message {
     ContextPageBackInput(String),
     UpdateFlashcardStatus(Flashcard, StudyActions),
     UpdatedStatus(Vec<Flashcard>),
+    SwapFlashcardSide,
 }
 
 pub enum Command {
@@ -52,6 +54,12 @@ pub enum StudyActions {
     Bad,
     Ok,
     Good,
+}
+
+#[derive(Debug, Clone)]
+pub enum CurrentFlashcardSide {
+    Front,
+    Back,
 }
 
 impl Flashcards {
@@ -71,6 +79,7 @@ impl Flashcards {
                 back: String::new(),
                 status: 0,
             },
+            currently_studying_flashcard_side: CurrentFlashcardSide::Front,
         }
     }
 
@@ -136,6 +145,14 @@ impl Flashcards {
                         status: 0,
                     });
             }
+            Message::SwapFlashcardSide => match self.currently_studying_flashcard_side {
+                CurrentFlashcardSide::Front => {
+                    self.currently_studying_flashcard_side = CurrentFlashcardSide::Back
+                }
+                CurrentFlashcardSide::Back => {
+                    self.currently_studying_flashcard_side = CurrentFlashcardSide::Front
+                }
+            },
         }
 
         commands
@@ -256,15 +273,20 @@ impl Flashcards {
     pub fn view_study_page(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        //TODO: Swap front and back on click
+        //TODO: Remove Button effect on Hover / Beware text size
         let flashcard_container = widget::container(
             widget::button(
-                widget::Text::new(&self.currently_studying_flashcard.front)
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .vertical_alignment(Vertical::Center)
-                    .horizontal_alignment(Horizontal::Center),
+                widget::Text::new(match self.currently_studying_flashcard_side {
+                    CurrentFlashcardSide::Front => &self.currently_studying_flashcard.front,
+                    CurrentFlashcardSide::Back => &self.currently_studying_flashcard.back,
+                })
+                .size(spacing.space_xxxl)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .vertical_alignment(Vertical::Center)
+                .horizontal_alignment(Horizontal::Center),
             )
+            .on_press(Message::SwapFlashcardSide)
             .style(theme::Button::Text)
             .height(Length::Fill)
             .width(Length::Fill),
