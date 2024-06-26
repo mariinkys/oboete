@@ -8,7 +8,7 @@ use crate::{fl, models::Folder};
 const FOLDERS_PER_ROW: usize = 5;
 
 pub struct Folders {
-    pub current_studyset_id: i32,
+    pub current_studyset_id: Option<i32>,
     pub folders: Vec<Folder>,
     pub new_folder: NewFolderState,
 }
@@ -21,6 +21,7 @@ pub struct NewFolderState {
 pub enum Message {
     Create,
     Created,
+    Load(Option<i32>),
     SetFolders(Vec<Folder>),
     ToggleCreatePage,
     NewFolderNameInput(String),
@@ -39,7 +40,7 @@ pub enum Command {
 impl Folders {
     pub fn new() -> Self {
         Self {
-            current_studyset_id: 0,
+            current_studyset_id: None,
             folders: Vec::new(),
             new_folder: NewFolderState {
                 name: String::new(),
@@ -56,18 +57,21 @@ impl Folders {
                 name: self.new_folder.name.to_string(),
                 flashcards: Vec::new(),
             })),
-            Message::SetFolders(folders) => self.folders = folders,
-            Message::ToggleCreatePage => commands.push(Command::ToggleCreateFolderPage),
-            Message::NewFolderNameInput(value) => self.new_folder.name = value,
             Message::Created => {
                 self.new_folder = NewFolderState {
                     name: String::new(),
                 };
-                commands.push(Command::LoadFolders(self.current_studyset_id))
+                commands.push(Command::LoadFolders(self.current_studyset_id.unwrap()))
             }
+            Message::Load(studyset_id) => match studyset_id {
+                Some(set_id) => commands.push(Command::LoadFolders(set_id)),
+                None => self.current_studyset_id = None,
+            },
+            Message::SetFolders(folders) => self.folders = folders,
+            Message::ToggleCreatePage => commands.push(Command::ToggleCreateFolderPage),
+            Message::NewFolderNameInput(value) => self.new_folder.name = value,
             Message::OpenFolder(id) => commands.push(Command::OpenFolder(id)),
         }
-
         commands
     }
 
@@ -89,35 +93,46 @@ impl Folders {
     }
 
     pub fn view(&self) -> Element<Message> {
-        //TODO: Fix design, what happens when a item has a name that is longer?...
-        //All studysets should have the same with ej: 25% 25% 25% 25%...
-        let mut folders_grid = widget::Grid::new()
-            .width(Length::Fill)
-            .column_alignment(cosmic::iced::Alignment::Center);
+        if self.current_studyset_id.is_some() {
+            //TODO: Fix design, what happens when a item has a name that is longer?...
+            //All studysets should have the same with ej: 25% 25% 25% 25%...
+            let mut folders_grid = widget::Grid::new()
+                .width(Length::Fill)
+                .column_alignment(cosmic::iced::Alignment::Center);
 
-        for (index, folder) in self.folders.iter().enumerate() {
-            let folder_button = widget::button(
-                widget::container::Container::new(widget::text(folder.name.as_str()))
-                    .style(theme::Container::Card)
-                    .padding(Padding::new(10.0)),
-            )
-            .on_press_down(Message::OpenFolder(folder.id.unwrap()))
-            .style(theme::Button::Text)
-            .width(Length::Shrink);
+            for (index, folder) in self.folders.iter().enumerate() {
+                let folder_button = widget::button(
+                    widget::container::Container::new(widget::text(folder.name.as_str()))
+                        .style(theme::Container::Card)
+                        .padding(Padding::new(10.0)),
+                )
+                .on_press_down(Message::OpenFolder(folder.id.unwrap()))
+                .style(theme::Button::Text)
+                .width(Length::Shrink);
 
-            if index % FOLDERS_PER_ROW == 0 {
-                folders_grid = folders_grid.insert_row();
+                if index % FOLDERS_PER_ROW == 0 {
+                    folders_grid = folders_grid.insert_row();
+                }
+
+                folders_grid = folders_grid.push(folder_button);
             }
 
-            folders_grid = folders_grid.push(folder_button);
-        }
+            widget::Column::new()
+                .push(self.folder_header_row())
+                .push(folders_grid)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into()
+        } else {
+            let spacing = theme::active().cosmic().spacing;
 
-        widget::Column::new()
-            .push(self.folder_header_row())
-            .push(folders_grid)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+            widget::Container::new(widget::Text::new("Empty").size(spacing.space_xl))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(cosmic::iced::alignment::Horizontal::Center)
+                .align_y(cosmic::iced::alignment::Vertical::Center)
+                .into()
+        }
     }
 
     /// The new folder context page for this app.

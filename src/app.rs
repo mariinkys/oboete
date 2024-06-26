@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use crate::core::database::{
-    get_all_studysets, get_folder_flashcards, get_single_flashcard, get_studyset_folders,
-    update_flashcard_status, upsert_flashcard, upsert_folder, upsert_studyset, OboeteDb,
+    delete_studyset, get_all_studysets, get_folder_flashcards, get_single_flashcard,
+    get_studyset_folders, update_flashcard_status, upsert_flashcard, upsert_folder,
+    upsert_studyset, OboeteDb,
 };
+use crate::fl;
 use crate::flashcards::{self, Flashcards};
 use crate::folders::{self, Folders};
-use crate::studysets::StudySets;
+use crate::models::StudySet;
 use crate::utils::select_random_flashcard;
-use crate::{fl, studysets};
 use cosmic::app::{message, Core, Message as CosmicMessage};
 use cosmic::iced::{Alignment, Length};
-use cosmic::widget::{self, icon, menu, nav_bar};
+use cosmic::widget::segmented_button::{EntityMut, SingleSelect};
+use cosmic::widget::{self, menu, nav_bar, segmented_button};
 use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Command, Element};
 
 const REPOSITORY: &str = "https://github.com/mariinkys/oboete";
@@ -26,13 +28,15 @@ pub struct Oboete {
     /// Key bindings for the application's menu bar.
     key_binds: HashMap<menu::KeyBind, MenuAction>,
     /// A model that contains all of the pages assigned to the nav bar panel.
-    nav: nav_bar::Model,
+    nav: segmented_button::SingleSelectModel,
     /// Currently selected Page
     current_page: Page,
+    /// Dialog Pages of the Application
+    dialog_pages: VecDeque<DialogPage>,
+    /// Input inside of the Dialog Pages of the Application
+    dialog_text_input: widget::Id,
     /// Database of the application
     db: Option<OboeteDb>,
-    /// StudySets Page
-    studysets: StudySets,
     /// Folders Page
     folders: Folders,
     /// Flashcards Page (A folder flashcards, not all flashcards)
@@ -44,18 +48,25 @@ pub enum Message {
     LaunchUrl(String),
     ToggleContextPage(ContextPage),
     DbConnected(OboeteDb),
-    StudySets(studysets::Message),
     Folders(folders::Message),
     Flashcards(flashcards::Message),
+    FetchStudySets,
+    PopulateStudySets(Vec<StudySet>),
+    OpenNewStudySetDialog,
+    OpenRenameStudySetDialog,
+    OpenDeleteStudySetDialog,
+    DialogCancel,
+    DialogComplete,
+    DialogUpdate(DialogPage),
+    AddStudySet(StudySet),
+    DeleteStudySet,
 }
 
 /// Identifies a page in the application.
 pub enum Page {
-    StudySets,
     Folders,
     FolderFlashcards,
     StudyFolderFlashcards,
-    AllFlashcards,
 }
 
 /// Identifies a context page to display in the context drawer.
@@ -63,7 +74,6 @@ pub enum Page {
 pub enum ContextPage {
     #[default]
     About,
-    NewStudySet,
     NewFolder,
     CreateEditFlashcard,
 }
@@ -72,7 +82,6 @@ impl ContextPage {
     fn title(&self) -> String {
         match self {
             Self::About => fl!("about"),
-            Self::NewStudySet => fl!("new-studyset"),
             Self::NewFolder => fl!("new-folder"),
             Self::CreateEditFlashcard => fl!("flashcard-details"),
         }
@@ -82,6 +91,9 @@ impl ContextPage {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MenuAction {
     About,
+    NewStudySet,
+    RenameStudySet,
+    DeleteStudySet,
 }
 
 impl menu::action::MenuAction for MenuAction {
@@ -90,8 +102,18 @@ impl menu::action::MenuAction for MenuAction {
     fn message(&self) -> Self::Message {
         match self {
             MenuAction::About => Message::ToggleContextPage(ContextPage::About),
+            MenuAction::NewStudySet => Message::OpenNewStudySetDialog,
+            MenuAction::RenameStudySet => Message::OpenRenameStudySetDialog,
+            MenuAction::DeleteStudySet => Message::OpenDeleteStudySetDialog,
         }
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DialogPage {
+    NewStudySet(String),
+    RenameStudySet { to: String },
+    DeleteStudySet,
 }
 
 impl Application for Oboete {
@@ -116,65 +138,70 @@ impl Application for Oboete {
         Some(&self.nav)
     }
 
-    fn init(core: Core, _flags: Self::Flags) -> (Self, Command<CosmicMessage<Self::Message>>) {
-        let mut nav = nav_bar::Model::default();
+    fn init(mut core: Core, _flags: Self::Flags) -> (Self, Command<CosmicMessage<Self::Message>>) {
+        core.nav_bar_toggle_condensed();
+        let nav = segmented_button::ModelBuilder::default().build();
 
-        nav.insert()
-            .text("Study Sets")
-            .data::<Page>(Page::StudySets)
-            .icon(icon::from_name("applications-science-symbolic"))
-            .activate();
-
-        nav.insert()
-            .text("All Flashcards")
-            .data::<Page>(Page::AllFlashcards)
-            .icon(icon::from_name("applications-system-symbolic"));
-
-        let mut app = Oboete {
+        let app = Oboete {
             core,
             context_page: ContextPage::default(),
             key_binds: HashMap::new(),
             nav,
-            current_page: Page::StudySets,
+            current_page: Page::Folders,
             db: None,
-            studysets: StudySets::new(),
             folders: Folders::new(),
             flashcards: Flashcards::new(),
+            dialog_pages: VecDeque::new(),
+            dialog_text_input: widget::Id::unique(),
         };
 
         //Connect to the Database and Run the needed migrations
-        let commands = vec![
-            Command::perform(OboeteDb::init(Self::APP_ID), |database| {
-                message::app(Message::DbConnected(database))
-            }),
-            app.update_titles(),
-        ];
+        let commands = vec![Command::perform(OboeteDb::init(Self::APP_ID), |database| {
+            message::app(Message::DbConnected(database))
+        })];
 
         (app, Command::batch(commands))
     }
 
     /// Elements to pack at the start of the header bar.
     fn header_start(&self) -> Vec<Element<Self::Message>> {
-        let menu_bar = menu::bar(vec![menu::Tree::with_children(
-            menu::root(fl!("view")),
-            menu::items(
-                &self.key_binds,
-                vec![menu::Item::Button(fl!("about"), MenuAction::About)],
+        let menu_bar = menu::bar(vec![
+            menu::Tree::with_children(
+                menu::root("File"),
+                menu::items(
+                    &self.key_binds,
+                    vec![menu::Item::Button("New StudySet", MenuAction::NewStudySet)],
+                ),
             ),
-        )]);
+            menu::Tree::with_children(
+                menu::root("Edit"),
+                menu::items(
+                    &self.key_binds,
+                    vec![
+                        menu::Item::Button("Rename StudySet", MenuAction::RenameStudySet),
+                        menu::Item::Button("Delete StudySet", MenuAction::DeleteStudySet),
+                    ],
+                ),
+            ),
+            menu::Tree::with_children(
+                menu::root(fl!("view")),
+                menu::items(
+                    &self.key_binds,
+                    vec![menu::Item::Button(fl!("about"), MenuAction::About)],
+                ),
+            ),
+        ]);
 
         vec![menu_bar.into()]
     }
 
     fn view(&self) -> Element<Self::Message> {
         let content = match self.current_page {
-            Page::StudySets => self.studysets.view().map(Message::StudySets),
             Page::Folders => self.folders.view().map(Message::Folders),
             Page::FolderFlashcards => self.flashcards.view().map(Message::Flashcards),
             Page::StudyFolderFlashcards => {
                 self.flashcards.view_study_page().map(Message::Flashcards)
             }
-            Page::AllFlashcards => todo!(),
         };
 
         widget::Container::new(content)
@@ -205,73 +232,9 @@ impl Application for Oboete {
                 self.set_context_title(context_page.title());
             }
             Message::DbConnected(db) => {
-                //TODO: How to not clone the DB for every operation
                 self.db = Some(db);
-                let command = self.update(Message::StudySets(studysets::Message::GetStudySets));
+                let command = self.update(Message::FetchStudySets);
                 commands.push(command);
-            }
-            Message::StudySets(message) => {
-                let studyset_commands = self.studysets.update(message);
-
-                for studyset_command in studyset_commands {
-                    match studyset_command {
-                        //Opens the NewStudySet ContextPage
-                        studysets::Command::ToggleCreateStudySetPage => {
-                            if self.context_page == ContextPage::NewStudySet {
-                                // Close the context drawer if the toggled context page is the same.
-                                self.core.window.show_context = !self.core.window.show_context;
-                            } else {
-                                // Open the context drawer to display the requested context page.
-                                self.context_page = ContextPage::NewStudySet;
-                                self.core.window.show_context = true;
-                            }
-
-                            // Set the title of the context drawer.
-                            self.set_context_title(ContextPage::NewStudySet.title());
-                        }
-                        //Creates a StudySet
-                        studysets::Command::CreateStudySet(studyset) => {
-                            let command = Command::perform(
-                                upsert_studyset(self.db.clone(), studyset),
-                                |_result| {
-                                    message::app(Message::StudySets(studysets::Message::Created))
-                                },
-                            );
-                            self.core.window.show_context = false;
-                            commands.push(command);
-                        }
-                        //Loads the studysets
-                        studysets::Command::LoadStudySets => {
-                            let command =
-                                Command::perform(get_all_studysets(self.db.clone()), |result| {
-                                    match result {
-                                        Ok(studysets) => message::app(Message::StudySets(
-                                            studysets::Message::SetStudySets(studysets),
-                                        )),
-                                        Err(_) => message::none(),
-                                    }
-                                });
-
-                            commands.push(command);
-                        }
-                        //Opens a studyset => Loads the folders of a given studyset => Updates the current_studyset_id
-                        studysets::Command::OpenStudySet(studyset_id) => {
-                            let command = Command::perform(
-                                get_studyset_folders(self.db.clone(), studyset_id),
-                                |result| match result {
-                                    Ok(folders) => message::app(Message::Folders(
-                                        folders::Message::SetFolders(folders),
-                                    )),
-                                    Err(_) => message::none(),
-                                },
-                            );
-                            self.current_page = Page::Folders;
-                            self.folders.current_studyset_id = studyset_id;
-
-                            commands.push(command);
-                        }
-                    }
-                }
             }
             Message::Folders(message) => {
                 let folder_commands = self.folders.update(message);
@@ -312,7 +275,8 @@ impl Application for Oboete {
                                 upsert_folder(
                                     self.db.clone(),
                                     folder,
-                                    self.folders.current_studyset_id,
+                                    //TODO: Safe to unwrap?
+                                    self.folders.current_studyset_id.unwrap(),
                                 ),
                                 |_result| message::app(Message::Folders(folders::Message::Created)),
                             );
@@ -436,6 +400,110 @@ impl Application for Oboete {
                     }
                 }
             }
+            Message::FetchStudySets => {
+                commands.push(Command::perform(
+                    get_all_studysets(self.db.clone()),
+                    |result| match result {
+                        Ok(data) => message::app(Message::PopulateStudySets(data)),
+                        Err(_) => message::none(),
+                    },
+                ));
+            }
+            Message::PopulateStudySets(studysets) => {
+                for set in studysets {
+                    self.create_nav_item(set);
+                }
+                let Some(entity) = self.nav.iter().next() else {
+                    return Command::none();
+                };
+                self.nav.activate(entity);
+                let command = self.on_nav_select(entity);
+                commands.push(command);
+            }
+            Message::OpenNewStudySetDialog => {
+                self.dialog_pages
+                    .push_back(DialogPage::NewStudySet(String::new()));
+                return widget::text_input::focus(self.dialog_text_input.clone());
+            }
+            Message::OpenRenameStudySetDialog => {
+                if let Some(set) = self.nav.data::<StudySet>(self.nav.active()) {
+                    self.dialog_pages.push_back(DialogPage::RenameStudySet {
+                        to: set.name.clone(),
+                    });
+                    return widget::text_input::focus(self.dialog_text_input.clone());
+                }
+            }
+            Message::OpenDeleteStudySetDialog => {
+                if self.nav.data::<StudySet>(self.nav.active()).is_some() {
+                    self.dialog_pages.push_back(DialogPage::DeleteStudySet);
+                }
+            }
+            Message::DialogComplete => {
+                if let Some(dialog_page) = self.dialog_pages.pop_front() {
+                    match dialog_page {
+                        DialogPage::NewStudySet(name) => {
+                            //TODO
+                            //let set = StudySet::new(&name);
+                            let set = StudySet {
+                                id: None,
+                                name,
+                                folders: Vec::new(),
+                            };
+                            commands.push(Command::perform(
+                                upsert_studyset(self.db.clone(), set),
+                                |result| match result {
+                                    Ok(set) => message::app(Message::AddStudySet(set)),
+                                    Err(_) => message::none(),
+                                },
+                            ));
+                        }
+                        DialogPage::RenameStudySet { to: name } => {
+                            let entity = self.nav.active();
+                            self.nav.text_set(entity, name.clone());
+                            if let Some(set) = self.nav.active_data_mut::<StudySet>() {
+                                set.name = name.clone();
+                                let command = Command::perform(
+                                    upsert_studyset(self.db.clone(), set.to_owned().clone()),
+                                    |_| message::none(),
+                                );
+                                commands.push(command);
+                            }
+                        }
+                        DialogPage::DeleteStudySet => {
+                            commands.push(self.update(Message::DeleteStudySet));
+                        }
+                    }
+                }
+            }
+            Message::DialogUpdate(dialog_page) => {
+                self.dialog_pages[0] = dialog_page;
+            }
+            Message::DialogCancel => {
+                self.dialog_pages.pop_front();
+            }
+            Message::AddStudySet(set) => {
+                self.create_nav_item(set);
+                let Some(entity) = self.nav.iter().last() else {
+                    return Command::none();
+                };
+                let command = self.on_nav_select(entity);
+                commands.push(command);
+            }
+            Message::DeleteStudySet => {
+                if let Some(set) = self.nav.data::<StudySet>(self.nav.active()) {
+                    let command = Command::perform(
+                        delete_studyset(self.db.clone(), set.id.unwrap()),
+                        |result| match result {
+                            Ok(_) => message::none(),
+                            Err(_) => message::none(),
+                        },
+                    );
+
+                    commands.push(self.update(Message::Folders(folders::Message::Load(None))));
+                    commands.push(command);
+                }
+                self.nav.remove(self.nav.active());
+            }
         }
 
         Command::batch(commands)
@@ -449,10 +517,6 @@ impl Application for Oboete {
 
         Some(match self.context_page {
             ContextPage::About => self.about(),
-            ContextPage::NewStudySet => self
-                .studysets
-                .new_studyset_contextpage()
-                .map(Message::StudySets),
             ContextPage::NewFolder => self.folders.new_folder_contextpage().map(Message::Folders),
             ContextPage::CreateEditFlashcard => self
                 .flashcards
@@ -461,25 +525,91 @@ impl Application for Oboete {
         })
     }
 
-    /// Called when a nav item is selected.
-    fn on_nav_select(&mut self, id: nav_bar::Id) -> Command<CosmicMessage<Self::Message>> {
-        // Activate the page in the model.
-        self.nav.activate(id);
+    fn dialog(&self) -> Option<Element<Message>> {
+        let dialog_page = match self.dialog_pages.front() {
+            Some(some) => some,
+            None => return None,
+        };
 
-        //Update the current page
-        let current_page: Option<&Page> = self.nav.active_data();
-        match current_page {
-            Some(page) => match page {
-                Page::StudySets => self.current_page = Page::StudySets,
-                Page::Folders => self.current_page = Page::Folders,
-                Page::FolderFlashcards => self.current_page = Page::FolderFlashcards,
-                Page::AllFlashcards => self.current_page = Page::AllFlashcards,
-                Page::StudyFolderFlashcards => self.current_page = Page::StudyFolderFlashcards,
-            },
-            None => self.current_page = Page::StudySets,
+        let spacing = theme::active().cosmic().spacing;
+
+        let dialog = match dialog_page {
+            DialogPage::NewStudySet(name) => widget::dialog("Create StudySet")
+                .primary_action(
+                    widget::button::suggested("Save").on_press_maybe(Some(Message::DialogComplete)),
+                )
+                .secondary_action(
+                    widget::button::standard("Cancel").on_press(Message::DialogCancel),
+                )
+                .control(
+                    widget::column::with_children(vec![
+                        widget::text::body("StudySet Name").into(),
+                        widget::text_input("", name.as_str())
+                            .id(self.dialog_text_input.clone())
+                            .on_input(move |name| {
+                                Message::DialogUpdate(DialogPage::NewStudySet(name))
+                            })
+                            .on_submit(Message::DialogComplete)
+                            .into(),
+                    ])
+                    .spacing(spacing.space_xxs),
+                ),
+            DialogPage::RenameStudySet { to: name } => widget::dialog("Rename StudySet")
+                .primary_action(
+                    widget::button::suggested("Save").on_press_maybe(Some(Message::DialogComplete)),
+                )
+                .secondary_action(
+                    widget::button::standard("Cancel").on_press(Message::DialogCancel),
+                )
+                .control(
+                    widget::column::with_children(vec![
+                        widget::text::body("StudySet Name").into(),
+                        widget::text_input("", name.as_str())
+                            .id(self.dialog_text_input.clone())
+                            .on_input(move |name| {
+                                Message::DialogUpdate(DialogPage::RenameStudySet { to: name })
+                            })
+                            .on_submit(Message::DialogComplete)
+                            .into(),
+                    ])
+                    .spacing(spacing.space_xxs),
+                ),
+            DialogPage::DeleteStudySet => widget::dialog("Delete StudySet")
+                .body("Confirm Delete")
+                .primary_action(
+                    widget::button::suggested("Ok").on_press_maybe(Some(Message::DialogComplete)),
+                )
+                .secondary_action(
+                    widget::button::standard("Cancel").on_press(Message::DialogCancel),
+                ),
+        };
+
+        Some(dialog.into())
+    }
+
+    /// Called when a nav item is selected.
+    fn on_nav_select(
+        &mut self,
+        entity: segmented_button::Entity,
+    ) -> Command<CosmicMessage<Self::Message>> {
+        let mut commands = vec![];
+        self.nav.activate(entity);
+        let location_opt = self.nav.data::<StudySet>(entity);
+
+        if let Some(set) = location_opt {
+            self.current_page = Page::Folders;
+            self.folders.current_studyset_id = set.id;
+
+            let message = Message::Folders(folders::Message::Load(set.id));
+            let window_title = format!("Oboete - {}", set.name);
+
+            commands.push(self.set_window_title(window_title.clone()));
+            self.set_header_title(window_title);
+
+            return self.update(message);
         }
 
-        self.update_titles()
+        Command::batch(commands)
     }
 }
 
@@ -507,18 +637,10 @@ impl Oboete {
             .into()
     }
 
-    /// Updates the header and window titles.
-    pub fn update_titles(&mut self) -> Command<CosmicMessage<Message>> {
-        let mut window_title = fl!("app-title");
-        let mut header_title = String::new();
-
-        if let Some(page) = self.nav.text(self.nav.active()) {
-            window_title.push_str(" — ");
-            window_title.push_str(page);
-            header_title.push_str(page);
-        }
-
-        self.set_header_title(header_title);
-        self.set_window_title(window_title)
+    fn create_nav_item(&mut self, studyset: StudySet) -> EntityMut<SingleSelect> {
+        self.nav
+            .insert()
+            .text(studyset.name.clone())
+            .data(studyset.clone())
     }
 }

@@ -107,7 +107,10 @@ pub async fn get_all_studysets(db: Option<OboeteDb>) -> Result<Vec<StudySet>, Ob
     Ok(result)
 }
 
-pub async fn upsert_studyset(db: Option<OboeteDb>, studyset: StudySet) -> Result<i64, OboeteError> {
+pub async fn upsert_studyset(
+    db: Option<OboeteDb>,
+    studyset: StudySet,
+) -> Result<StudySet, OboeteError> {
     let pool = match db {
         Some(db) => db,
         None => {
@@ -143,7 +146,26 @@ pub async fn upsert_studyset(db: Option<OboeteDb>, studyset: StudySet) -> Result
     };
 
     match command {
-        Ok(result) => Ok(result.last_insert_rowid()),
+        Ok(result) => {
+            let id = result.last_insert_rowid();
+
+            let row_result = sqlx::query("SELECT * FROM studysets WHERE id = ?")
+                .bind(id)
+                .fetch_one(&pool.db_pool)
+                .await;
+
+            match row_result {
+                Ok(row) => {
+                    let set: StudySet = StudySet {
+                        id: row.get("id"),
+                        name: row.get("name"),
+                        folders: Vec::new(),
+                    };
+                    Ok(set)
+                }
+                Err(err) => Err(err.into()),
+            }
+        }
         Err(err) => Err(err.into()),
     }
 }
@@ -402,4 +424,25 @@ pub async fn update_flashcard_status(
     }
 
     Ok(result)
+}
+
+pub async fn delete_studyset(db: Option<OboeteDb>, id: i32) -> Result<bool, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let command = sqlx::query("DELETE FROM studysets WHERE id = ?")
+        .bind(id)
+        .execute(&pool.db_pool)
+        .await;
+
+    match command {
+        Ok(_) => Ok(true),
+        Err(err) => Err(err.into()),
+    }
 }

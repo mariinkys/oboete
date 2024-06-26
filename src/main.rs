@@ -6,7 +6,6 @@ mod core;
 mod flashcards;
 mod folders;
 mod models;
-mod studysets;
 mod utils;
 
 /// The `cosmic::app::run()` function is the starting point of your application.
