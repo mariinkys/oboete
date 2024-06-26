@@ -3,10 +3,10 @@
 use std::collections::HashMap;
 
 use crate::core::database::{
-    get_all_studysets, get_folder_flashcards, get_studyset_folders, upsert_flashcard,
-    upsert_folder, upsert_studyset, OboeteDb,
+    get_all_studysets, get_folder_flashcards, get_single_flashcard, get_studyset_folders,
+    upsert_flashcard, upsert_folder, upsert_studyset, OboeteDb,
 };
-use crate::flashcards::{self, Flashcards};
+use crate::flashcards::{self, CreateEditFlashcardState, Flashcards};
 use crate::folders::{self, Folders};
 use crate::studysets::StudySets;
 use crate::{fl, studysets};
@@ -63,7 +63,7 @@ pub enum ContextPage {
     About,
     NewStudySet,
     NewFolder,
-    NewFlashcard,
+    CreateEditFlashcard,
 }
 
 impl ContextPage {
@@ -72,7 +72,7 @@ impl ContextPage {
             Self::About => fl!("about"),
             Self::NewStudySet => fl!("new-studyset"),
             Self::NewFolder => fl!("new-folder"),
-            Self::NewFlashcard => fl!("new-flashcard"),
+            Self::CreateEditFlashcard => fl!("flashcard-details"),
         }
     }
 }
@@ -353,21 +353,38 @@ impl Application for Oboete {
                             commands.push(command);
                         }
                         //Opens the NewFlashcard ContextPage
-                        flashcards::Command::ToggleCreateFlashcardPage => {
-                            if self.context_page == ContextPage::NewFlashcard {
+                        flashcards::Command::ToggleCreateFlashcardPage(flashcard) => {
+                            if self.context_page == ContextPage::CreateEditFlashcard {
                                 // Close the context drawer if the toggled context page is the same.
                                 self.core.window.show_context = !self.core.window.show_context;
                             } else {
                                 // Open the context drawer to display the requested context page.
-                                self.context_page = ContextPage::NewFlashcard;
+                                self.context_page = ContextPage::CreateEditFlashcard;
                                 self.core.window.show_context = true;
                             }
 
+                            //Loads the flashcard in case is an edit operation
+                            if flashcard.is_some() {
+                                let command = Command::perform(
+                                    get_single_flashcard(
+                                        self.db.clone(),
+                                        flashcard.unwrap().id.unwrap(),
+                                    ),
+                                    |result| match result {
+                                        Ok(flashcard) => message::app(Message::Flashcards(
+                                            flashcards::Message::LoadedSingle(flashcard),
+                                        )),
+                                        Err(_) => message::none(),
+                                    },
+                                );
+                                commands.push(command);
+                            }
+
                             // Set the title of the context drawer.
-                            self.set_context_title(ContextPage::NewFlashcard.title());
+                            self.set_context_title(ContextPage::CreateEditFlashcard.title());
                         }
-                        //Creates a Flashcard inside a Folder
-                        flashcards::Command::CreateFlashcard(flashcard) => {
+                        //Upserts a Flashcard inside a Folder
+                        flashcards::Command::UpsertFlashcard(flashcard) => {
                             let command = Command::perform(
                                 upsert_flashcard(
                                     self.db.clone(),
@@ -375,13 +392,12 @@ impl Application for Oboete {
                                     self.flashcards.current_folder_id,
                                 ),
                                 |_result| {
-                                    message::app(Message::Flashcards(flashcards::Message::Created))
+                                    message::app(Message::Flashcards(flashcards::Message::Upserted))
                                 },
                             );
                             self.core.window.show_context = false;
                             commands.push(command);
                         }
-                        flashcards::Command::OpenFlashcard(flashcard_id) => todo!(),
                     }
                 }
             }
@@ -403,9 +419,9 @@ impl Application for Oboete {
                 .new_studyset_contextpage()
                 .map(Message::StudySets),
             ContextPage::NewFolder => self.folders.new_folder_contextpage().map(Message::Folders),
-            ContextPage::NewFlashcard => self
+            ContextPage::CreateEditFlashcard => self
                 .flashcards
-                .new_flashcard_contextpage()
+                .create_edit_flashcard_contextpage()
                 .map(Message::Flashcards),
         })
     }

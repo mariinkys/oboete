@@ -15,9 +15,10 @@ new-folder-name-inputfield = Name
 new-folder-submit-button = Create
 
 <#-- New Flashcard Context Page -->
-new-flashcard = New Flashcard
+flashcard-details = Flashcard Details
 new-flashcard-front-title = Flashcard Front
 new-flashcard-front-inputfield = Front
 new-flashcard-back-title = Flashcard Back
 new-flashcard-back-inputfield = Back
 new-flashcard-submit-button = Create
+new-flashcard-edit-button = Edit

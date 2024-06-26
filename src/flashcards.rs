@@ -10,10 +10,11 @@ const FLASHCARDS_PER_ROW: usize = 5;
 pub struct Flashcards {
     pub current_folder_id: i32,
     pub flashcards: Vec<Flashcard>,
-    pub new_flashcard: NewFlashcardState,
+    pub new_edit_flashcard: CreateEditFlashcardState,
 }
 
-pub struct NewFlashcardState {
+pub struct CreateEditFlashcardState {
+    id: Option<i32>,
     front: String,
     back: String,
     status: i32,
@@ -21,21 +22,20 @@ pub struct NewFlashcardState {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Create,
-    Created,
+    Upsert,
+    Upserted,
+    LoadedSingle(Flashcard),
     SetFlashcards(Vec<Flashcard>),
-    ToggleCreatePage,
-    NewFlashcardFrontInput(String),
-    NewFlashcardBackInput(String),
+    ToggleCreatePage(Option<Flashcard>),
+    ContextPageFrontInput(String),
+    ContextPageBackInput(String),
 }
 
 pub enum Command {
     //The i32 is the Folder Id
     LoadFlashcards(i32),
-    ToggleCreateFlashcardPage,
-    CreateFlashcard(Flashcard),
-    //The i32 is the Flashcard Id
-    OpenFlashcard(i32),
+    ToggleCreateFlashcardPage(Option<Flashcard>),
+    UpsertFlashcard(Flashcard),
 }
 
 impl Flashcards {
@@ -43,7 +43,8 @@ impl Flashcards {
         Self {
             current_folder_id: 0,
             flashcards: Vec::new(),
-            new_flashcard: NewFlashcardState {
+            new_edit_flashcard: CreateEditFlashcardState {
+                id: None,
                 front: String::new(),
                 back: String::new(),
                 status: 0,
@@ -55,23 +56,43 @@ impl Flashcards {
         let mut commands = Vec::new();
 
         match message {
-            Message::Create => commands.push(Command::CreateFlashcard(Flashcard {
-                id: None,
-                front: self.new_flashcard.front.to_string(),
-                back: self.new_flashcard.back.to_string(),
-                status: 0,
+            Message::Upsert => commands.push(Command::UpsertFlashcard(Flashcard {
+                id: self.new_edit_flashcard.id,
+                front: self.new_edit_flashcard.front.to_string(),
+                back: self.new_edit_flashcard.back.to_string(),
+                status: self.new_edit_flashcard.status,
             })),
             Message::SetFlashcards(flashcards) => self.flashcards = flashcards,
-            Message::ToggleCreatePage => commands.push(Command::ToggleCreateFlashcardPage),
-            Message::NewFlashcardFrontInput(value) => self.new_flashcard.front = value,
-            Message::NewFlashcardBackInput(value) => self.new_flashcard.back = value,
-            Message::Created => {
-                self.new_flashcard = NewFlashcardState {
+            Message::ToggleCreatePage(flashcard) => {
+                if flashcard.is_none() {
+                    self.new_edit_flashcard = CreateEditFlashcardState {
+                        id: None,
+                        front: String::new(),
+                        back: String::new(),
+                        status: 0,
+                    };
+                }
+
+                commands.push(Command::ToggleCreateFlashcardPage(flashcard))
+            }
+            Message::ContextPageFrontInput(value) => self.new_edit_flashcard.front = value,
+            Message::ContextPageBackInput(value) => self.new_edit_flashcard.back = value,
+            Message::Upserted => {
+                self.new_edit_flashcard = CreateEditFlashcardState {
+                    id: None,
                     front: String::new(),
                     back: String::new(),
                     status: 0,
                 };
                 commands.push(Command::LoadFlashcards(self.current_folder_id))
+            }
+            Message::LoadedSingle(flashcard) => {
+                self.new_edit_flashcard = CreateEditFlashcardState {
+                    id: flashcard.id,
+                    front: flashcard.front,
+                    back: flashcard.back,
+                    status: flashcard.status,
+                };
             }
         }
 
@@ -84,7 +105,7 @@ impl Flashcards {
         let new_flashcard_button = widget::button(widget::text("New"))
             .style(theme::Button::Suggested)
             .padding(spacing.space_xxs)
-            .on_press(Message::ToggleCreatePage);
+            .on_press(Message::ToggleCreatePage(None));
 
         widget::row::with_capacity(2)
             .align_items(cosmic::iced::Alignment::Center)
@@ -108,7 +129,7 @@ impl Flashcards {
                     .style(theme::Container::Card)
                     .padding(Padding::new(10.0)),
             )
-            .on_press_down(Message::ToggleCreatePage) //TODO: This should open the flashcard to view/edit, this is just for testing
+            .on_press_down(Message::ToggleCreatePage(Some(flashcard.clone())))
             .style(theme::Button::Text)
             .width(Length::Shrink);
 
@@ -127,49 +148,60 @@ impl Flashcards {
             .into()
     }
 
-    /// The new flashcard context page for this app.
-    pub fn new_flashcard_contextpage(&self) -> Element<Message> {
+    /// The create or edit flashcard context page for this app.
+    pub fn create_edit_flashcard_contextpage(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        widget::settings::view_column(vec![widget::settings::view_section(fl!("new-flashcard"))
-            .add(
-                widget::column::with_children(vec![
-                    widget::text::body(fl!("new-flashcard-front-title")).into(),
-                    widget::text_input(
-                        fl!("new-flashcard-front-inputfield"),
-                        &self.new_flashcard.front,
-                    )
-                    .on_input(Message::NewFlashcardFrontInput)
-                    .into(),
-                ])
-                .spacing(spacing.space_xxs)
-                .padding([0, 15, 0, 15]),
-            )
-            .add(
-                widget::column::with_children(vec![
-                    widget::text::body(fl!("new-flashcard-back-title")).into(),
-                    widget::text_input(
-                        fl!("new-flashcard-back-inputfield"),
-                        &self.new_flashcard.back,
-                    )
-                    .on_input(Message::NewFlashcardBackInput)
-                    .into(),
-                ])
-                .spacing(spacing.space_xxs)
-                .padding([0, 15, 0, 15]),
-            )
-            .add(
-                widget::button(
-                    widget::text(fl!("new-flashcard-submit-button"))
-                        .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                        .width(Length::Fill),
+        widget::settings::view_column(vec![widget::settings::view_section(fl!(
+            "flashcard-details"
+        ))
+        .add(
+            widget::column::with_children(vec![
+                widget::text::body(fl!("new-flashcard-front-title")).into(),
+                widget::text_input(
+                    fl!("new-flashcard-front-inputfield"),
+                    &self.new_edit_flashcard.front,
                 )
-                .on_press(Message::Create)
-                .style(theme::Button::Suggested)
-                .padding([10, 0, 10, 0])
-                .width(Length::Fill),
+                .on_input(Message::ContextPageFrontInput)
+                .into(),
+            ])
+            .spacing(spacing.space_xxs)
+            .padding([0, 15, 0, 15]),
+        )
+        .add(
+            widget::column::with_children(vec![
+                widget::text::body(fl!("new-flashcard-back-title")).into(),
+                widget::text_input(
+                    fl!("new-flashcard-back-inputfield"),
+                    &self.new_edit_flashcard.back,
+                )
+                .on_input(Message::ContextPageBackInput)
+                .into(),
+            ])
+            .spacing(spacing.space_xxs)
+            .padding([0, 15, 0, 15]),
+        )
+        .add(match self.new_edit_flashcard.id {
+            Some(_id) => widget::button(
+                widget::text(fl!("new-flashcard-edit-button"))
+                    .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                    .width(Length::Fill),
             )
-            .into()])
+            .on_press(Message::Upsert)
+            .style(theme::Button::Suggested)
+            .padding([10, 0, 10, 0])
+            .width(Length::Fill),
+            None => widget::button(
+                widget::text(fl!("new-flashcard-submit-button"))
+                    .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                    .width(Length::Fill),
+            )
+            .on_press(Message::Upsert)
+            .style(theme::Button::Suggested)
+            .padding([10, 0, 10, 0])
+            .width(Length::Fill),
+        })
+        .into()])
         .into()
     }
 }

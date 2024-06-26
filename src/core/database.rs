@@ -288,13 +288,12 @@ pub async fn upsert_flashcard(
     let command = if flashcard.id.is_some() {
         sqlx::query(
             "UPDATE flashcards
-                SET
-                    front = ?
-                    back = ?
-                    status = ?
-                WHERE
-                    id = ?
-            ",
+             SET
+                 front = $1,
+                 back = $2,
+                 status = $3
+             WHERE
+                 id = $4",
         )
         .bind(flashcard.front)
         .bind(flashcard.back)
@@ -319,6 +318,35 @@ pub async fn upsert_flashcard(
 
     match command {
         Ok(result) => Ok(result.last_insert_rowid()),
+        Err(err) => Err(err.into()),
+    }
+}
+
+pub async fn get_single_flashcard(db: Option<OboeteDb>, id: i32) -> Result<Flashcard, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let row_result = sqlx::query("SELECT * FROM flashcards WHERE id = ?")
+        .bind(id)
+        .fetch_one(&pool.db_pool)
+        .await;
+
+    match row_result {
+        Ok(row) => {
+            let flashcard: Flashcard = Flashcard {
+                id: row.get("id"),
+                front: row.get("front"),
+                back: row.get("back"),
+                status: row.get("status"),
+            };
+            Ok(flashcard)
+        }
         Err(err) => Err(err.into()),
     }
 }
