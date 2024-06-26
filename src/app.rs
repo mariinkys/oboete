@@ -142,7 +142,7 @@ impl Application for Oboete {
 
         //Connect to the Database and Run the needed migrations
         let commands = vec![
-            Command::perform(OboeteDb::init(), |database| {
+            Command::perform(OboeteDb::init(Self::APP_ID), |database| {
                 message::app(Message::DbConnected(database))
             }),
             app.update_titles(),

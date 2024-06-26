@@ -8,7 +8,7 @@ use crate::{
     utils::OboeteError,
 };
 
-const DB_URL: &str = "oboete.db";
+const DB_NAME: &str = "oboete.db";
 
 #[derive(Debug, Clone)]
 pub struct OboeteDb {
@@ -16,17 +16,21 @@ pub struct OboeteDb {
 }
 
 impl OboeteDb {
-    pub async fn init() -> OboeteDb {
-        let db_path = std::path::Path::new(DB_URL);
+    pub async fn init(app_id: &str) -> OboeteDb {
+        let db_path = dirs::data_dir()
+            .unwrap()
+            .join(app_id)
+            .join("database")
+            .join(DB_NAME);
         if let Some(parent) = db_path.parent() {
             fs::create_dir_all(parent).expect("Failed to create directories for database file");
         }
 
         if !db_path.exists() {
-            fs::File::create(db_path).expect("Failed to create the database file");
+            fs::File::create(&db_path).expect("Failed to create the database file");
         }
 
-        let pool = SqlitePool::connect(DB_URL)
+        let pool = SqlitePool::connect(db_path.into_os_string().to_str().unwrap())
             .await
             .expect("Error creating database");
 
