@@ -4,11 +4,12 @@ use std::collections::HashMap;
 
 use crate::core::database::{
     get_all_studysets, get_folder_flashcards, get_single_flashcard, get_studyset_folders,
-    upsert_flashcard, upsert_folder, upsert_studyset, OboeteDb,
+    update_flashcard_status, upsert_flashcard, upsert_folder, upsert_studyset, OboeteDb,
 };
-use crate::flashcards::{self, CreateEditFlashcardState, Flashcards};
+use crate::flashcards::{self, Flashcards};
 use crate::folders::{self, Folders};
 use crate::studysets::StudySets;
+use crate::utils::select_random_flashcard;
 use crate::{fl, studysets};
 use cosmic::app::{message, Core, Message as CosmicMessage};
 use cosmic::iced::{Alignment, Length};
@@ -402,8 +403,35 @@ impl Application for Oboete {
                             self.core.window.show_context = false;
                             commands.push(command);
                         }
+                        //We select a random (weighted) flashcard and open the page
                         flashcards::Command::OpenStudyFolderFlashcardsPage => {
+                            self.flashcards.currently_studying_flashcard = select_random_flashcard(
+                                &self.flashcards.flashcards,
+                            )
+                            .unwrap_or(crate::models::Flashcard {
+                                id: None,
+                                front: String::from("Error"),
+                                back: String::from("Error"),
+                                status: 0,
+                            });
                             self.current_page = Page::StudyFolderFlashcards
+                        }
+                        //Update the status on the db and return the folder flashcards once again (with the updated status)
+                        flashcards::Command::UpdateFlashcardStatus(flashcard) => {
+                            let command = Command::perform(
+                                update_flashcard_status(
+                                    self.db.clone(),
+                                    flashcard,
+                                    self.flashcards.current_folder_id,
+                                ),
+                                |result| match result {
+                                    Ok(flashcards) => message::app(Message::Flashcards(
+                                        flashcards::Message::UpdatedStatus(flashcards),
+                                    )),
+                                    Err(_) => message::none(),
+                                },
+                            );
+                            commands.push(command);
                         }
                     }
                 }

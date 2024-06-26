@@ -14,6 +14,7 @@ pub struct Flashcards {
     pub current_folder_id: i32,
     pub flashcards: Vec<Flashcard>,
     pub new_edit_flashcard: CreateEditFlashcardState,
+    pub currently_studying_flashcard: Flashcard,
 }
 
 pub struct CreateEditFlashcardState {
@@ -33,6 +34,8 @@ pub enum Message {
     StudyFlashcards,
     ContextPageFrontInput(String),
     ContextPageBackInput(String),
+    UpdateFlashcardStatus(Flashcard, StudyActions),
+    UpdatedStatus(Vec<Flashcard>),
 }
 
 pub enum Command {
@@ -41,6 +44,14 @@ pub enum Command {
     ToggleCreateFlashcardPage(Option<Flashcard>),
     UpsertFlashcard(Flashcard),
     OpenStudyFolderFlashcardsPage,
+    UpdateFlashcardStatus(Flashcard),
+}
+
+#[derive(Debug, Clone)]
+pub enum StudyActions {
+    Bad,
+    Ok,
+    Good,
 }
 
 impl Flashcards {
@@ -48,6 +59,12 @@ impl Flashcards {
         Self {
             current_folder_id: 0,
             flashcards: Vec::new(),
+            currently_studying_flashcard: Flashcard {
+                id: None,
+                front: String::from("Error"),
+                back: String::from("Error"),
+                status: 0,
+            },
             new_edit_flashcard: CreateEditFlashcardState {
                 id: None,
                 front: String::new(),
@@ -100,6 +117,25 @@ impl Flashcards {
             Message::StudyFlashcards => commands.push(Command::OpenStudyFolderFlashcardsPage),
             Message::ContextPageFrontInput(value) => self.new_edit_flashcard.front = value,
             Message::ContextPageBackInput(value) => self.new_edit_flashcard.back = value,
+            Message::UpdateFlashcardStatus(mut flashcard, action) => {
+                match action {
+                    StudyActions::Bad => flashcard.status = 1,
+                    StudyActions::Ok => flashcard.status = 2,
+                    StudyActions::Good => flashcard.status = 3,
+                }
+
+                commands.push(Command::UpdateFlashcardStatus(flashcard))
+            }
+            Message::UpdatedStatus(flashcards) => {
+                self.flashcards = flashcards;
+                self.currently_studying_flashcard = select_random_flashcard(&self.flashcards)
+                    .unwrap_or(Flashcard {
+                        id: None,
+                        front: String::from("Error"),
+                        back: String::from("Error"),
+                        status: 0,
+                    });
+            }
         }
 
         commands
@@ -220,17 +256,10 @@ impl Flashcards {
     pub fn view_study_page(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        //TODO: I can't do this here, every time I click anywhere it updates
-        let flashcard = select_random_flashcard(&self.flashcards).unwrap_or(Flashcard {
-            id: None,
-            front: String::from("Error"),
-            back: String::from("Error"),
-            status: 0,
-        });
-
+        //TODO: Swap front and back on click
         let flashcard_container = widget::container(
             widget::button(
-                widget::Text::new(flashcard.front)
+                widget::Text::new(&self.currently_studying_flashcard.front)
                     .width(Length::Fill)
                     .height(Length::Fill)
                     .vertical_alignment(Vertical::Center)
@@ -252,6 +281,10 @@ impl Flashcards {
                         .horizontal_alignment(Horizontal::Center)
                         .vertical_alignment(Vertical::Center),
                 )
+                .on_press(Message::UpdateFlashcardStatus(
+                    self.currently_studying_flashcard.clone(),
+                    StudyActions::Bad,
+                ))
                 .style(theme::Button::Suggested)
                 .height(Length::Fixed(60.0))
                 .width(Length::Fill),
@@ -262,6 +295,10 @@ impl Flashcards {
                         .horizontal_alignment(Horizontal::Center)
                         .vertical_alignment(Vertical::Center),
                 )
+                .on_press(Message::UpdateFlashcardStatus(
+                    self.currently_studying_flashcard.clone(),
+                    StudyActions::Ok,
+                ))
                 .style(theme::Button::Suggested)
                 .height(Length::Fixed(60.0))
                 .width(Length::Fill),
@@ -272,6 +309,10 @@ impl Flashcards {
                         .horizontal_alignment(Horizontal::Center)
                         .vertical_alignment(Vertical::Center),
                 )
+                .on_press(Message::UpdateFlashcardStatus(
+                    self.currently_studying_flashcard.clone(),
+                    StudyActions::Good,
+                ))
                 .style(theme::Button::Suggested)
                 .height(Length::Fixed(60.0))
                 .width(Length::Fill),
