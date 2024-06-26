@@ -1,7 +1,7 @@
 use cosmic::{
     iced::{
         alignment::{Horizontal, Vertical},
-        Length, Padding, Size,
+        Length, Padding,
     },
     theme, widget, Element,
 };
