@@ -1,9 +1,12 @@
 use cosmic::{
-    iced::{Length, Padding},
+    iced::{
+        alignment::{Horizontal, Vertical},
+        Length, Padding,
+    },
     theme, widget, Element,
 };
 
-use crate::{fl, models::Flashcard};
+use crate::{fl, models::Flashcard, utils::select_random_flashcard};
 
 const FLASHCARDS_PER_ROW: usize = 5;
 
@@ -27,6 +30,7 @@ pub enum Message {
     LoadedSingle(Flashcard),
     SetFlashcards(Vec<Flashcard>),
     ToggleCreatePage(Option<Flashcard>),
+    StudyFlashcards,
     ContextPageFrontInput(String),
     ContextPageBackInput(String),
 }
@@ -36,6 +40,7 @@ pub enum Command {
     LoadFlashcards(i32),
     ToggleCreateFlashcardPage(Option<Flashcard>),
     UpsertFlashcard(Flashcard),
+    OpenStudyFolderFlashcardsPage,
 }
 
 impl Flashcards {
@@ -92,6 +97,7 @@ impl Flashcards {
 
                 commands.push(Command::ToggleCreateFlashcardPage(flashcard))
             }
+            Message::StudyFlashcards => commands.push(Command::OpenStudyFolderFlashcardsPage),
             Message::ContextPageFrontInput(value) => self.new_edit_flashcard.front = value,
             Message::ContextPageBackInput(value) => self.new_edit_flashcard.back = value,
         }
@@ -107,11 +113,17 @@ impl Flashcards {
             .padding(spacing.space_xxs)
             .on_press(Message::ToggleCreatePage(None));
 
-        widget::row::with_capacity(2)
+        let study_button = widget::button(widget::text("Study"))
+            .style(theme::Button::Suggested)
+            .padding(spacing.space_xxs)
+            .on_press(Message::StudyFlashcards);
+
+        widget::row::with_capacity(3)
             .align_items(cosmic::iced::Alignment::Center)
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
             .push(widget::text::title3("Flashcards").width(Length::Fill)) //TODO: The Title should be the Folder name
+            .push(study_button)
             .push(new_flashcard_button)
             .into()
     }
@@ -203,5 +215,77 @@ impl Flashcards {
         })
         .into()])
         .into()
+    }
+
+    pub fn view_study_page(&self) -> Element<Message> {
+        let spacing = theme::active().cosmic().spacing;
+
+        //TODO: I can't do this here, every time I click anywhere it updates
+        let flashcard = select_random_flashcard(&self.flashcards).unwrap_or(Flashcard {
+            id: None,
+            front: String::from("Error"),
+            back: String::from("Error"),
+            status: 0,
+        });
+
+        let flashcard_container = widget::container(
+            widget::button(
+                widget::Text::new(flashcard.front)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .vertical_alignment(Vertical::Center)
+                    .horizontal_alignment(Horizontal::Center),
+            )
+            .style(theme::Button::Text)
+            .height(Length::Fill)
+            .width(Length::Fill),
+        )
+        .style(theme::Container::ContextDrawer)
+        .width(Length::Fill)
+        .height(Length::Fill);
+
+        //TODO: Custom Button Styling
+        let options_row = widget::row::with_capacity(3)
+            .push(
+                widget::button(
+                    widget::Text::new("Bad")
+                        .horizontal_alignment(Horizontal::Center)
+                        .vertical_alignment(Vertical::Center),
+                )
+                .style(theme::Button::Suggested)
+                .height(Length::Fixed(60.0))
+                .width(Length::Fill),
+            )
+            .push(
+                widget::button(
+                    widget::Text::new("Ok")
+                        .horizontal_alignment(Horizontal::Center)
+                        .vertical_alignment(Vertical::Center),
+                )
+                .style(theme::Button::Suggested)
+                .height(Length::Fixed(60.0))
+                .width(Length::Fill),
+            )
+            .push(
+                widget::button(
+                    widget::Text::new("Good")
+                        .horizontal_alignment(Horizontal::Center)
+                        .vertical_alignment(Vertical::Center),
+                )
+                .style(theme::Button::Suggested)
+                .height(Length::Fixed(60.0))
+                .width(Length::Fill),
+            )
+            .align_items(cosmic::iced::Alignment::Center)
+            .spacing(spacing.space_s)
+            .padding([spacing.space_none, spacing.space_xxs])
+            .width(Length::Fill);
+
+        widget::Column::new()
+            .push(flashcard_container)
+            .push(options_row)
+            .spacing(spacing.space_s)
+            .padding([spacing.space_none, spacing.space_xxs])
+            .into()
     }
 }

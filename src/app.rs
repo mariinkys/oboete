@@ -53,6 +53,7 @@ pub enum Page {
     StudySets,
     Folders,
     FolderFlashcards,
+    StudyFolderFlashcards,
     AllFlashcards,
 }
 
@@ -169,6 +170,9 @@ impl Application for Oboete {
             Page::StudySets => self.studysets.view().map(Message::StudySets),
             Page::Folders => self.folders.view().map(Message::Folders),
             Page::FolderFlashcards => self.flashcards.view().map(Message::Flashcards),
+            Page::StudyFolderFlashcards => {
+                self.flashcards.view_study_page().map(Message::Flashcards)
+            }
             Page::AllFlashcards => todo!(),
         };
 
@@ -398,6 +402,9 @@ impl Application for Oboete {
                             self.core.window.show_context = false;
                             commands.push(command);
                         }
+                        flashcards::Command::OpenStudyFolderFlashcardsPage => {
+                            self.current_page = Page::StudyFolderFlashcards
+                        }
                     }
                 }
             }
@@ -439,6 +446,7 @@ impl Application for Oboete {
                 Page::Folders => self.current_page = Page::Folders,
                 Page::FolderFlashcards => self.current_page = Page::FolderFlashcards,
                 Page::AllFlashcards => self.current_page = Page::AllFlashcards,
+                Page::StudyFolderFlashcards => self.current_page = Page::StudyFolderFlashcards,
             },
             None => self.current_page = Page::StudySets,
         }
