@@ -19,11 +19,10 @@ pub struct NewFolderState {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Create,
+    OpenCreateFolderDialog,
     Created,
     Load(Option<i32>),
     SetFolders(Vec<Folder>),
-    ToggleCreatePage,
     NewFolderNameInput(String),
     OpenFolder(i32),
 }
@@ -31,10 +30,9 @@ pub enum Message {
 pub enum Command {
     //The i32 is the Studyset Id
     LoadFolders(i32),
-    ToggleCreateFolderPage,
-    CreateFolder(Folder),
     //The i32 is the Folder Id
     OpenFolder(i32),
+    OpenCreateFolderDialog,
 }
 
 impl Folders {
@@ -52,11 +50,7 @@ impl Folders {
         let mut commands = Vec::new();
 
         match message {
-            Message::Create => commands.push(Command::CreateFolder(Folder {
-                id: None,
-                name: self.new_folder.name.to_string(),
-                flashcards: Vec::new(),
-            })),
+            Message::OpenCreateFolderDialog => commands.push(Command::OpenCreateFolderDialog),
             Message::Created => {
                 self.new_folder = NewFolderState {
                     name: String::new(),
@@ -68,7 +62,6 @@ impl Folders {
                 None => self.current_studyset_id = None,
             },
             Message::SetFolders(folders) => self.folders = folders,
-            Message::ToggleCreatePage => commands.push(Command::ToggleCreateFolderPage),
             Message::NewFolderNameInput(value) => self.new_folder.name = value,
             Message::OpenFolder(id) => commands.push(Command::OpenFolder(id)),
         }
@@ -81,7 +74,7 @@ impl Folders {
         let new_folder_button = widget::button(widget::text("New"))
             .style(theme::Button::Suggested)
             .padding(spacing.space_xxs)
-            .on_press(Message::ToggleCreatePage);
+            .on_press(Message::OpenCreateFolderDialog);
 
         widget::row::with_capacity(2)
             .align_items(cosmic::iced::Alignment::Center)
@@ -156,7 +149,7 @@ impl Folders {
                         .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
                         .width(Length::Fill),
                 )
-                .on_press(Message::Create)
+                //.on_press(Message::Create)
                 .style(theme::Button::Suggested)
                 .padding([10, 0, 10, 0])
                 .width(Length::Fill),

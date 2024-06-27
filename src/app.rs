@@ -10,7 +10,7 @@ use crate::core::database::{
 use crate::fl;
 use crate::flashcards::{self, Flashcards};
 use crate::folders::{self, Folders};
-use crate::models::StudySet;
+use crate::models::{Folder, StudySet};
 use crate::utils::select_random_flashcard;
 use cosmic::app::{message, Core, Message as CosmicMessage};
 use cosmic::iced::{Alignment, Length};
@@ -60,6 +60,7 @@ pub enum Message {
     DialogUpdate(DialogPage),
     AddStudySet(StudySet),
     DeleteStudySet,
+    OpenNewFolderDialog,
 }
 
 /// Identifies a page in the application.
@@ -74,7 +75,6 @@ pub enum Page {
 pub enum ContextPage {
     #[default]
     About,
-    NewFolder,
     CreateEditFlashcard,
 }
 
@@ -82,7 +82,6 @@ impl ContextPage {
     fn title(&self) -> String {
         match self {
             Self::About => fl!("about"),
-            Self::NewFolder => fl!("new-folder"),
             Self::CreateEditFlashcard => fl!("flashcard-details"),
         }
     }
@@ -114,6 +113,7 @@ pub enum DialogPage {
     NewStudySet(String),
     RenameStudySet { to: String },
     DeleteStudySet,
+    NewFolder(String),
 }
 
 impl Application for Oboete {
@@ -255,34 +255,6 @@ impl Application for Oboete {
 
                             commands.push(command);
                         }
-                        //Opens the NewFolder ContextPage
-                        folders::Command::ToggleCreateFolderPage => {
-                            if self.context_page == ContextPage::NewFolder {
-                                // Close the context drawer if the toggled context page is the same.
-                                self.core.window.show_context = !self.core.window.show_context;
-                            } else {
-                                // Open the context drawer to display the requested context page.
-                                self.context_page = ContextPage::NewFolder;
-                                self.core.window.show_context = true;
-                            }
-
-                            // Set the title of the context drawer.
-                            self.set_context_title(ContextPage::NewFolder.title());
-                        }
-                        //Creates a Folder inside a StudySet
-                        folders::Command::CreateFolder(folder) => {
-                            let command = Command::perform(
-                                upsert_folder(
-                                    self.db.clone(),
-                                    folder,
-                                    //TODO: Safe to unwrap?
-                                    self.folders.current_studyset_id.unwrap(),
-                                ),
-                                |_result| message::app(Message::Folders(folders::Message::Created)),
-                            );
-                            self.core.window.show_context = false;
-                            commands.push(command);
-                        }
                         //Opens a folder => Loads the flashcards of a given folder => Updates the current_folder_id
                         folders::Command::OpenFolder(folder_id) => {
                             let command = Command::perform(
@@ -297,6 +269,14 @@ impl Application for Oboete {
                             self.current_page = Page::FolderFlashcards;
                             self.flashcards.current_folder_id = folder_id;
 
+                            commands.push(command);
+                        }
+                        folders::Command::OpenCreateFolderDialog => {
+                            //TODO: Less terrible way to do this?
+                            let command = Command::perform(
+                                async { message::app(Message::OpenNewFolderDialog) },
+                                |msg| msg,
+                            );
                             commands.push(command);
                         }
                     }
@@ -442,7 +422,7 @@ impl Application for Oboete {
                 if let Some(dialog_page) = self.dialog_pages.pop_front() {
                     match dialog_page {
                         DialogPage::NewStudySet(name) => {
-                            //TODO
+                            //TODO: Constructor
                             //let set = StudySet::new(&name);
                             let set = StudySet {
                                 id: None,
@@ -471,6 +451,28 @@ impl Application for Oboete {
                         }
                         DialogPage::DeleteStudySet => {
                             commands.push(self.update(Message::DeleteStudySet));
+                        }
+                        DialogPage::NewFolder(name) => {
+                            //TODO: Constructor
+                            //let set = StudySet::new(&name);
+                            let folder = Folder {
+                                id: None,
+                                name,
+                                flashcards: Vec::new(),
+                            };
+                            commands.push(Command::perform(
+                                upsert_folder(
+                                    self.db.clone(),
+                                    folder,
+                                    self.folders.current_studyset_id.unwrap(),
+                                ),
+                                |result| match result {
+                                    Ok(_folder_id) => {
+                                        message::app(Message::Folders(folders::Message::Created))
+                                    }
+                                    Err(_) => message::none(),
+                                },
+                            ));
                         }
                     }
                 }
@@ -504,6 +506,11 @@ impl Application for Oboete {
                 }
                 self.nav.remove(self.nav.active());
             }
+            Message::OpenNewFolderDialog => {
+                self.dialog_pages
+                    .push_back(DialogPage::NewFolder(String::new()));
+                return widget::text_input::focus(self.dialog_text_input.clone());
+            }
         }
 
         Command::batch(commands)
@@ -517,7 +524,6 @@ impl Application for Oboete {
 
         Some(match self.context_page {
             ContextPage::About => self.about(),
-            ContextPage::NewFolder => self.folders.new_folder_contextpage().map(Message::Folders),
             ContextPage::CreateEditFlashcard => self
                 .flashcards
                 .create_edit_flashcard_contextpage()
@@ -581,6 +587,26 @@ impl Application for Oboete {
                 )
                 .secondary_action(
                     widget::button::standard("Cancel").on_press(Message::DialogCancel),
+                ),
+            DialogPage::NewFolder(name) => widget::dialog("Create Folder")
+                .primary_action(
+                    widget::button::suggested("Save").on_press_maybe(Some(Message::DialogComplete)),
+                )
+                .secondary_action(
+                    widget::button::standard("Cancel").on_press(Message::DialogCancel),
+                )
+                .control(
+                    widget::column::with_children(vec![
+                        widget::text::body("Folder Name").into(),
+                        widget::text_input("", name.as_str())
+                            .id(self.dialog_text_input.clone())
+                            .on_input(move |name| {
+                                Message::DialogUpdate(DialogPage::NewFolder(name))
+                            })
+                            .on_submit(Message::DialogComplete)
+                            .into(),
+                    ])
+                    .spacing(spacing.space_xxs),
                 ),
         };
 
