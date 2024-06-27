@@ -186,7 +186,7 @@ impl Flashcards {
             .align_items(cosmic::iced::Alignment::Center)
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
-            .push(widget::text::title3("Flashcards").width(Length::Fill)) //TODO: The Title should be the Folder name
+            .push(widget::text::title3("Flashcards").width(Length::Fill))
             .push(study_button)
             .push(new_flashcard_button)
             .into()
@@ -314,7 +314,6 @@ impl Flashcards {
     pub fn view_study_page(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        //TODO: Remove Button effect on Hover / Beware text size
         let flashcard_container = widget::container(
             widget::button(
                 widget::Text::new(match self.currently_studying_flashcard_side {

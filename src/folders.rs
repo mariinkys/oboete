@@ -113,7 +113,7 @@ impl Folders {
             .align_items(cosmic::iced::Alignment::Center)
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
-            .push(widget::text::title3("Folders").width(Length::Fill)) //TODO: The Title should be the StudySet name
+            .push(widget::text::title3("Folders").width(Length::Fill))
             .push(new_folder_button)
             .into()
     }
