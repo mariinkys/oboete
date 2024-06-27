@@ -3,9 +3,9 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::core::database::{
-    delete_folder, delete_studyset, get_all_studysets, get_folder_flashcards, get_single_flashcard,
-    get_single_folder, get_studyset_folders, update_flashcard_status, upsert_flashcard,
-    upsert_folder, upsert_studyset, OboeteDb,
+    delete_flashcard, delete_folder, delete_studyset, get_all_studysets, get_folder_flashcards,
+    get_single_flashcard, get_single_folder, get_studyset_folders, update_flashcard_status,
+    upsert_flashcard, upsert_folder, upsert_studyset, OboeteDb,
 };
 use crate::fl;
 use crate::flashcards::{self, Flashcards};
@@ -425,6 +425,18 @@ impl Application for Oboete {
                                     Ok(flashcards) => message::app(Message::Flashcards(
                                         flashcards::Message::UpdatedStatus(flashcards),
                                     )),
+                                    Err(_) => message::none(),
+                                },
+                            );
+                            commands.push(command);
+                        }
+                        flashcards::Command::DeleteFlashcard(flashcard_id) => {
+                            let command = Command::perform(
+                                delete_flashcard(self.db.clone(), flashcard_id.unwrap()),
+                                |result| match result {
+                                    Ok(_) => {
+                                        message::app(Message::Flashcards(flashcards::Message::Load))
+                                    }
                                     Err(_) => message::none(),
                                 },
                             );

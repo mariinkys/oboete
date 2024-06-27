@@ -1,14 +1,12 @@
 use cosmic::{
     iced::{
         alignment::{Horizontal, Vertical},
-        Length, Padding,
+        Alignment, Length,
     },
-    theme, widget, Element,
+    theme, widget, Apply, Element,
 };
 
 use crate::{fl, models::Flashcard, utils::select_random_flashcard};
-
-const FLASHCARDS_PER_ROW: usize = 5;
 
 pub struct Flashcards {
     pub current_folder_id: i32,
@@ -29,6 +27,7 @@ pub struct CreateEditFlashcardState {
 pub enum Message {
     Upsert,
     Upserted,
+    Load,
     LoadedSingle(Flashcard),
     SetFlashcards(Vec<Flashcard>),
     ToggleCreatePage(Option<Flashcard>),
@@ -38,6 +37,7 @@ pub enum Message {
     UpdateFlashcardStatus(Flashcard, StudyActions),
     UpdatedStatus(Vec<Flashcard>),
     SwapFlashcardSide,
+    Delete(Option<i32>),
 }
 
 pub enum Command {
@@ -47,6 +47,7 @@ pub enum Command {
     UpsertFlashcard(Flashcard),
     OpenStudyFolderFlashcardsPage,
     UpdateFlashcardStatus(Flashcard),
+    DeleteFlashcard(Option<i32>),
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +154,8 @@ impl Flashcards {
                     self.currently_studying_flashcard_side = CurrentFlashcardSide::Front
                 }
             },
+            Message::Delete(flashcard_id) => commands.push(Command::DeleteFlashcard(flashcard_id)),
+            Message::Load => commands.push(Command::LoadFlashcards(self.current_folder_id)),
         }
 
         commands
@@ -166,10 +169,16 @@ impl Flashcards {
             .padding(spacing.space_xxs)
             .on_press(Message::ToggleCreatePage(None));
 
-        let study_button = widget::button(widget::text("Study"))
-            .style(theme::Button::Suggested)
-            .padding(spacing.space_xxs)
-            .on_press(Message::StudyFlashcards);
+        let study_button = if self.flashcards.is_empty() == false {
+            widget::button(widget::text("Study"))
+                .style(theme::Button::Suggested)
+                .padding(spacing.space_xxs)
+                .on_press(Message::StudyFlashcards)
+        } else {
+            widget::button(widget::text("Study"))
+                .style(theme::Button::Suggested)
+                .padding(spacing.space_xxs)
+        };
 
         widget::row::with_capacity(3)
             .align_items(cosmic::iced::Alignment::Center)
@@ -182,35 +191,65 @@ impl Flashcards {
     }
 
     pub fn view(&self) -> Element<Message> {
-        //TODO: Fix design, what happens when a item has a name that is longer?...
-        //All flashcards should have the same with ej: 25% 25% 25% 25%...
-        let mut flashcards_grid = widget::Grid::new()
-            .width(Length::Fill)
-            .column_alignment(cosmic::iced::Alignment::Center);
+        let spacing = theme::active().cosmic().spacing;
 
-        for (index, flashcard) in self.flashcards.iter().enumerate() {
-            let flashcard_button = widget::button(
-                widget::container::Container::new(widget::text(flashcard.front.as_str()))
-                    .style(theme::Container::Card)
-                    .padding(Padding::new(10.0)),
-            )
-            .on_press_down(Message::ToggleCreatePage(Some(flashcard.clone())))
-            .style(theme::Button::Text)
-            .width(Length::Shrink);
+        if self.flashcards.is_empty() == false {
+            let mut flashcards = widget::list::list_column()
+                .style(theme::Container::ContextDrawer)
+                .spacing(spacing.space_xxxs)
+                .padding([spacing.space_none, spacing.space_xxs]);
 
-            if index % FLASHCARDS_PER_ROW == 0 {
-                flashcards_grid = flashcards_grid.insert_row();
+            //TODO: Icons & Add Some Kind of Status Badge
+            for flashcard in &self.flashcards {
+                let edit_button = widget::button(widget::text("Edit"))
+                    .padding(spacing.space_xxs)
+                    .style(theme::Button::Standard)
+                    .on_press(Message::ToggleCreatePage(Some(flashcard.clone())));
+
+                let delete_button = widget::button("Delete")
+                    .padding(spacing.space_xxs)
+                    .style(theme::Button::Destructive)
+                    .on_press(Message::Delete(flashcard.id));
+
+                let flashcard_front = widget::text(flashcard.front.clone())
+                    .vertical_alignment(Vertical::Center)
+                    .horizontal_alignment(Horizontal::Left)
+                    .width(Length::Fill);
+
+                let row = widget::row::with_capacity(2)
+                    .align_items(Alignment::Center)
+                    .spacing(spacing.space_xxs)
+                    .padding([spacing.space_xxxs, spacing.space_xxs])
+                    .push(flashcard_front)
+                    .push(delete_button)
+                    .push(edit_button);
+
+                flashcards = flashcards.add(row);
             }
 
-            flashcards_grid = flashcards_grid.push(flashcard_button);
+            widget::column::with_capacity(2)
+                .spacing(spacing.space_xxs)
+                .push(self.flashcard_header_row())
+                .push(flashcards)
+                .apply(widget::container)
+                .height(Length::Shrink)
+                .apply(widget::scrollable)
+                .height(Length::Fill)
+                .into()
+        } else {
+            widget::column::with_capacity(2)
+                .spacing(spacing.space_xxs)
+                .push(self.flashcard_header_row())
+                .push(
+                    widget::Container::new(widget::Text::new("Empty").size(spacing.space_xl))
+                        .width(Length::Fill)
+                        .height(Length::Fill)
+                        .align_x(cosmic::iced::alignment::Horizontal::Center)
+                        .align_y(cosmic::iced::alignment::Vertical::Center),
+                )
+                .height(Length::Fill)
+                .into()
         }
-
-        widget::Column::new()
-            .push(self.flashcard_header_row())
-            .push(flashcards_grid)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
     }
 
     /// The create or edit flashcard context page for this app.
@@ -280,7 +319,7 @@ impl Flashcards {
                     CurrentFlashcardSide::Front => &self.currently_studying_flashcard.front,
                     CurrentFlashcardSide::Back => &self.currently_studying_flashcard.back,
                 })
-                .size(spacing.space_xxxl)
+                .size(spacing.space_xxl)
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .vertical_alignment(Vertical::Center)

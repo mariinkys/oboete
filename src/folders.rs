@@ -123,54 +123,69 @@ impl Folders {
 
         //TODO: Folders should have icons instead of text
         if self.current_studyset_id.is_some() {
-            let mut folders = widget::list::list_column()
-                .style(theme::Container::ContextDrawer)
-                .spacing(spacing.space_xxxs)
-                .padding([spacing.space_none, spacing.space_xxs]);
+            if self.folders.is_empty() == false {
+                let mut folders = widget::list::list_column()
+                    .style(theme::Container::ContextDrawer)
+                    .spacing(spacing.space_xxxs)
+                    .padding([spacing.space_none, spacing.space_xxs]);
 
-            for folder in &self.folders {
-                let edit_button = widget::button(widget::text("Edit"))
-                    .padding(spacing.space_xxs)
-                    .style(theme::Button::Standard)
-                    .on_press(Message::ToggleEditContextPage(Some(folder.clone())));
+                for folder in &self.folders {
+                    let edit_button = widget::button(widget::text("Edit"))
+                        .padding(spacing.space_xxs)
+                        .style(theme::Button::Standard)
+                        .on_press(Message::ToggleEditContextPage(Some(folder.clone())));
 
-                let open_button = widget::button(widget::text("Open"))
-                    .padding(spacing.space_xxs)
-                    .style(theme::Button::Suggested)
-                    .width(Length::Shrink)
-                    .on_press(Message::OpenFolder(folder.id.unwrap()));
+                    let open_button = widget::button(widget::text("Open"))
+                        .padding(spacing.space_xxs)
+                        .style(theme::Button::Suggested)
+                        .width(Length::Shrink)
+                        .on_press(Message::OpenFolder(folder.id.unwrap()));
 
-                let delete_button = widget::button("Delete")
-                    .padding(spacing.space_xxs)
-                    .style(theme::Button::Destructive)
-                    .on_press(Message::Delete(folder.id));
+                    let delete_button = widget::button("Delete")
+                        .padding(spacing.space_xxs)
+                        .style(theme::Button::Destructive)
+                        .on_press(Message::Delete(folder.id));
 
-                let folder_name = widget::text(folder.name.clone())
-                    .vertical_alignment(Vertical::Center)
-                    .horizontal_alignment(Horizontal::Left)
-                    .width(Length::Fill);
+                    let folder_name = widget::text(folder.name.clone())
+                        .vertical_alignment(Vertical::Center)
+                        .horizontal_alignment(Horizontal::Left)
+                        .width(Length::Fill);
 
-                let row = widget::row::with_capacity(2)
-                    .align_items(Alignment::Center)
+                    let row = widget::row::with_capacity(2)
+                        .align_items(Alignment::Center)
+                        .spacing(spacing.space_xxs)
+                        .padding([spacing.space_xxxs, spacing.space_xxs])
+                        .push(open_button)
+                        .push(folder_name)
+                        .push(delete_button)
+                        .push(edit_button);
+
+                    folders = folders.add(row);
+                }
+
+                widget::column::with_capacity(2)
                     .spacing(spacing.space_xxs)
-                    .padding([spacing.space_xxxs, spacing.space_xxs])
-                    .push(open_button)
-                    .push(folder_name)
-                    .push(delete_button)
-                    .push(edit_button);
-
-                folders = folders.add(row);
+                    .push(self.folder_header_row())
+                    .push(folders)
+                    .apply(widget::container)
+                    .height(Length::Shrink)
+                    .apply(widget::scrollable)
+                    .height(Length::Fill)
+                    .into()
+            } else {
+                widget::column::with_capacity(2)
+                    .spacing(spacing.space_xxs)
+                    .push(self.folder_header_row())
+                    .push(
+                        widget::Container::new(widget::Text::new("Empty").size(spacing.space_xl))
+                            .width(Length::Fill)
+                            .height(Length::Fill)
+                            .align_x(cosmic::iced::alignment::Horizontal::Center)
+                            .align_y(cosmic::iced::alignment::Vertical::Center),
+                    )
+                    .height(Length::Fill)
+                    .into()
             }
-
-            widget::column::with_capacity(2)
-                .spacing(spacing.space_xxs)
-                .push(self.folder_header_row())
-                .push(folders)
-                .apply(widget::container)
-                .height(Length::Shrink)
-                .apply(widget::scrollable)
-                .height(Length::Fill)
-                .into()
         } else {
             widget::Container::new(widget::Text::new("Empty").size(spacing.space_xl))
                 .width(Length::Fill)

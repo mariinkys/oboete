@@ -495,3 +495,24 @@ pub async fn delete_folder(db: Option<OboeteDb>, id: i32) -> Result<bool, Oboete
         Err(err) => Err(err.into()),
     }
 }
+
+pub async fn delete_flashcard(db: Option<OboeteDb>, id: i32) -> Result<bool, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let command = sqlx::query("DELETE FROM flashcards WHERE id = ?")
+        .bind(id)
+        .execute(&pool.db_pool)
+        .await;
+
+    match command {
+        Ok(_) => Ok(true),
+        Err(err) => Err(err.into()),
+    }
+}
