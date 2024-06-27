@@ -1,11 +1,12 @@
 use cosmic::{
-    iced::{Length, Padding},
-    theme, widget, Element,
+    iced::{
+        alignment::{Horizontal, Vertical},
+        Alignment, Length,
+    },
+    theme, widget, Apply, Element,
 };
 
 use crate::{fl, models::Folder};
-
-const FOLDERS_PER_ROW: usize = 5;
 
 pub struct Folders {
     pub current_studyset_id: Option<i32>,
@@ -14,27 +15,33 @@ pub struct Folders {
 }
 
 pub struct NewFolderState {
+    id: Option<i32>,
     name: String,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Create,
-    Created,
-    Load(Option<i32>),
+    OpenCreateFolderDialog,
+    Upsert,
+    Upserted,
+    LoadedSingle(Folder),
+    Load,
     SetFolders(Vec<Folder>),
-    ToggleCreatePage,
     NewFolderNameInput(String),
     OpenFolder(i32),
+    ToggleEditContextPage(Option<Folder>),
+    Delete(Option<i32>),
 }
 
 pub enum Command {
     //The i32 is the Studyset Id
     LoadFolders(i32),
-    ToggleCreateFolderPage,
-    CreateFolder(Folder),
     //The i32 is the Folder Id
     OpenFolder(i32),
+    UpsertFolder(Folder),
+    OpenCreateFolderDialog,
+    ToggleEditContextPage(Option<Folder>),
+    DeleteFolder(Option<i32>),
 }
 
 impl Folders {
@@ -43,6 +50,7 @@ impl Folders {
             current_studyset_id: None,
             folders: Vec::new(),
             new_folder: NewFolderState {
+                id: None,
                 name: String::new(),
             },
         }
@@ -52,25 +60,43 @@ impl Folders {
         let mut commands = Vec::new();
 
         match message {
-            Message::Create => commands.push(Command::CreateFolder(Folder {
-                id: None,
+            Message::OpenCreateFolderDialog => commands.push(Command::OpenCreateFolderDialog),
+            Message::Upsert => commands.push(Command::UpsertFolder(Folder {
+                id: self.new_folder.id,
                 name: self.new_folder.name.to_string(),
                 flashcards: Vec::new(),
             })),
-            Message::Created => {
+            Message::Upserted => {
                 self.new_folder = NewFolderState {
+                    id: None,
                     name: String::new(),
                 };
                 commands.push(Command::LoadFolders(self.current_studyset_id.unwrap()))
             }
-            Message::Load(studyset_id) => match studyset_id {
+            Message::LoadedSingle(folder) => {
+                self.new_folder = NewFolderState {
+                    id: folder.id,
+                    name: folder.name,
+                };
+            }
+            Message::Load => match self.current_studyset_id {
                 Some(set_id) => commands.push(Command::LoadFolders(set_id)),
                 None => self.current_studyset_id = None,
             },
             Message::SetFolders(folders) => self.folders = folders,
-            Message::ToggleCreatePage => commands.push(Command::ToggleCreateFolderPage),
             Message::NewFolderNameInput(value) => self.new_folder.name = value,
             Message::OpenFolder(id) => commands.push(Command::OpenFolder(id)),
+            Message::ToggleEditContextPage(folder) => {
+                if folder.is_none() {
+                    self.new_folder = NewFolderState {
+                        id: None,
+                        name: String::new(),
+                    };
+                }
+
+                commands.push(Command::ToggleEditContextPage(folder))
+            }
+            Message::Delete(folder_id) => commands.push(Command::DeleteFolder(folder_id)),
         }
         commands
     }
@@ -81,7 +107,7 @@ impl Folders {
         let new_folder_button = widget::button(widget::text("New"))
             .style(theme::Button::Suggested)
             .padding(spacing.space_xxs)
-            .on_press(Message::ToggleCreatePage);
+            .on_press(Message::OpenCreateFolderDialog);
 
         widget::row::with_capacity(2)
             .align_items(cosmic::iced::Alignment::Center)
@@ -93,39 +119,59 @@ impl Folders {
     }
 
     pub fn view(&self) -> Element<Message> {
+        let spacing = theme::active().cosmic().spacing;
+
+        //TODO: Folders should have icons instead of text
         if self.current_studyset_id.is_some() {
-            //TODO: Fix design, what happens when a item has a name that is longer?...
-            //All studysets should have the same with ej: 25% 25% 25% 25%...
-            let mut folders_grid = widget::Grid::new()
-                .width(Length::Fill)
-                .column_alignment(cosmic::iced::Alignment::Center);
+            let mut folders = widget::list::list_column()
+                .style(theme::Container::ContextDrawer)
+                .spacing(spacing.space_xxxs)
+                .padding([spacing.space_none, spacing.space_xxs]);
 
-            for (index, folder) in self.folders.iter().enumerate() {
-                let folder_button = widget::button(
-                    widget::container::Container::new(widget::text(folder.name.as_str()))
-                        .style(theme::Container::Card)
-                        .padding(Padding::new(10.0)),
-                )
-                .on_press_down(Message::OpenFolder(folder.id.unwrap()))
-                .style(theme::Button::Text)
-                .width(Length::Shrink);
+            for folder in &self.folders {
+                let edit_button = widget::button(widget::text("Edit"))
+                    .padding(spacing.space_xxs)
+                    .style(theme::Button::Standard)
+                    .on_press(Message::ToggleEditContextPage(Some(folder.clone())));
 
-                if index % FOLDERS_PER_ROW == 0 {
-                    folders_grid = folders_grid.insert_row();
-                }
+                let open_button = widget::button(widget::text("Open"))
+                    .padding(spacing.space_xxs)
+                    .style(theme::Button::Suggested)
+                    .width(Length::Shrink)
+                    .on_press(Message::OpenFolder(folder.id.unwrap()));
 
-                folders_grid = folders_grid.push(folder_button);
+                let delete_button = widget::button("Delete")
+                    .padding(spacing.space_xxs)
+                    .style(theme::Button::Destructive)
+                    .on_press(Message::Delete(folder.id));
+
+                let folder_name = widget::text(folder.name.clone())
+                    .vertical_alignment(Vertical::Center)
+                    .horizontal_alignment(Horizontal::Left)
+                    .width(Length::Fill);
+
+                let row = widget::row::with_capacity(2)
+                    .align_items(Alignment::Center)
+                    .spacing(spacing.space_xxs)
+                    .padding([spacing.space_xxxs, spacing.space_xxs])
+                    .push(open_button)
+                    .push(folder_name)
+                    .push(delete_button)
+                    .push(edit_button);
+
+                folders = folders.add(row);
             }
 
-            widget::Column::new()
+            widget::column::with_capacity(2)
+                .spacing(spacing.space_xxs)
                 .push(self.folder_header_row())
-                .push(folders_grid)
-                .width(Length::Fill)
+                .push(folders)
+                .apply(widget::container)
+                .height(Length::Shrink)
+                .apply(widget::scrollable)
                 .height(Length::Fill)
                 .into()
         } else {
-            let spacing = theme::active().cosmic().spacing;
-
             widget::Container::new(widget::Text::new("Empty").size(spacing.space_xl))
                 .width(Length::Fill)
                 .height(Length::Fill)
@@ -135,11 +181,11 @@ impl Folders {
         }
     }
 
-    /// The new folder context page for this app.
-    pub fn new_folder_contextpage(&self) -> Element<Message> {
+    /// The edit folder context page for this app.
+    pub fn edit_folder_contextpage(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        widget::settings::view_column(vec![widget::settings::view_section(fl!("new-folder"))
+        widget::settings::view_column(vec![widget::settings::view_section(fl!("folder-details"))
             .add(
                 widget::column::with_children(vec![
                     widget::text::body(fl!("new-folder-name-title")).into(),
@@ -152,11 +198,11 @@ impl Folders {
             )
             .add(
                 widget::button(
-                    widget::text(fl!("new-folder-submit-button"))
+                    widget::text(fl!("new-folder-edit-button"))
                         .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
                         .width(Length::Fill),
                 )
-                .on_press(Message::Create)
+                .on_press(Message::Upsert)
                 .style(theme::Button::Suggested)
                 .padding([10, 0, 10, 0])
                 .width(Length::Fill),

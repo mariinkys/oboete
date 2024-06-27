@@ -446,3 +446,52 @@ pub async fn delete_studyset(db: Option<OboeteDb>, id: i32) -> Result<bool, Oboe
         Err(err) => Err(err.into()),
     }
 }
+
+pub async fn get_single_folder(db: Option<OboeteDb>, id: i32) -> Result<Folder, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let row_result = sqlx::query("SELECT * FROM folders WHERE id = ?")
+        .bind(id)
+        .fetch_one(&pool.db_pool)
+        .await;
+
+    match row_result {
+        Ok(row) => {
+            let folder: Folder = Folder {
+                id: row.get("id"),
+                name: row.get("name"),
+                flashcards: Vec::new(),
+            };
+            Ok(folder)
+        }
+        Err(err) => Err(err.into()),
+    }
+}
+
+pub async fn delete_folder(db: Option<OboeteDb>, id: i32) -> Result<bool, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let command = sqlx::query("DELETE FROM folders WHERE id = ?")
+        .bind(id)
+        .execute(&pool.db_pool)
+        .await;
+
+    match command {
+        Ok(_) => Ok(true),
+        Err(err) => Err(err.into()),
+    }
+}
