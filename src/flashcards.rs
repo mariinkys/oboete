@@ -8,7 +8,7 @@ use cosmic::{
     Apply, Element,
 };
 
-use crate::{fl, models::Flashcard, utils::select_random_flashcard};
+use crate::{core::icon_cache::IconCache, fl, models::Flashcard, utils::select_random_flashcard};
 
 pub struct Flashcards {
     pub current_folder_id: i32,
@@ -203,12 +203,12 @@ impl Flashcards {
 
             //TODO: Icons & Add Some Kind of Status Badge
             for flashcard in &self.flashcards {
-                let edit_button = widget::button(widget::text("Edit"))
+                let edit_button = widget::button(IconCache::get("edit-button-symbolic", 18))
                     .padding(spacing.space_xxs)
                     .style(theme::Button::Standard)
                     .on_press(Message::ToggleCreatePage(Some(flashcard.clone())));
 
-                let delete_button = widget::button("Delete")
+                let delete_button = widget::button(IconCache::get("user-trash-full-symbolic", 18))
                     .padding(spacing.space_xxs)
                     .style(theme::Button::Destructive)
                     .on_press(Message::Delete(flashcard.id));

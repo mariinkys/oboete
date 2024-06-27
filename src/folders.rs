@@ -6,7 +6,7 @@ use cosmic::{
     theme, widget, Apply, Element,
 };
 
-use crate::{fl, models::Folder};
+use crate::{core::icon_cache::IconCache, fl, models::Folder};
 
 pub struct Folders {
     pub current_studyset_id: Option<i32>,
@@ -130,21 +130,22 @@ impl Folders {
                     .padding([spacing.space_none, spacing.space_xxs]);
 
                 for folder in &self.folders {
-                    let edit_button = widget::button(widget::text("Edit"))
+                    let edit_button = widget::button(IconCache::get("edit-button-symbolic", 18))
                         .padding(spacing.space_xxs)
                         .style(theme::Button::Standard)
                         .on_press(Message::ToggleEditContextPage(Some(folder.clone())));
 
-                    let open_button = widget::button(widget::text("Open"))
+                    let open_button = widget::button(IconCache::get("folder-open-symbolic", 18))
                         .padding(spacing.space_xxs)
                         .style(theme::Button::Suggested)
                         .width(Length::Shrink)
                         .on_press(Message::OpenFolder(folder.id.unwrap()));
 
-                    let delete_button = widget::button("Delete")
-                        .padding(spacing.space_xxs)
-                        .style(theme::Button::Destructive)
-                        .on_press(Message::Delete(folder.id));
+                    let delete_button =
+                        widget::button(IconCache::get("user-trash-full-symbolic", 18))
+                            .padding(spacing.space_xxs)
+                            .style(theme::Button::Destructive)
+                            .on_press(Message::Delete(folder.id));
 
                     let folder_name = widget::text(folder.name.clone())
                         .vertical_alignment(Vertical::Center)
