@@ -1,11 +1,12 @@
 use cosmic::{
-    iced::{Length, Padding},
-    theme, widget, Element,
+    iced::{
+        alignment::{Horizontal, Vertical},
+        Alignment, Length,
+    },
+    theme, widget, Apply, Element,
 };
 
 use crate::{fl, models::Folder};
-
-const FOLDERS_PER_ROW: usize = 5;
 
 pub struct Folders {
     pub current_studyset_id: Option<i32>,
@@ -86,39 +87,59 @@ impl Folders {
     }
 
     pub fn view(&self) -> Element<Message> {
+        let spacing = theme::active().cosmic().spacing;
+
+        //TODO: Folders should have icons instead of text
         if self.current_studyset_id.is_some() {
-            //TODO: Fix design, what happens when a item has a name that is longer?...
-            //All studysets should have the same with ej: 25% 25% 25% 25%...
-            let mut folders_grid = widget::Grid::new()
-                .width(Length::Fill)
-                .column_alignment(cosmic::iced::Alignment::Center);
+            let mut folders = widget::list::list_column()
+                .style(theme::Container::ContextDrawer)
+                .spacing(spacing.space_xxxs)
+                .padding([spacing.space_none, spacing.space_xxs]);
 
-            for (index, folder) in self.folders.iter().enumerate() {
-                let folder_button = widget::button(
-                    widget::container::Container::new(widget::text(folder.name.as_str()))
-                        .style(theme::Container::Card)
-                        .padding(Padding::new(10.0)),
-                )
-                .on_press_down(Message::OpenFolder(folder.id.unwrap()))
-                .style(theme::Button::Text)
-                .width(Length::Shrink);
+            for folder in &self.folders {
+                let edit_button = widget::button(widget::text("Edit"))
+                    .padding(spacing.space_xxs)
+                    .style(theme::Button::Standard);
+                //.on_press(Message::OpenEditContextPage(folder.clone()));
 
-                if index % FOLDERS_PER_ROW == 0 {
-                    folders_grid = folders_grid.insert_row();
-                }
+                let open_button = widget::button(widget::text("Open"))
+                    .padding(spacing.space_xxs)
+                    .style(theme::Button::Suggested)
+                    .width(Length::Shrink)
+                    .on_press(Message::OpenFolder(folder.id.unwrap()));
 
-                folders_grid = folders_grid.push(folder_button);
+                let delete_button = widget::button("Delete")
+                    .padding(spacing.space_xxs)
+                    .style(theme::Button::Destructive);
+                //.on_press(Message::DeleteFolder(id));
+
+                let folder_name = widget::text(folder.name.clone())
+                    .vertical_alignment(Vertical::Center)
+                    .horizontal_alignment(Horizontal::Left)
+                    .width(Length::Fill);
+
+                let row = widget::row::with_capacity(2)
+                    .align_items(Alignment::Center)
+                    .spacing(spacing.space_xxs)
+                    .padding([spacing.space_xxxs, spacing.space_xxs])
+                    .push(open_button)
+                    .push(folder_name)
+                    .push(delete_button)
+                    .push(edit_button);
+
+                folders = folders.add(row);
             }
 
-            widget::Column::new()
+            widget::column::with_capacity(2)
+                .spacing(spacing.space_xxs)
                 .push(self.folder_header_row())
-                .push(folders_grid)
-                .width(Length::Fill)
+                .push(folders)
+                .apply(widget::container)
+                .height(Length::Shrink)
+                .apply(widget::scrollable)
                 .height(Length::Fill)
                 .into()
         } else {
-            let spacing = theme::active().cosmic().spacing;
-
             widget::Container::new(widget::Text::new("Empty").size(spacing.space_xl))
                 .width(Length::Fill)
                 .height(Length::Fill)
