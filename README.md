@@ -5,28 +5,22 @@
 
   <h3>A simple flashcards application for the COSMIC™ desktop</h3>
 
-  <!-- TODO: Application Screenshots-->
-  <!-- ![]()
-  ![]() -->
+  ![main-dark.png](https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/main-dark.png)
+  ![folder-inside-dark.png](https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/folder-inside-dark.png)
+  ![study-dark.png](https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/study-dark.png)
 </div>
 
+# Notes
+
+This application has been made thanks to the [libcosmic Documentation](https://pop-os.github.io/libcosmic/cosmic/) and [edfloreshz](https://github.com/edfloreshz) application template and examples.
 
 # Installation
 ```
 git clone https://github.com/mariinkys/oboete.git
 cd oboete
+just build-release
 sudo just install
 ```
-
-# Build
-```
-git clone https://github.com/mariinkys/oboete.git
-cd oboete
-cargo build
-```
-
-## Dependencies
-- [libcosmic](https://github.com/pop-os/libcosmic?tab=readme-ov-file#building)
 
 # Copyright and Licensing
 

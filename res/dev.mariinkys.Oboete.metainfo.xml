@@ -16,6 +16,15 @@
   <launchable type="desktop-id">dev.mariinkys.Oboete.desktop</launchable>
   <icon type="remote" height="256" width="256">https://raw.githubusercontent.com/mariinkys/oboete/master/res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg</icon>
   <screenshots>
+    <screenshot type="default">
+        <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/main-dark.png</image>
+      </screenshot>
+      <screenshot>
+        <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/folder-inside-dark.png</image>
+      </screenshot>
+      <screenshot>
+        <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/study-dark.png</image>
+      </screenshot>
   </screenshots>
   <provides>
     <mimetypes>

@@ -5,6 +5,6 @@ Terminal=false
 Type=Application
 StartupNotify=true
 Icon=dev.mariinkys.Oboete
-Categories=COSMIC;Utility;
+Categories=COSMIC;Utility;FileManager;
 Keywords=Folder;Manager;
 MimeType=inode/directory;
