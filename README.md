@@ -14,6 +14,8 @@
 
 This application has been made thanks to the [libcosmic Documentation](https://pop-os.github.io/libcosmic/cosmic/) and [edfloreshz](https://github.com/edfloreshz) application template and examples.
 
+I still have to add the Import/Export features. This project is related to my [other flashcard project](https://github.com/mariinkys/delphinus_flashcards). I also still have to fix the translations before any more languages can be added.
+
 # Installation
 ```
 git clone https://github.com/mariinkys/oboete.git
