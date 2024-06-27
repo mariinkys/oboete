@@ -9,10 +9,10 @@ new-studyset-name-inputfield = Name
 new-studyset-submit-button = Create
 
 <#-- New Folder Context Page -->
-new-folder = New Folder
-new-folder-name-title = New Folder Name
+folder-details = Folder Details
+new-folder-name-title = Folder Name
 new-folder-name-inputfield = Name
-new-folder-submit-button = Create
+new-folder-edit-button = Edit
 
 <#-- New Flashcard Context Page -->
 flashcard-details = Flashcard Details

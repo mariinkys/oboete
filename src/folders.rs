@@ -15,17 +15,21 @@ pub struct Folders {
 }
 
 pub struct NewFolderState {
+    id: Option<i32>,
     name: String,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     OpenCreateFolderDialog,
-    Created,
+    Upsert,
+    Upserted,
+    LoadedSingle(Folder),
     Load(Option<i32>),
     SetFolders(Vec<Folder>),
     NewFolderNameInput(String),
     OpenFolder(i32),
+    ToggleEditContextPage(Option<Folder>),
 }
 
 pub enum Command {
@@ -33,7 +37,9 @@ pub enum Command {
     LoadFolders(i32),
     //The i32 is the Folder Id
     OpenFolder(i32),
+    UpsertFolder(Folder),
     OpenCreateFolderDialog,
+    ToggleEditContextPage(Option<Folder>),
 }
 
 impl Folders {
@@ -42,6 +48,7 @@ impl Folders {
             current_studyset_id: None,
             folders: Vec::new(),
             new_folder: NewFolderState {
+                id: None,
                 name: String::new(),
             },
         }
@@ -52,11 +59,23 @@ impl Folders {
 
         match message {
             Message::OpenCreateFolderDialog => commands.push(Command::OpenCreateFolderDialog),
-            Message::Created => {
+            Message::Upsert => commands.push(Command::UpsertFolder(Folder {
+                id: self.new_folder.id,
+                name: self.new_folder.name.to_string(),
+                flashcards: Vec::new(),
+            })),
+            Message::Upserted => {
                 self.new_folder = NewFolderState {
+                    id: None,
                     name: String::new(),
                 };
                 commands.push(Command::LoadFolders(self.current_studyset_id.unwrap()))
+            }
+            Message::LoadedSingle(folder) => {
+                self.new_folder = NewFolderState {
+                    id: folder.id,
+                    name: folder.name,
+                };
             }
             Message::Load(studyset_id) => match studyset_id {
                 Some(set_id) => commands.push(Command::LoadFolders(set_id)),
@@ -65,6 +84,16 @@ impl Folders {
             Message::SetFolders(folders) => self.folders = folders,
             Message::NewFolderNameInput(value) => self.new_folder.name = value,
             Message::OpenFolder(id) => commands.push(Command::OpenFolder(id)),
+            Message::ToggleEditContextPage(folder) => {
+                if folder.is_none() {
+                    self.new_folder = NewFolderState {
+                        id: None,
+                        name: String::new(),
+                    };
+                }
+
+                commands.push(Command::ToggleEditContextPage(folder))
+            }
         }
         commands
     }
@@ -99,8 +128,8 @@ impl Folders {
             for folder in &self.folders {
                 let edit_button = widget::button(widget::text("Edit"))
                     .padding(spacing.space_xxs)
-                    .style(theme::Button::Standard);
-                //.on_press(Message::OpenEditContextPage(folder.clone()));
+                    .style(theme::Button::Standard)
+                    .on_press(Message::ToggleEditContextPage(Some(folder.clone())));
 
                 let open_button = widget::button(widget::text("Open"))
                     .padding(spacing.space_xxs)
@@ -149,11 +178,11 @@ impl Folders {
         }
     }
 
-    /// The new folder context page for this app.
-    pub fn new_folder_contextpage(&self) -> Element<Message> {
+    /// The edit folder context page for this app.
+    pub fn edit_folder_contextpage(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        widget::settings::view_column(vec![widget::settings::view_section(fl!("new-folder"))
+        widget::settings::view_column(vec![widget::settings::view_section(fl!("folder-details"))
             .add(
                 widget::column::with_children(vec![
                     widget::text::body(fl!("new-folder-name-title")).into(),
@@ -166,11 +195,11 @@ impl Folders {
             )
             .add(
                 widget::button(
-                    widget::text(fl!("new-folder-submit-button"))
+                    widget::text(fl!("new-folder-edit-button"))
                         .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
                         .width(Length::Fill),
                 )
-                //.on_press(Message::Create)
+                .on_press(Message::Upsert)
                 .style(theme::Button::Suggested)
                 .padding([10, 0, 10, 0])
                 .width(Length::Fill),

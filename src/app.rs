@@ -4,8 +4,8 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::core::database::{
     delete_studyset, get_all_studysets, get_folder_flashcards, get_single_flashcard,
-    get_studyset_folders, update_flashcard_status, upsert_flashcard, upsert_folder,
-    upsert_studyset, OboeteDb,
+    get_single_folder, get_studyset_folders, update_flashcard_status, upsert_flashcard,
+    upsert_folder, upsert_studyset, OboeteDb,
 };
 use crate::fl;
 use crate::flashcards::{self, Flashcards};
@@ -75,6 +75,7 @@ pub enum Page {
 pub enum ContextPage {
     #[default]
     About,
+    EditFolder,
     CreateEditFlashcard,
 }
 
@@ -82,6 +83,7 @@ impl ContextPage {
     fn title(&self) -> String {
         match self {
             Self::About => fl!("about"),
+            Self::EditFolder => fl!("folder-details"),
             Self::CreateEditFlashcard => fl!("flashcard-details"),
         }
     }
@@ -279,6 +281,47 @@ impl Application for Oboete {
                             );
                             commands.push(command);
                         }
+                        folders::Command::UpsertFolder(folder) => {
+                            let command = Command::perform(
+                                upsert_folder(
+                                    self.db.clone(),
+                                    folder,
+                                    self.flashcards.current_folder_id,
+                                ),
+                                |_result| {
+                                    message::app(Message::Folders(folders::Message::Upserted))
+                                },
+                            );
+                            self.core.window.show_context = false;
+                            commands.push(command);
+                        }
+                        folders::Command::ToggleEditContextPage(folder) => {
+                            if self.context_page == ContextPage::EditFolder {
+                                // Close the context drawer if the toggled context page is the same.
+                                self.core.window.show_context = !self.core.window.show_context;
+                            } else {
+                                // Open the context drawer to display the requested context page.
+                                self.context_page = ContextPage::EditFolder;
+                                self.core.window.show_context = true;
+                            }
+
+                            //Loads the flashcard in case is an edit operation
+                            if folder.is_some() {
+                                let command = Command::perform(
+                                    get_single_folder(self.db.clone(), folder.unwrap().id.unwrap()),
+                                    |result| match result {
+                                        Ok(folder) => message::app(Message::Folders(
+                                            folders::Message::LoadedSingle(folder),
+                                        )),
+                                        Err(_) => message::none(),
+                                    },
+                                );
+                                commands.push(command);
+                            }
+
+                            // Set the title of the context drawer.
+                            self.set_context_title(ContextPage::EditFolder.title());
+                        }
                     }
                 }
             }
@@ -468,7 +511,7 @@ impl Application for Oboete {
                                 ),
                                 |result| match result {
                                     Ok(_folder_id) => {
-                                        message::app(Message::Folders(folders::Message::Created))
+                                        message::app(Message::Folders(folders::Message::Upserted))
                                     }
                                     Err(_) => message::none(),
                                 },
@@ -524,6 +567,7 @@ impl Application for Oboete {
 
         Some(match self.context_page {
             ContextPage::About => self.about(),
+            ContextPage::EditFolder => self.folders.edit_folder_contextpage().map(Message::Folders),
             ContextPage::CreateEditFlashcard => self
                 .flashcards
                 .create_edit_flashcard_contextpage()
