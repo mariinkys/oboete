@@ -25,11 +25,12 @@ pub enum Message {
     Upsert,
     Upserted,
     LoadedSingle(Folder),
-    Load(Option<i32>),
+    Load,
     SetFolders(Vec<Folder>),
     NewFolderNameInput(String),
     OpenFolder(i32),
     ToggleEditContextPage(Option<Folder>),
+    Delete(Option<i32>),
 }
 
 pub enum Command {
@@ -40,6 +41,7 @@ pub enum Command {
     UpsertFolder(Folder),
     OpenCreateFolderDialog,
     ToggleEditContextPage(Option<Folder>),
+    DeleteFolder(Option<i32>),
 }
 
 impl Folders {
@@ -77,7 +79,7 @@ impl Folders {
                     name: folder.name,
                 };
             }
-            Message::Load(studyset_id) => match studyset_id {
+            Message::Load => match self.current_studyset_id {
                 Some(set_id) => commands.push(Command::LoadFolders(set_id)),
                 None => self.current_studyset_id = None,
             },
@@ -94,6 +96,7 @@ impl Folders {
 
                 commands.push(Command::ToggleEditContextPage(folder))
             }
+            Message::Delete(folder_id) => commands.push(Command::DeleteFolder(folder_id)),
         }
         commands
     }
@@ -139,8 +142,8 @@ impl Folders {
 
                 let delete_button = widget::button("Delete")
                     .padding(spacing.space_xxs)
-                    .style(theme::Button::Destructive);
-                //.on_press(Message::DeleteFolder(id));
+                    .style(theme::Button::Destructive)
+                    .on_press(Message::Delete(folder.id));
 
                 let folder_name = widget::text(folder.name.clone())
                     .vertical_alignment(Vertical::Center)

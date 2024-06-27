@@ -3,7 +3,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::core::database::{
-    delete_studyset, get_all_studysets, get_folder_flashcards, get_single_flashcard,
+    delete_folder, delete_studyset, get_all_studysets, get_folder_flashcards, get_single_flashcard,
     get_single_folder, get_studyset_folders, update_flashcard_status, upsert_flashcard,
     upsert_folder, upsert_studyset, OboeteDb,
 };
@@ -322,6 +322,16 @@ impl Application for Oboete {
                             // Set the title of the context drawer.
                             self.set_context_title(ContextPage::EditFolder.title());
                         }
+                        folders::Command::DeleteFolder(folder_id) => {
+                            let command = Command::perform(
+                                delete_folder(self.db.clone(), folder_id.unwrap()),
+                                |result| match result {
+                                    Ok(_) => message::app(Message::Folders(folders::Message::Load)),
+                                    Err(_) => message::none(),
+                                },
+                            );
+                            commands.push(command);
+                        }
                     }
                 }
             }
@@ -544,7 +554,8 @@ impl Application for Oboete {
                         },
                     );
 
-                    commands.push(self.update(Message::Folders(folders::Message::Load(None))));
+                    self.folders.current_studyset_id = None;
+                    commands.push(self.update(Message::Folders(folders::Message::Load)));
                     commands.push(command);
                 }
                 self.nav.remove(self.nav.active());
@@ -670,7 +681,7 @@ impl Application for Oboete {
             self.current_page = Page::Folders;
             self.folders.current_studyset_id = set.id;
 
-            let message = Message::Folders(folders::Message::Load(set.id));
+            let message = Message::Folders(folders::Message::Load);
             let window_title = format!("Oboete - {}", set.name);
 
             commands.push(self.set_window_title(window_title.clone()));
