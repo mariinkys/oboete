@@ -1,9 +1,11 @@
 use cosmic::{
     iced::{
         alignment::{Horizontal, Vertical},
-        Alignment, Length,
+        Alignment, Color, Length,
     },
-    theme, widget, Apply, Element,
+    theme,
+    widget::{self},
+    Apply, Element,
 };
 
 use crate::{fl, models::Flashcard, utils::select_random_flashcard};
@@ -326,7 +328,7 @@ impl Flashcards {
                 .horizontal_alignment(Horizontal::Center),
             )
             .on_press(Message::SwapFlashcardSide)
-            .style(theme::Button::Text)
+            .style(button_style(false, false, ButtonStyle::NoHover))
             .height(Length::Fill)
             .width(Length::Fill),
         )
@@ -334,7 +336,6 @@ impl Flashcards {
         .width(Length::Fill)
         .height(Length::Fill);
 
-        //TODO: Custom Button Styling
         let options_row = widget::row::with_capacity(3)
             .push(
                 widget::button(
@@ -346,7 +347,7 @@ impl Flashcards {
                     self.currently_studying_flashcard.clone(),
                     StudyActions::Bad,
                 ))
-                .style(theme::Button::Suggested)
+                .style(button_style(false, false, ButtonStyle::BadButton))
                 .height(Length::Fixed(60.0))
                 .width(Length::Fill),
             )
@@ -360,7 +361,7 @@ impl Flashcards {
                     self.currently_studying_flashcard.clone(),
                     StudyActions::Ok,
                 ))
-                .style(theme::Button::Suggested)
+                .style(button_style(false, false, ButtonStyle::OkButton))
                 .height(Length::Fixed(60.0))
                 .width(Length::Fill),
             )
@@ -374,7 +375,7 @@ impl Flashcards {
                     self.currently_studying_flashcard.clone(),
                     StudyActions::Good,
                 ))
-                .style(theme::Button::Suggested)
+                .style(button_style(false, false, ButtonStyle::GoodButton))
                 .height(Length::Fixed(60.0))
                 .width(Length::Fill),
             )
@@ -389,5 +390,121 @@ impl Flashcards {
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
             .into()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum ButtonStyle {
+    NoHover,
+    OkButton,
+    GoodButton,
+    BadButton,
+}
+
+fn button_appearance(
+    theme: &theme::Theme,
+    _selected: bool,
+    _focused: bool,
+    _accent: bool,
+    style: ButtonStyle,
+) -> widget::button::Appearance {
+    let cosmic = theme.cosmic();
+    let mut appearance = widget::button::Appearance::new();
+
+    // Sample Code from cosmic-files (src/tab.rs I belive)
+    // if selected {
+    //     if accent {
+    //         appearance.background = Some(Color::from(cosmic.on_accent_color()).into());
+    //         appearance.icon_color = Some(Color::from(cosmic.on_accent_color()));
+    //         appearance.text_color = Some(Color::from(cosmic.on_accent_color()));
+    //     } else {
+    //         appearance.background = Some(Color::from(cosmic.bg_component_color()).into());
+    //     }
+    // }
+    // if focused && accent {
+    //     appearance.outline_width = 1.0;
+    //     appearance.outline_color = Color::from(cosmic.accent_color());
+    //     appearance.border_width = 2.0;
+    //     appearance.border_color = Color::TRANSPARENT;
+    // }
+    // appearance.border_radius = cosmic.radius_s().into();
+
+    appearance.border_radius = cosmic.radius_xs().into();
+    appearance.icon_color = Some(Color::from(cosmic.on_accent_color()));
+    appearance.outline_width = 1.0;
+    appearance.border_width = 2.0;
+
+    if style != ButtonStyle::NoHover {
+        appearance.text_color = Some(Color::from(cosmic.on_accent_color()));
+    }
+
+    let custom_bg_color = match style {
+        // Orange
+        ButtonStyle::OkButton => Color {
+            r: 245.0 / 255.0,
+            g: 188.0 / 255.0,
+            b: 66.0 / 255.0,
+            a: 0.75,
+        },
+        // Green
+        ButtonStyle::GoodButton => Color {
+            r: 21.0 / 255.0,
+            g: 191.0 / 255.0,
+            b: 89.0 / 255.0,
+            a: 0.75,
+        },
+        // Red
+        ButtonStyle::BadButton => Color {
+            r: 191.0 / 255.0,
+            g: 57.0 / 255.0,
+            b: 57.0 / 255.0,
+            a: 0.75,
+        },
+        ButtonStyle::NoHover => Color::from(cosmic.bg_color()),
+    };
+
+    let custom_border_color = match style {
+        // Darker Orange
+        ButtonStyle::OkButton => Color {
+            r: 250.0 / 255.0,
+            g: 146.0 / 255.0,
+            b: 12.0 / 255.0,
+            a: 1.0,
+        },
+        // Brighter Green
+        ButtonStyle::GoodButton => Color {
+            r: 10.0 / 255.0,
+            g: 209.0 / 255.0,
+            b: 90.0 / 255.0,
+            a: 1.0,
+        },
+        // Darker Red
+        ButtonStyle::BadButton => Color {
+            r: 107.0 / 255.0,
+            g: 7.0 / 255.0,
+            b: 7.0 / 255.0,
+            a: 1.0,
+        },
+        ButtonStyle::NoHover => Color::from(cosmic.bg_color()),
+    };
+
+    appearance.background = Some(Color::from(custom_bg_color).into());
+    appearance.border_color = Color::from(custom_border_color);
+
+    appearance
+}
+
+fn button_style(selected: bool, accent: bool, style: ButtonStyle) -> theme::Button {
+    theme::Button::Custom {
+        active: Box::new(move |focused, theme| {
+            button_appearance(theme, selected, focused, accent, style)
+        }),
+        disabled: Box::new(move |theme| button_appearance(theme, selected, false, accent, style)),
+        hovered: Box::new(move |focused, theme| {
+            button_appearance(theme, selected, focused, accent, style)
+        }),
+        pressed: Box::new(move |focused, theme| {
+            button_appearance(theme, selected, focused, accent, style)
+        }),
     }
 }
