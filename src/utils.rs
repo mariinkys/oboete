@@ -4,6 +4,8 @@ use rand::seq::SliceRandom;
 
 #[derive(Debug, Clone)]
 pub struct OboeteError {
+    //TODO: Improve Error Handling implies removing this allow(dead_code)
+    #[allow(dead_code)]
     pub message: String,
 }
 
