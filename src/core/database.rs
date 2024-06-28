@@ -496,7 +496,7 @@ pub async fn delete_folder(db: Option<OboeteDb>, id: i32) -> Result<bool, Oboete
     }
 }
 
-pub async fn delete_flashcard(db: Option<OboeteDb>, id: i32) -> Result<bool, OboeteError> {
+pub async fn delete_flashcard(db: Option<OboeteDb>, id: i32) -> Result<(), OboeteError> {
     let pool = match db {
         Some(db) => db,
         None => {
@@ -512,7 +512,20 @@ pub async fn delete_flashcard(db: Option<OboeteDb>, id: i32) -> Result<bool, Obo
         .await;
 
     match command {
-        Ok(_) => Ok(true),
+        Ok(_) => Ok(()),
         Err(err) => Err(err.into()),
     }
+}
+
+pub async fn import_flashcards(
+    db: Option<OboeteDb>,
+    flashcards: Vec<Flashcard>,
+    folder_id: i32,
+) -> Result<(), OboeteError> {
+    for flashcard in flashcards {
+        if let Err(err) = upsert_flashcard(db.clone(), flashcard, folder_id).await {
+            return Err(err);
+        }
+    }
+    Ok(())
 }

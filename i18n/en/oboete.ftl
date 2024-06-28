@@ -22,3 +22,6 @@ new-flashcard-back-title = Flashcard Back
 new-flashcard-back-inputfield = Back
 new-flashcard-submit-button = Create
 new-flashcard-edit-button = Edit
+
+<#-- Flashcard Options Context Page -->
+flashcard-options = Flashcard Options

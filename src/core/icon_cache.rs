@@ -36,6 +36,8 @@ impl IconCache {
         }
 
         bundle!("edit-button-symbolic", 18);
+        bundle!("menu-vertical-symbolic", 18);
+        bundle!("add-symbolic", 18);
         bundle!("folder-open-symbolic", 18);
         bundle!("share-symbolic", 18);
         bundle!("user-trash-full-symbolic", 18);

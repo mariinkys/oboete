@@ -3,12 +3,15 @@ use cosmic::{
         alignment::{Horizontal, Vertical},
         Alignment, Color, Length,
     },
-    theme,
-    widget::{self},
-    Apply, Element,
+    theme, widget, Apply, Element,
 };
 
-use crate::{core::icon_cache::IconCache, fl, models::Flashcard, utils::select_random_flashcard};
+use crate::{
+    core::icon_cache::IconCache,
+    fl,
+    models::Flashcard,
+    utils::{parse_import_content, select_random_flashcard},
+};
 
 pub struct Flashcards {
     pub current_folder_id: i32,
@@ -16,6 +19,7 @@ pub struct Flashcards {
     pub new_edit_flashcard: CreateEditFlashcardState,
     pub currently_studying_flashcard: Flashcard,
     pub currently_studying_flashcard_side: CurrentFlashcardSide,
+    pub options_page_input: OptionsContextPageInputState,
 }
 
 pub struct CreateEditFlashcardState {
@@ -23,6 +27,33 @@ pub struct CreateEditFlashcardState {
     front: String,
     back: String,
     status: i32,
+}
+
+impl CreateEditFlashcardState {
+    pub fn new() -> CreateEditFlashcardState {
+        CreateEditFlashcardState {
+            id: None,
+            front: String::new(),
+            back: String::new(),
+            status: 0,
+        }
+    }
+}
+
+pub struct OptionsContextPageInputState {
+    pub between_terms: String,
+    pub between_cards: String,
+    pub import_content: String,
+}
+
+impl OptionsContextPageInputState {
+    pub fn new() -> OptionsContextPageInputState {
+        OptionsContextPageInputState {
+            between_terms: String::new(),
+            between_cards: String::new(),
+            import_content: String::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -40,6 +71,9 @@ pub enum Message {
     UpdatedStatus(Vec<Flashcard>),
     SwapFlashcardSide,
     Delete(Option<i32>),
+    ToggleOptionsPage,
+    OptionsPageInput(OptionsContextPageInputActions),
+    Import,
 }
 
 pub enum Command {
@@ -50,6 +84,8 @@ pub enum Command {
     OpenStudyFolderFlashcardsPage,
     UpdateFlashcardStatus(Flashcard),
     DeleteFlashcard(Option<i32>),
+    ToggleOptionsPage,
+    ImportFlashcards(Vec<Flashcard>),
 }
 
 #[derive(Debug, Clone)]
@@ -65,6 +101,13 @@ pub enum CurrentFlashcardSide {
     Back,
 }
 
+#[derive(Debug, Clone)]
+pub enum OptionsContextPageInputActions {
+    BetweenTerms(String),
+    BetweenCards(String),
+    ImportContent(String),
+}
+
 impl Flashcards {
     pub fn new() -> Self {
         Self {
@@ -76,13 +119,9 @@ impl Flashcards {
                 back: String::from("Error"),
                 status: 0,
             },
-            new_edit_flashcard: CreateEditFlashcardState {
-                id: None,
-                front: String::new(),
-                back: String::new(),
-                status: 0,
-            },
+            new_edit_flashcard: CreateEditFlashcardState::new(),
             currently_studying_flashcard_side: CurrentFlashcardSide::Front,
+            options_page_input: OptionsContextPageInputState::new(),
         }
     }
 
@@ -97,12 +136,9 @@ impl Flashcards {
                 status: self.new_edit_flashcard.status,
             })),
             Message::Upserted => {
-                self.new_edit_flashcard = CreateEditFlashcardState {
-                    id: None,
-                    front: String::new(),
-                    back: String::new(),
-                    status: 0,
-                };
+                self.new_edit_flashcard = CreateEditFlashcardState::new();
+                self.options_page_input = OptionsContextPageInputState::new();
+
                 commands.push(Command::LoadFlashcards(self.current_folder_id))
             }
             Message::LoadedSingle(flashcard) => {
@@ -116,12 +152,7 @@ impl Flashcards {
             Message::SetFlashcards(flashcards) => self.flashcards = flashcards,
             Message::ToggleCreatePage(flashcard) => {
                 if flashcard.is_none() {
-                    self.new_edit_flashcard = CreateEditFlashcardState {
-                        id: None,
-                        front: String::new(),
-                        back: String::new(),
-                        status: 0,
-                    };
+                    self.new_edit_flashcard = CreateEditFlashcardState::new();
                 }
 
                 commands.push(Command::ToggleCreateFlashcardPage(flashcard))
@@ -140,6 +171,7 @@ impl Flashcards {
             }
             Message::UpdatedStatus(flashcards) => {
                 self.flashcards = flashcards;
+                self.currently_studying_flashcard_side = CurrentFlashcardSide::Front;
                 self.currently_studying_flashcard = select_random_flashcard(&self.flashcards)
                     .unwrap_or(Flashcard {
                         id: None,
@@ -158,6 +190,26 @@ impl Flashcards {
             },
             Message::Delete(flashcard_id) => commands.push(Command::DeleteFlashcard(flashcard_id)),
             Message::Load => commands.push(Command::LoadFlashcards(self.current_folder_id)),
+            Message::ToggleOptionsPage => commands.push(Command::ToggleOptionsPage),
+            Message::OptionsPageInput(input) => match input {
+                OptionsContextPageInputActions::BetweenTerms(value) => {
+                    self.options_page_input.between_terms = value
+                }
+                OptionsContextPageInputActions::BetweenCards(value) => {
+                    self.options_page_input.between_cards = value
+                }
+                OptionsContextPageInputActions::ImportContent(value) => {
+                    self.options_page_input.import_content = value
+                }
+            },
+            Message::Import => {
+                let content = parse_import_content(
+                    &self.options_page_input.between_cards,
+                    &self.options_page_input.between_terms,
+                    &self.options_page_input.import_content,
+                );
+                commands.push(Command::ImportFlashcards(content))
+            }
         }
 
         commands
@@ -166,10 +218,15 @@ impl Flashcards {
     fn flashcard_header_row(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        let new_flashcard_button = widget::button(widget::text("New"))
+        let new_flashcard_button = widget::button(IconCache::get("add-symbolic", 18))
             .style(theme::Button::Suggested)
             .padding(spacing.space_xxs)
             .on_press(Message::ToggleCreatePage(None));
+
+        let flashcard_options_button = widget::button(IconCache::get("menu-vertical-symbolic", 18))
+            .style(theme::Button::Standard)
+            .padding(spacing.space_xxs)
+            .on_press(Message::ToggleOptionsPage);
 
         let study_button = if self.flashcards.is_empty() == false {
             widget::button(widget::text("Study"))
@@ -189,6 +246,7 @@ impl Flashcards {
             .push(widget::text::title3("Flashcards").width(Length::Fill))
             .push(study_button)
             .push(new_flashcard_button)
+            .push(flashcard_options_button)
             .into()
     }
 
@@ -389,6 +447,78 @@ impl Flashcards {
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
             .into()
+    }
+
+    // The flashcard options context page for this app.
+    pub fn flashcard_options_contextpage(&self) -> Element<Message> {
+        let spacing = theme::active().cosmic().spacing;
+
+        widget::settings::view_column(vec![widget::settings::view_section("Import")
+            .add(
+                widget::column::with_children(vec![
+                    widget::text::body("Between Term & Definition").into(),
+                    widget::text_input(
+                        "Character between Term & Definition",
+                        &self.options_page_input.between_terms,
+                    )
+                    .on_input(|value| {
+                        Message::OptionsPageInput(OptionsContextPageInputActions::BetweenTerms(
+                            value,
+                        ))
+                    })
+                    .into(),
+                ])
+                .spacing(spacing.space_xxs)
+                .padding([0, 15, 0, 15]),
+            )
+            .add(
+                widget::column::with_children(vec![
+                    widget::text::body("Between Cards").into(),
+                    widget::text_input(
+                        "Character between Cards",
+                        &self.options_page_input.between_cards,
+                    )
+                    .on_input(|value| {
+                        Message::OptionsPageInput(OptionsContextPageInputActions::BetweenCards(
+                            value,
+                        ))
+                    })
+                    .into(),
+                ])
+                .spacing(spacing.space_xxs)
+                .padding([0, 15, 0, 15]),
+            )
+            .add(
+                widget::column::with_children(vec![
+                    widget::text::body("Import Content").into(),
+                    //TODO: Can we Increase the Height of the Input without touching the width?
+                    widget::text_input(
+                        "Content to Import",
+                        &self.options_page_input.import_content,
+                    )
+                    .on_input(|value| {
+                        Message::OptionsPageInput(OptionsContextPageInputActions::ImportContent(
+                            value,
+                        ))
+                    })
+                    .into(),
+                ])
+                .spacing(spacing.space_xxs)
+                .padding([0, 15, 0, 15]),
+            )
+            .add(
+                widget::button(
+                    widget::text("Import")
+                        .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                        .width(Length::Fill),
+                )
+                .on_press(Message::Import)
+                .style(theme::Button::Suggested)
+                .padding([10, 0, 10, 0])
+                .width(Length::Fill),
+            )
+            .into()])
+        .into()
     }
 }
 

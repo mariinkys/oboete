@@ -104,7 +104,7 @@ impl Folders {
     fn folder_header_row(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        let new_folder_button = widget::button(widget::text("New"))
+        let new_folder_button = widget::button(IconCache::get("add-symbolic", 18))
             .style(theme::Button::Suggested)
             .padding(spacing.space_xxs)
             .on_press(Message::OpenCreateFolderDialog);
@@ -121,7 +121,6 @@ impl Folders {
     pub fn view(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        //TODO: Folders should have icons instead of text
         if self.current_studyset_id.is_some() {
             if self.folders.is_empty() == false {
                 let mut folders = widget::list::list_column()
