@@ -105,7 +105,7 @@ impl Folders {
         let spacing = theme::active().cosmic().spacing;
 
         //TODO: IconCache::get("add-symbolic", 18) - For now it causes visual issues on the flashcard page when it's empty & i want some consistency
-        let new_folder_button = widget::button("New")
+        let new_folder_button = widget::button(widget::text(fl!("new")))
             .style(theme::Button::Suggested)
             .padding(spacing.space_xxs)
             .on_press(Message::OpenCreateFolderDialog);
@@ -114,7 +114,7 @@ impl Folders {
             .align_items(cosmic::iced::Alignment::Center)
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
-            .push(widget::text::title3("Folders").width(Length::Fill))
+            .push(widget::text::title3(fl!("folders")).width(Length::Fill))
             .push(new_folder_button)
             .into()
     }
@@ -178,17 +178,19 @@ impl Folders {
                     .spacing(spacing.space_xxs)
                     .push(self.folder_header_row())
                     .push(
-                        widget::Container::new(widget::Text::new("Empty").size(spacing.space_xl))
-                            .width(Length::Fill)
-                            .height(Length::Fill)
-                            .align_x(cosmic::iced::alignment::Horizontal::Center)
-                            .align_y(cosmic::iced::alignment::Vertical::Center),
+                        widget::Container::new(
+                            widget::Text::new(fl!("empty-page")).size(spacing.space_xl),
+                        )
+                        .width(Length::Fill)
+                        .height(Length::Fill)
+                        .align_x(cosmic::iced::alignment::Horizontal::Center)
+                        .align_y(cosmic::iced::alignment::Vertical::Center),
                     )
                     .height(Length::Fill)
                     .into()
             }
         } else {
-            widget::Container::new(widget::Text::new("Empty").size(spacing.space_xl))
+            widget::Container::new(widget::Text::new(fl!("empty-page")).size(spacing.space_xl))
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .align_x(cosmic::iced::alignment::Horizontal::Center)
@@ -204,8 +206,8 @@ impl Folders {
         widget::settings::view_column(vec![widget::settings::view_section(fl!("folder-details"))
             .add(
                 widget::column::with_children(vec![
-                    widget::text::body(fl!("new-folder-name-title")).into(),
-                    widget::text_input(fl!("new-folder-name-inputfield"), &self.new_folder.name)
+                    widget::text::body(fl!("folder-name")).into(),
+                    widget::text_input(fl!("folder-name"), &self.new_folder.name)
                         .on_input(Message::NewFolderNameInput)
                         .into(),
                 ])
@@ -214,7 +216,7 @@ impl Folders {
             )
             .add(
                 widget::button(
-                    widget::text(fl!("new-folder-edit-button"))
+                    widget::text(fl!("edit"))
                         .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
                         .width(Length::Fill),
                 )

@@ -85,7 +85,7 @@ impl ContextPage {
         match self {
             Self::About => fl!("about"),
             Self::EditFolder => fl!("folder-details"),
-            Self::CreateEditFlashcard => fl!("flashcard-details"),
+            Self::CreateEditFlashcard => fl!("flashcard-options"),
             Self::FlashcardOptions => fl!("flashcard-options"),
         }
     }
@@ -171,19 +171,22 @@ impl Application for Oboete {
     fn header_start(&self) -> Vec<Element<Self::Message>> {
         let menu_bar = menu::bar(vec![
             menu::Tree::with_children(
-                menu::root("File"),
+                menu::root(fl!("file")),
                 menu::items(
                     &self.key_binds,
-                    vec![menu::Item::Button("New StudySet", MenuAction::NewStudySet)],
+                    vec![menu::Item::Button(
+                        fl!("new-studyset"),
+                        MenuAction::NewStudySet,
+                    )],
                 ),
             ),
             menu::Tree::with_children(
-                menu::root("Edit"),
+                menu::root(fl!("edit")),
                 menu::items(
                     &self.key_binds,
                     vec![
-                        menu::Item::Button("Rename StudySet", MenuAction::RenameStudySet),
-                        menu::Item::Button("Delete StudySet", MenuAction::DeleteStudySet),
+                        menu::Item::Button(fl!("rename-studyset"), MenuAction::RenameStudySet),
+                        menu::Item::Button(fl!("delete-studyset"), MenuAction::DeleteStudySet),
                     ],
                 ),
             ),
@@ -622,16 +625,17 @@ impl Application for Oboete {
         let spacing = theme::active().cosmic().spacing;
 
         let dialog = match dialog_page {
-            DialogPage::NewStudySet(name) => widget::dialog("Create StudySet")
+            DialogPage::NewStudySet(name) => widget::dialog(fl!("create-studyset"))
                 .primary_action(
-                    widget::button::suggested("Save").on_press_maybe(Some(Message::DialogComplete)),
+                    widget::button::suggested(fl!("save"))
+                        .on_press_maybe(Some(Message::DialogComplete)),
                 )
                 .secondary_action(
-                    widget::button::standard("Cancel").on_press(Message::DialogCancel),
+                    widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
                 )
                 .control(
                     widget::column::with_children(vec![
-                        widget::text::body("StudySet Name").into(),
+                        widget::text::body(fl!("studyset-name")).into(),
                         widget::text_input("", name.as_str())
                             .id(self.dialog_text_input.clone())
                             .on_input(move |name| {
@@ -642,16 +646,17 @@ impl Application for Oboete {
                     ])
                     .spacing(spacing.space_xxs),
                 ),
-            DialogPage::RenameStudySet { to: name } => widget::dialog("Rename StudySet")
+            DialogPage::RenameStudySet { to: name } => widget::dialog(fl!("rename-studyset"))
                 .primary_action(
-                    widget::button::suggested("Save").on_press_maybe(Some(Message::DialogComplete)),
+                    widget::button::suggested(fl!("save"))
+                        .on_press_maybe(Some(Message::DialogComplete)),
                 )
                 .secondary_action(
-                    widget::button::standard("Cancel").on_press(Message::DialogCancel),
+                    widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
                 )
                 .control(
                     widget::column::with_children(vec![
-                        widget::text::body("StudySet Name").into(),
+                        widget::text::body(fl!("studyset-name")).into(),
                         widget::text_input("", name.as_str())
                             .id(self.dialog_text_input.clone())
                             .on_input(move |name| {
@@ -662,24 +667,26 @@ impl Application for Oboete {
                     ])
                     .spacing(spacing.space_xxs),
                 ),
-            DialogPage::DeleteStudySet => widget::dialog("Delete StudySet")
-                .body("Confirm Delete")
+            DialogPage::DeleteStudySet => widget::dialog(fl!("delete-studyset"))
+                .body(fl!("confirm-delete"))
                 .primary_action(
-                    widget::button::suggested("Ok").on_press_maybe(Some(Message::DialogComplete)),
+                    widget::button::suggested(fl!("ok"))
+                        .on_press_maybe(Some(Message::DialogComplete)),
                 )
                 .secondary_action(
-                    widget::button::standard("Cancel").on_press(Message::DialogCancel),
+                    widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
                 ),
-            DialogPage::NewFolder(name) => widget::dialog("Create Folder")
+            DialogPage::NewFolder(name) => widget::dialog(fl!("create-folder"))
                 .primary_action(
-                    widget::button::suggested("Save").on_press_maybe(Some(Message::DialogComplete)),
+                    widget::button::suggested(fl!("save"))
+                        .on_press_maybe(Some(Message::DialogComplete)),
                 )
                 .secondary_action(
-                    widget::button::standard("Cancel").on_press(Message::DialogCancel),
+                    widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
                 )
                 .control(
                     widget::column::with_children(vec![
-                        widget::text::body("Folder Name").into(),
+                        widget::text::body(fl!("folder-name")).into(),
                         widget::text_input("", name.as_str())
                             .id(self.dialog_text_input.clone())
                             .on_input(move |name| {

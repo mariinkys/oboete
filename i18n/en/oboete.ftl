@@ -1,27 +1,60 @@
 app-title = Oboete
-about = About
-view = View
+cancel = Cancel
+save = Save
+empty-page = Empty
 
-<#-- New StudySet Context Page -->
+<#-- Application MenuBar -->
+file = File
 new-studyset = New StudySet
-new-studyset-name-title = New StudySet Name
-new-studyset-name-inputfield = Name
-new-studyset-submit-button = Create
+edit = Edit
+rename-studyset = Rename StudySet
+delete-studyset = Delete StudySet
+view = View
+about = About
 
-<#-- New Folder Context Page -->
+<#-- Page Headers -->
+folders = Folders
+flashcards = Flashcards
+study = Study
+new = New
+options = Options
+
+<#-- New StudySet Dialog -->
+create-studyset = Create StudySet
+rename-studyset = Rename StudySet
+studyset-name = StudySet Name
+
+<#-- Delete StudySet Dialog -->
+confirm-delete = Confirm Delete
+ok = Ok
+
+<#-- New Folder Dialog -->
+create-folder = Create Folder
+rename-folder = Rename Folder
+folder-name = Folder Name
+
+<#-- Folder Details Context Page -->
 folder-details = Folder Details
-new-folder-name-title = Folder Name
-new-folder-name-inputfield = Name
-new-folder-edit-button = Edit
 
-<#-- New Flashcard Context Page -->
-flashcard-details = Flashcard Details
-new-flashcard-front-title = Flashcard Front
-new-flashcard-front-inputfield = Front
-new-flashcard-back-title = Flashcard Back
-new-flashcard-back-inputfield = Back
-new-flashcard-submit-button = Create
-new-flashcard-edit-button = Edit
+<#-- Flashcards Page -->
+ok-status = Ok
+good-status = Good
+bad-status = Bad
+
+<#-- Flashcard Create/Edit Context Page -->
+flashcard-front-title = Flashcard Front
+flashcard-back-title = Flashcard Back
+flashcard-front-placeholder = Front Content
+flashcard-back-placeholder = Back Content
+create = Create
 
 <#-- Flashcard Options Context Page -->
 flashcard-options = Flashcard Options
+folder-import = Import
+import-between-term-title = Between Term & Definition
+import-between-term-placeholder = Character Between Term & Definition
+import-between-cards-title = Between Cards
+import-between-cards-placeholder = Character Between Cards
+import-content-title = Import Content
+import-content-placeholder = Content to Import
+import-button = Import

@@ -174,12 +174,7 @@ impl Flashcards {
                 self.flashcards = flashcards;
                 self.currently_studying_flashcard_side = CurrentFlashcardSide::Front;
                 self.currently_studying_flashcard = select_random_flashcard(&self.flashcards)
-                    .unwrap_or(Flashcard {
-                        id: None,
-                        front: String::from("Error"),
-                        back: String::from("Error"),
-                        status: 0,
-                    });
+                    .unwrap_or(Flashcard::new_error_variant());
             }
             Message::SwapFlashcardSide => match self.currently_studying_flashcard_side {
                 CurrentFlashcardSide::Front => {
@@ -220,24 +215,24 @@ impl Flashcards {
         let spacing = theme::active().cosmic().spacing;
 
         //TODO: Replace Text with IconCache::get("add-symbolic", 18) - For now it causes visual issues when the page is empty...
-        let new_flashcard_button = widget::button("New")
+        let new_flashcard_button = widget::button(widget::text(fl!("new")))
             .style(theme::Button::Suggested)
             .padding(spacing.space_xxs)
             .on_press(Message::ToggleCreatePage(None));
 
         //TODO: IconCache::get("menu-vertical-symbolic", 18) - For now it causes visual issues when the page is empty...
-        let flashcard_options_button = widget::button("Options")
+        let flashcard_options_button = widget::button(widget::text(fl!("options")))
             .style(theme::Button::Standard)
             .padding(spacing.space_xxs)
             .on_press(Message::ToggleOptionsPage);
 
         let study_button = if self.flashcards.is_empty() == false {
-            widget::button(widget::text("Study"))
+            widget::button(widget::text(fl!("study")))
                 .style(theme::Button::Suggested)
                 .padding(spacing.space_xxs)
                 .on_press(Message::StudyFlashcards)
         } else {
-            widget::button(widget::text("Study"))
+            widget::button(widget::text(fl!("study")))
                 .style(theme::Button::Suggested)
                 .padding(spacing.space_xxs)
         };
@@ -246,7 +241,7 @@ impl Flashcards {
             .align_items(cosmic::iced::Alignment::Center)
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
-            .push(widget::text::title3("Flashcards").width(Length::Fill))
+            .push(widget::text::title3(fl!("flashcards")).width(Length::Fill))
             .push(study_button)
             .push(new_flashcard_button)
             .push(flashcard_options_button)
@@ -275,10 +270,10 @@ impl Flashcards {
 
                 //TODO: Custom Button to make it look like a badge
                 let badge = widget::text(match flashcard.status {
-                    1 => "Bad     ",  // High chance (status = 1 = flashcard Bad)
-                    2 => "Ok     ",   // Medium chance (status = 2 = flashcard Ok)
-                    3 => "Good     ", // Low chance (status = 3 = flashcard Good)
-                    _ => "",          // Default chance for other statuses
+                    1 => format!("{}     ", fl!("bad-status")), // High chance (status = 1 = flashcard Bad)
+                    2 => format!("{}     ", fl!("ok-status")), // Medium chance (status = 2 = flashcard Ok)
+                    3 => format!("{}     ", fl!("good-status")), // Low chance (status = 3 = flashcard Good)
+                    _ => String::new(), // Default chance for other statuses
                 })
                 .vertical_alignment(Vertical::Center)
                 .horizontal_alignment(Horizontal::Left)
@@ -315,11 +310,13 @@ impl Flashcards {
                 .spacing(spacing.space_xxs)
                 .push(self.flashcard_header_row())
                 .push(
-                    widget::Container::new(widget::Text::new("Empty").size(spacing.space_xl))
-                        .width(Length::Fill)
-                        .height(Length::Fill)
-                        .align_x(cosmic::iced::alignment::Horizontal::Center)
-                        .align_y(cosmic::iced::alignment::Vertical::Center),
+                    widget::Container::new(
+                        widget::Text::new(fl!("empty-page")).size(spacing.space_xl),
+                    )
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .align_x(cosmic::iced::alignment::Horizontal::Center)
+                    .align_y(cosmic::iced::alignment::Vertical::Center),
                 )
                 .height(Length::Fill)
                 .into()
@@ -331,13 +328,13 @@ impl Flashcards {
         let spacing = theme::active().cosmic().spacing;
 
         widget::settings::view_column(vec![widget::settings::view_section(fl!(
-            "flashcard-details"
+            "flashcard-options"
         ))
         .add(
             widget::column::with_children(vec![
-                widget::text::body(fl!("new-flashcard-front-title")).into(),
+                widget::text::body(fl!("flashcard-front-title")).into(),
                 widget::text_input(
-                    fl!("new-flashcard-front-inputfield"),
+                    fl!("flashcard-front-placeholder"),
                     &self.new_edit_flashcard.front,
                 )
                 .on_input(Message::ContextPageFrontInput)
@@ -348,9 +345,9 @@ impl Flashcards {
         )
         .add(
             widget::column::with_children(vec![
-                widget::text::body(fl!("new-flashcard-back-title")).into(),
+                widget::text::body(fl!("flashcard-back-title")).into(),
                 widget::text_input(
-                    fl!("new-flashcard-back-inputfield"),
+                    fl!("flashcard-back-placeholder"),
                     &self.new_edit_flashcard.back,
                 )
                 .on_input(Message::ContextPageBackInput)
@@ -361,7 +358,7 @@ impl Flashcards {
         )
         .add(match self.new_edit_flashcard.id {
             Some(_id) => widget::button(
-                widget::text(fl!("new-flashcard-edit-button"))
+                widget::text(fl!("edit"))
                     .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
                     .width(Length::Fill),
             )
@@ -370,7 +367,7 @@ impl Flashcards {
             .padding([10, 0, 10, 0])
             .width(Length::Fill),
             None => widget::button(
-                widget::text(fl!("new-flashcard-submit-button"))
+                widget::text(fl!("create"))
                     .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
                     .width(Length::Fill),
             )
@@ -410,7 +407,7 @@ impl Flashcards {
         let options_row = widget::row::with_capacity(3)
             .push(
                 widget::button(
-                    widget::Text::new("Bad")
+                    widget::Text::new(fl!("bad-status"))
                         .horizontal_alignment(Horizontal::Center)
                         .vertical_alignment(Vertical::Center),
                 )
@@ -424,7 +421,7 @@ impl Flashcards {
             )
             .push(
                 widget::button(
-                    widget::Text::new("Ok")
+                    widget::Text::new(fl!("ok-status"))
                         .horizontal_alignment(Horizontal::Center)
                         .vertical_alignment(Vertical::Center),
                 )
@@ -438,7 +435,7 @@ impl Flashcards {
             )
             .push(
                 widget::button(
-                    widget::Text::new("Good")
+                    widget::Text::new(fl!("good-status"))
                         .horizontal_alignment(Horizontal::Center)
                         .vertical_alignment(Vertical::Center),
                 )
@@ -467,12 +464,12 @@ impl Flashcards {
     pub fn flashcard_options_contextpage(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        widget::settings::view_column(vec![widget::settings::view_section("Import")
+        widget::settings::view_column(vec![widget::settings::view_section(fl!("folder-import"))
             .add(
                 widget::column::with_children(vec![
-                    widget::text::body("Between Term & Definition").into(),
+                    widget::text::body(fl!("import-between-term-title")).into(),
                     widget::text_input(
-                        "Character between Term & Definition",
+                        fl!("import-between-term-placeholder"),
                         &self.options_page_input.between_terms,
                     )
                     .on_input(|value| {
@@ -487,9 +484,9 @@ impl Flashcards {
             )
             .add(
                 widget::column::with_children(vec![
-                    widget::text::body("Between Cards").into(),
+                    widget::text::body(fl!("import-between-cards-title")).into(),
                     widget::text_input(
-                        "Character between Cards",
+                        fl!("import-between-cards-placeholder"),
                         &self.options_page_input.between_cards,
                     )
                     .on_input(|value| {
@@ -504,10 +501,10 @@ impl Flashcards {
             )
             .add(
                 widget::column::with_children(vec![
-                    widget::text::body("Import Content").into(),
+                    widget::text::body(fl!("import-content-title")).into(),
                     //TODO: Can we Increase the Height of the Input without touching the width?
                     widget::text_input(
-                        "Content to Import",
+                        fl!("import-content-placeholder"),
                         &self.options_page_input.import_content,
                     )
                     .on_input(|value| {
@@ -522,7 +519,7 @@ impl Flashcards {
             )
             .add(
                 widget::button(
-                    widget::text("Import")
+                    widget::text(fl!("import-button"))
                         .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
                         .width(Length::Fill),
                 )
