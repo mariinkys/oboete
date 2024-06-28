@@ -404,15 +404,9 @@ impl Application for Oboete {
                         }
                         //We select a random (weighted) flashcard and open the page
                         flashcards::Command::OpenStudyFolderFlashcardsPage => {
-                            self.flashcards.currently_studying_flashcard = select_random_flashcard(
-                                &self.flashcards.flashcards,
-                            )
-                            .unwrap_or(crate::models::Flashcard {
-                                id: None,
-                                front: String::from("Error"),
-                                back: String::from("Error"),
-                                status: 0,
-                            });
+                            self.flashcards.currently_studying_flashcard =
+                                select_random_flashcard(&self.flashcards.flashcards)
+                                    .unwrap_or(crate::models::Flashcard::new_error_variant());
                             self.current_page = Page::StudyFolderFlashcards
                         }
                         //Update the status on the db and return the folder flashcards once again (with the updated status)
@@ -516,13 +510,7 @@ impl Application for Oboete {
                 if let Some(dialog_page) = self.dialog_pages.pop_front() {
                     match dialog_page {
                         DialogPage::NewStudySet(name) => {
-                            //TODO: Constructor
-                            //let set = StudySet::new(&name);
-                            let set = StudySet {
-                                id: None,
-                                name,
-                                folders: Vec::new(),
-                            };
+                            let set = StudySet::new(name);
                             commands.push(Command::perform(
                                 upsert_studyset(self.db.clone(), set),
                                 |result| match result {
@@ -547,13 +535,7 @@ impl Application for Oboete {
                             commands.push(self.update(Message::DeleteStudySet));
                         }
                         DialogPage::NewFolder(name) => {
-                            //TODO: Constructor
-                            //let set = StudySet::new(&name);
-                            let folder = Folder {
-                                id: None,
-                                name,
-                                flashcards: Vec::new(),
-                            };
+                            let folder = Folder::new(name);
                             commands.push(Command::perform(
                                 upsert_folder(
                                     self.db.clone(),

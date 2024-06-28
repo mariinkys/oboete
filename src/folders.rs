@@ -19,6 +19,15 @@ pub struct NewFolderState {
     name: String,
 }
 
+impl NewFolderState {
+    pub fn new() -> NewFolderState {
+        NewFolderState {
+            id: None,
+            name: String::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     OpenCreateFolderDialog,
@@ -49,10 +58,7 @@ impl Folders {
         Self {
             current_studyset_id: None,
             folders: Vec::new(),
-            new_folder: NewFolderState {
-                id: None,
-                name: String::new(),
-            },
+            new_folder: NewFolderState::new(),
         }
     }
 
@@ -67,10 +73,7 @@ impl Folders {
                 flashcards: Vec::new(),
             })),
             Message::Upserted => {
-                self.new_folder = NewFolderState {
-                    id: None,
-                    name: String::new(),
-                };
+                self.new_folder = NewFolderState::new();
                 commands.push(Command::LoadFolders(self.current_studyset_id.unwrap()))
             }
             Message::LoadedSingle(folder) => {
@@ -88,10 +91,7 @@ impl Folders {
             Message::OpenFolder(id) => commands.push(Command::OpenFolder(id)),
             Message::ToggleEditContextPage(folder) => {
                 if folder.is_none() {
-                    self.new_folder = NewFolderState {
-                        id: None,
-                        name: String::new(),
-                    };
+                    self.new_folder = NewFolderState::new();
                 }
 
                 commands.push(Command::ToggleEditContextPage(folder))
