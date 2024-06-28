@@ -513,45 +513,51 @@ impl Application for Oboete {
                 if let Some(dialog_page) = self.dialog_pages.pop_front() {
                     match dialog_page {
                         DialogPage::NewStudySet(name) => {
-                            let set = StudySet::new(name);
-                            commands.push(Command::perform(
-                                upsert_studyset(self.db.clone(), set),
-                                |result| match result {
-                                    Ok(set) => message::app(Message::AddStudySet(set)),
-                                    Err(_) => message::none(),
-                                },
-                            ));
+                            if name.is_empty() == false {
+                                let set = StudySet::new(name);
+                                commands.push(Command::perform(
+                                    upsert_studyset(self.db.clone(), set),
+                                    |result| match result {
+                                        Ok(set) => message::app(Message::AddStudySet(set)),
+                                        Err(_) => message::none(),
+                                    },
+                                ));
+                            }
                         }
                         DialogPage::RenameStudySet { to: name } => {
-                            let entity = self.nav.active();
-                            self.nav.text_set(entity, name.clone());
-                            if let Some(set) = self.nav.active_data_mut::<StudySet>() {
-                                set.name = name.clone();
-                                let command = Command::perform(
-                                    upsert_studyset(self.db.clone(), set.to_owned().clone()),
-                                    |_| message::none(),
-                                );
-                                commands.push(command);
+                            if name.is_empty() == false {
+                                let entity = self.nav.active();
+                                self.nav.text_set(entity, name.clone());
+                                if let Some(set) = self.nav.active_data_mut::<StudySet>() {
+                                    set.name = name.clone();
+                                    let command = Command::perform(
+                                        upsert_studyset(self.db.clone(), set.to_owned().clone()),
+                                        |_| message::none(),
+                                    );
+                                    commands.push(command);
+                                }
                             }
                         }
                         DialogPage::DeleteStudySet => {
                             commands.push(self.update(Message::DeleteStudySet));
                         }
                         DialogPage::NewFolder(name) => {
-                            let folder = Folder::new(name);
-                            commands.push(Command::perform(
-                                upsert_folder(
-                                    self.db.clone(),
-                                    folder,
-                                    self.folders.current_studyset_id.unwrap(),
-                                ),
-                                |result| match result {
-                                    Ok(_folder_id) => {
-                                        message::app(Message::Folders(folders::Message::Upserted))
-                                    }
-                                    Err(_) => message::none(),
-                                },
-                            ));
+                            if name.is_empty() == false {
+                                let folder = Folder::new(name);
+                                commands.push(Command::perform(
+                                    upsert_folder(
+                                        self.db.clone(),
+                                        folder,
+                                        self.folders.current_studyset_id.unwrap(),
+                                    ),
+                                    |result| match result {
+                                        Ok(_folder_id) => message::app(Message::Folders(
+                                            folders::Message::Upserted,
+                                        )),
+                                        Err(_) => message::none(),
+                                    },
+                                ));
+                            }
                         }
                     }
                 }
