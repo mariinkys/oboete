@@ -104,7 +104,8 @@ impl Folders {
     fn folder_header_row(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        let new_folder_button = widget::button(IconCache::get("add-symbolic", 18))
+        //TODO: IconCache::get("add-symbolic", 18) - For now it causes visual issues on the flashcard page when it's empty & i want some consistency
+        let new_folder_button = widget::button("New")
             .style(theme::Button::Suggested)
             .padding(spacing.space_xxs)
             .on_press(Message::OpenCreateFolderDialog);

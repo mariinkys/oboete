@@ -3,7 +3,9 @@ use cosmic::{
         alignment::{Horizontal, Vertical},
         Alignment, Color, Length,
     },
-    theme, widget, Apply, Element,
+    theme,
+    widget::{self},
+    Apply, Element,
 };
 
 use crate::{
@@ -12,7 +14,6 @@ use crate::{
     models::Flashcard,
     utils::{parse_import_content, select_random_flashcard},
 };
-
 pub struct Flashcards {
     pub current_folder_id: i32,
     pub flashcards: Vec<Flashcard>,
@@ -218,12 +219,14 @@ impl Flashcards {
     fn flashcard_header_row(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        let new_flashcard_button = widget::button(IconCache::get("add-symbolic", 18))
+        //TODO: Replace Text with IconCache::get("add-symbolic", 18) - For now it causes visual issues when the page is empty...
+        let new_flashcard_button = widget::button("New")
             .style(theme::Button::Suggested)
             .padding(spacing.space_xxs)
             .on_press(Message::ToggleCreatePage(None));
 
-        let flashcard_options_button = widget::button(IconCache::get("menu-vertical-symbolic", 18))
+        //TODO: IconCache::get("menu-vertical-symbolic", 18) - For now it causes visual issues when the page is empty...
+        let flashcard_options_button = widget::button("Options")
             .style(theme::Button::Standard)
             .padding(spacing.space_xxs)
             .on_press(Message::ToggleOptionsPage);
@@ -259,7 +262,6 @@ impl Flashcards {
                 .spacing(spacing.space_xxxs)
                 .padding([spacing.space_none, spacing.space_xxs]);
 
-            //TODO: Icons & Add Some Kind of Status Badge
             for flashcard in &self.flashcards {
                 let edit_button = widget::button(IconCache::get("edit-button-symbolic", 18))
                     .padding(spacing.space_xxs)
@@ -271,6 +273,17 @@ impl Flashcards {
                     .style(theme::Button::Destructive)
                     .on_press(Message::Delete(flashcard.id));
 
+                //TODO: Custom Button to make it look like a badge
+                let badge = widget::text(match flashcard.status {
+                    1 => "Bad     ",  // High chance (status = 1 = flashcard Bad)
+                    2 => "Ok     ",   // Medium chance (status = 2 = flashcard Ok)
+                    3 => "Good     ", // Low chance (status = 3 = flashcard Good)
+                    _ => "",          // Default chance for other statuses
+                })
+                .vertical_alignment(Vertical::Center)
+                .horizontal_alignment(Horizontal::Left)
+                .width(Length::Shrink);
+
                 let flashcard_front = widget::text(flashcard.front.clone())
                     .vertical_alignment(Vertical::Center)
                     .horizontal_alignment(Horizontal::Left)
@@ -281,6 +294,7 @@ impl Flashcards {
                     .spacing(spacing.space_xxs)
                     .padding([spacing.space_xxxs, spacing.space_xxs])
                     .push(flashcard_front)
+                    .push(badge)
                     .push(delete_button)
                     .push(edit_button);
 
