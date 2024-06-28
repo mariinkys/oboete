@@ -21,7 +21,6 @@ options = Options
 
 <#-- New StudySet Dialog -->
 create-studyset = Create StudySet
-rename-studyset = Rename StudySet
 studyset-name = StudySet Name
 
 <#-- Delete StudySet Dialog -->
