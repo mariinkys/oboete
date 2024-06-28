@@ -357,24 +357,54 @@ impl Flashcards {
             .padding([0, 15, 0, 15]),
         )
         .add(match self.new_edit_flashcard.id {
-            Some(_id) => widget::button(
-                widget::text(fl!("edit"))
-                    .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                    .width(Length::Fill),
-            )
-            .on_press(Message::Upsert)
-            .style(theme::Button::Suggested)
-            .padding([10, 0, 10, 0])
-            .width(Length::Fill),
-            None => widget::button(
-                widget::text(fl!("create"))
-                    .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                    .width(Length::Fill),
-            )
-            .on_press(Message::Upsert)
-            .style(theme::Button::Suggested)
-            .padding([10, 0, 10, 0])
-            .width(Length::Fill),
+            Some(_id) => {
+                if self.new_edit_flashcard.front.is_empty() == false
+                    && self.new_edit_flashcard.back.is_empty() == false
+                {
+                    widget::button(
+                        widget::text(fl!("edit"))
+                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                            .width(Length::Fill),
+                    )
+                    .on_press(Message::Upsert)
+                    .style(theme::Button::Suggested)
+                    .padding([10, 0, 10, 0])
+                    .width(Length::Fill)
+                } else {
+                    widget::button(
+                        widget::text(fl!("edit"))
+                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                            .width(Length::Fill),
+                    )
+                    .style(theme::Button::Suggested)
+                    .padding([10, 0, 10, 0])
+                    .width(Length::Fill)
+                }
+            }
+            None => {
+                if self.new_edit_flashcard.front.is_empty() == false
+                    && self.new_edit_flashcard.back.is_empty() == false
+                {
+                    widget::button(
+                        widget::text(fl!("create"))
+                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                            .width(Length::Fill),
+                    )
+                    .on_press(Message::Upsert)
+                    .style(theme::Button::Suggested)
+                    .padding([10, 0, 10, 0])
+                    .width(Length::Fill)
+                } else {
+                    widget::button(
+                        widget::text(fl!("create"))
+                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                            .width(Length::Fill),
+                    )
+                    .style(theme::Button::Suggested)
+                    .padding([10, 0, 10, 0])
+                    .width(Length::Fill)
+                }
+            }
         })
         .into()])
         .into()
@@ -518,15 +548,29 @@ impl Flashcards {
                 .padding([0, 15, 0, 15]),
             )
             .add(
-                widget::button(
-                    widget::text(fl!("import-button"))
-                        .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                        .width(Length::Fill),
-                )
-                .on_press(Message::Import)
-                .style(theme::Button::Suggested)
-                .padding([10, 0, 10, 0])
-                .width(Length::Fill),
+                if self.options_page_input.import_content.is_empty() == false
+                    && self.options_page_input.between_cards.is_empty() == false
+                    && self.options_page_input.between_terms.is_empty() == false
+                {
+                    widget::button(
+                        widget::text(fl!("import-button"))
+                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                            .width(Length::Fill),
+                    )
+                    .on_press(Message::Import)
+                    .style(theme::Button::Suggested)
+                    .padding([10, 0, 10, 0])
+                    .width(Length::Fill)
+                } else {
+                    widget::button(
+                        widget::text(fl!("import-button"))
+                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                            .width(Length::Fill),
+                    )
+                    .style(theme::Button::Suggested)
+                    .padding([10, 0, 10, 0])
+                    .width(Length::Fill)
+                },
             )
             .into()])
         .into()

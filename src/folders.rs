@@ -214,7 +214,7 @@ impl Folders {
                 .spacing(spacing.space_xxs)
                 .padding([0, 15, 0, 15]),
             )
-            .add(
+            .add(if self.new_folder.name.is_empty() == false {
                 widget::button(
                     widget::text(fl!("edit"))
                         .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
@@ -223,8 +223,17 @@ impl Folders {
                 .on_press(Message::Upsert)
                 .style(theme::Button::Suggested)
                 .padding([10, 0, 10, 0])
-                .width(Length::Fill),
-            )
+                .width(Length::Fill)
+            } else {
+                widget::button(
+                    widget::text(fl!("edit"))
+                        .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                        .width(Length::Fill),
+                )
+                .style(theme::Button::Suggested)
+                .padding([10, 0, 10, 0])
+                .width(Length::Fill)
+            })
             .into()])
         .into()
     }
