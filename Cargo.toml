@@ -8,6 +8,10 @@ readme = "https://github.com/mariinkys/oboete/blob/main/README.md"
 repository = "https://github.com/mariinkys/oboete"
 license = "GPL-3.0"
 
+[[bin]]
+path = "src/main.rs"
+name = "oboete"
+
 [dependencies]
 i18n-embed-fl = "0.8"
 once_cell = "1.19.0"
