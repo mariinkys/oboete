@@ -31,15 +31,17 @@ impl NewFolderState {
 #[derive(Debug, Clone)]
 pub enum Message {
     OpenCreateFolderDialog,
-    Upsert,
-    Upserted,
-    LoadedSingle(Folder),
-    Load,
-    SetFolders(Vec<Folder>),
-    NewFolderNameInput(String),
-    OpenFolder(i32),
     ToggleEditContextPage(Option<Folder>),
+
+    LoadFolders,
+    Upsert,
     Delete(Option<i32>),
+
+    Upserted,
+    SetFolders(Vec<Folder>),
+    LoadedSingle(Folder),
+    OpenFolder(i32),
+    NewFolderNameInput(String),
 }
 
 pub enum Command {
@@ -82,7 +84,7 @@ impl Folders {
                     name: folder.name,
                 };
             }
-            Message::Load => match self.current_studyset_id {
+            Message::LoadFolders => match self.current_studyset_id {
                 Some(set_id) => commands.push(Command::LoadFolders(set_id)),
                 None => self.current_studyset_id = None,
             },

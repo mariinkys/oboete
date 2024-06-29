@@ -59,26 +59,29 @@ impl OptionsContextPageInputState {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    ToggleCreatePage(Option<Flashcard>),
+    ToggleOptionsPage,
+
     Upsert,
     Upserted,
-    Load,
-    LoadedSingle(Flashcard),
-    SetFlashcards(Vec<Flashcard>),
-    ToggleCreatePage(Option<Flashcard>),
-    StudyFlashcards,
-    ContextPageFrontInput(String),
-    ContextPageBackInput(String),
-    UpdateFlashcardStatus(Flashcard, StudyActions),
-    UpdatedStatus(Vec<Flashcard>),
-    SwapFlashcardSide,
-    Delete(Option<i32>),
-    ToggleOptionsPage,
-    OptionsPageInput(OptionsContextPageInputActions),
+    LoadFlashcards,
     Import,
+    Delete(Option<i32>),
+
+    SetFlashcards(Vec<Flashcard>),
+    SwapFlashcardSide,
+    StudyFlashcards,
+    UpdateFlashcardStatus(Flashcard, StudyActions),
     RestartSingleFlashcardStatus(Option<i32>),
     RestartFolderFlashcardStatus,
     OpenAnkiFileSelection,
+
+    UpdatedStatus(Vec<Flashcard>),
+    LoadedSingle(Flashcard),
+    ContextPageBackInput(String),
+    ContextPageFrontInput(String),
     OpenAnkiFileResult(Vec<String>),
+    OptionsPageInput(OptionsContextPageInputActions),
 }
 
 pub enum Command {
@@ -192,7 +195,9 @@ impl Flashcards {
                 }
             },
             Message::Delete(flashcard_id) => commands.push(Command::DeleteFlashcard(flashcard_id)),
-            Message::Load => commands.push(Command::LoadFlashcards(self.current_folder_id)),
+            Message::LoadFlashcards => {
+                commands.push(Command::LoadFlashcards(self.current_folder_id))
+            }
             Message::ToggleOptionsPage => commands.push(Command::ToggleOptionsPage),
             Message::OptionsPageInput(input) => match input {
                 OptionsContextPageInputActions::BetweenTerms(value) => {

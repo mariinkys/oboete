@@ -333,7 +333,9 @@ impl Application for Oboete {
                             let command = Command::perform(
                                 delete_folder(self.db.clone(), folder_id.unwrap()),
                                 |result| match result {
-                                    Ok(_) => message::app(Message::Folders(folders::Message::Load)),
+                                    Ok(_) => message::app(Message::Folders(
+                                        folders::Message::LoadFolders,
+                                    )),
                                     Err(_) => message::none(),
                                 },
                             );
@@ -435,9 +437,9 @@ impl Application for Oboete {
                             let command = Command::perform(
                                 delete_flashcard(self.db.clone(), flashcard_id.unwrap()),
                                 |result| match result {
-                                    Ok(_) => {
-                                        message::app(Message::Flashcards(flashcards::Message::Load))
-                                    }
+                                    Ok(_) => message::app(Message::Flashcards(
+                                        flashcards::Message::LoadFlashcards,
+                                    )),
                                     Err(_) => message::none(),
                                 },
                             );
@@ -474,9 +476,9 @@ impl Application for Oboete {
                             let command = Command::perform(
                                 reset_single_flashcard_status(self.db.clone(), flashcard_id),
                                 |result| match result {
-                                    Ok(_) => {
-                                        message::app(Message::Flashcards(flashcards::Message::Load))
-                                    }
+                                    Ok(_) => message::app(Message::Flashcards(
+                                        flashcards::Message::LoadFlashcards,
+                                    )),
                                     Err(_) => message::none(),
                                 },
                             );
@@ -488,9 +490,9 @@ impl Application for Oboete {
                             let command = Command::perform(
                                 reset_folder_flashcard_status(self.db.clone(), Some(folder_id)),
                                 |result| match result {
-                                    Ok(_) => {
-                                        message::app(Message::Flashcards(flashcards::Message::Load))
-                                    }
+                                    Ok(_) => message::app(Message::Flashcards(
+                                        flashcards::Message::LoadFlashcards,
+                                    )),
                                     Err(_) => message::none(),
                                 },
                             );
@@ -649,7 +651,7 @@ impl Application for Oboete {
                     );
 
                     self.folders.current_studyset_id = None;
-                    commands.push(self.update(Message::Folders(folders::Message::Load)));
+                    commands.push(self.update(Message::Folders(folders::Message::LoadFolders)));
                     commands.push(command);
                 }
                 self.nav.remove(self.nav.active());
@@ -783,7 +785,7 @@ impl Application for Oboete {
             self.current_page = Page::Folders;
             self.folders.current_studyset_id = set.id;
 
-            let message = Message::Folders(folders::Message::Load);
+            let message = Message::Folders(folders::Message::LoadFolders);
             let window_title = format!("Oboete - {}", set.name);
 
             commands.push(self.set_window_title(window_title.clone()));
