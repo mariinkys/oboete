@@ -3,6 +3,7 @@ cancel = Cancel
 save = Save
 empty-page = Empty
 empty-page-noset = Try to create a StudySet
+about-anki-importing = ABOUT ANKI IMPORTING
 
 <#-- Application MenuBar -->
 file = File

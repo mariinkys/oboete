@@ -59,6 +59,7 @@ impl OptionsContextPageInputState {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    LaunchUrl(String),
     ToggleCreatePage(Option<Flashcard>),
     ToggleOptionsPage,
 
@@ -233,6 +234,9 @@ impl Flashcards {
                         Err(err) => println!("{:?}", err), //TODO: Error handling?
                     }
                 }
+            }
+            Message::LaunchUrl(url) => {
+                let _result = open::that_detached(url);
             }
         }
 
@@ -627,15 +631,30 @@ impl Flashcards {
                 .into(),
             widget::settings::view_section(fl!("import-anki-title"))
                 .add(
-                    widget::button(
-                        widget::text(fl!("import-anki-button"))
-                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                    widget::column()
+                        .push(
+                            widget::button(
+                                widget::text(fl!("import-anki-button"))
+                                    .horizontal_alignment(
+                                        cosmic::iced::alignment::Horizontal::Center,
+                                    )
+                                    .width(Length::Fill),
+                            )
+                            .on_press(Message::OpenAnkiFileSelection)
+                            .style(theme::Button::Suggested)
+                            .padding([10, 0, 10, 0])
                             .width(Length::Fill),
-                    )
-                    .on_press(Message::OpenAnkiFileSelection)
-                    .style(theme::Button::Suggested)
-                    .padding([10, 0, 10, 0])
-                    .width(Length::Fill),
+                        )
+                        .push(
+                            widget::button::link(fl!("about-anki-importing"))
+                                .on_press(Message::LaunchUrl(
+                                "https://github.com/mariinkys/oboete/main/info/ANKI_IMPORTING.md"
+                                    .to_string(),
+                            )),
+                        )
+                        .spacing(3.0)
+                        .width(Length::Fill)
+                        .align_items(Alignment::Center),
                 )
                 .into(),
             widget::settings::view_section(fl!("reset-folder-flashcards-title"))

@@ -14,7 +14,11 @@
 
 This application has been made thanks to the [libcosmic Documentation](https://pop-os.github.io/libcosmic/cosmic/) and [edfloreshz](https://github.com/edfloreshz) application template and examples.
 
-I still have to add the Import/Export features. This project is related to my [other flashcard project](https://github.com/mariinkys/delphinus_flashcards). I also still have to fix the translations before any more languages can be added.
+This project is related to my [other flashcard project](https://github.com/mariinkys/delphinus_flashcards), if you want Chinese or Japanese flashcards you can [check it out](https://github.com/mariinkys/delphinus_flashcards)!
+
+## Anki Importing Support
+
+- Please Look at: [ANKI_IMPORTING](https://github.com/mariinkys/oboete/main/info/ANKI_IMPORTING.md)
 
 # Installation
 ```
