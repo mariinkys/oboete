@@ -190,7 +190,22 @@ impl Folders {
                     .into()
             }
         } else {
-            widget::Container::new(widget::Text::new(fl!("empty-page")).size(spacing.space_xl))
+            let column = widget::Column::new()
+                .push(
+                    widget::Text::new(fl!("empty-page"))
+                        .size(spacing.space_xl)
+                        .horizontal_alignment(Horizontal::Center)
+                        .width(Length::Fill),
+                )
+                .push(
+                    widget::Text::new(fl!("empty-page-noset"))
+                        .size(spacing.space_l)
+                        .horizontal_alignment(Horizontal::Center)
+                        .width(Length::Fill),
+                )
+                .width(Length::Fill);
+
+            widget::Container::new(column)
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .align_x(cosmic::iced::alignment::Horizontal::Center)

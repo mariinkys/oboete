@@ -2,6 +2,7 @@ app-title = Oboete
 cancel = Cancelar
 save = Guardar
 empty-page = Vacio
+empty-page-noset = Prueba a crear una Unidad de Estudio
 
 <#-- Application MenuBar -->
 file = Archivo
