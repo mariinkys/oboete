@@ -61,3 +61,5 @@ import-content-placeholder = Content to Import
 import-button = Import
 reset-folder-flashcards-title = Reset All Flashcard Status
 reset-folder-flashcards-button = Reset
+import-anki-title = Import from Anki File
+import-anki-button = Select Anki File

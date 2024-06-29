@@ -13,6 +13,7 @@ use crate::flashcards::{self, Flashcards};
 use crate::folders::{self, Folders};
 use crate::models::{Folder, StudySet};
 use crate::utils::select_random_flashcard;
+use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::app::{message, Core, Message as CosmicMessage};
 use cosmic::iced::{Alignment, Length};
 use cosmic::widget::segmented_button::{EntityMut, SingleSelect};
@@ -495,6 +496,38 @@ impl Application for Oboete {
                             );
 
                             self.core.window.show_context = false;
+                            commands.push(command);
+                        }
+                        flashcards::Command::OpenAnkiFileSelection => {
+                            let command = Command::perform(
+                                async move {
+                                    let result = SelectedFiles::open_file()
+                                        .title("Open Anki File")
+                                        .accept_label("Open")
+                                        .modal(true)
+                                        .multiple(false)
+                                        .filter(FileFilter::new("TXT File").glob("*.txt"))
+                                        .send()
+                                        .await
+                                        .unwrap()
+                                        .response();
+
+                                    if let Ok(result) = result {
+                                        result
+                                            .uris()
+                                            .iter()
+                                            .map(|file| file.path().to_string())
+                                            .collect::<Vec<String>>()
+                                    } else {
+                                        Vec::new()
+                                    }
+                                },
+                                |files| {
+                                    message::app(Message::Flashcards(
+                                        flashcards::Message::OpenAnkiFileResult(files),
+                                    ))
+                                },
+                            );
                             commands.push(command);
                         }
                     }

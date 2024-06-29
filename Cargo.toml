@@ -22,6 +22,8 @@ sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio", "tls-rustls"] }
 futures = { version = "0.3" }
 dirs = "5.0.1"
 rand = "0.8.5"
+ashpd = { version = "0.8.1", features = ["wayland"] }
+percent-encoding = "2.1"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic.git"

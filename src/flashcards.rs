@@ -12,7 +12,7 @@ use crate::{
     core::icon_cache::IconCache,
     fl,
     models::Flashcard,
-    utils::{parse_import_content, select_random_flashcard},
+    utils::{parse_ankifile, parse_import_content, select_random_flashcard},
 };
 pub struct Flashcards {
     pub current_folder_id: i32,
@@ -77,6 +77,8 @@ pub enum Message {
     Import,
     RestartSingleFlashcardStatus(Option<i32>),
     RestartFolderFlashcardStatus,
+    OpenAnkiFileSelection,
+    OpenAnkiFileResult(Vec<String>),
 }
 
 pub enum Command {
@@ -91,6 +93,7 @@ pub enum Command {
     ImportFlashcards(Vec<Flashcard>),
     RestartSingleFlashcardStatus(Option<i32>),
     RestartFolderFlashcardStatus(i32),
+    OpenAnkiFileSelection,
 }
 
 #[derive(Debug, Clone)]
@@ -216,6 +219,16 @@ impl Flashcards {
             Message::RestartFolderFlashcardStatus => commands.push(
                 Command::RestartFolderFlashcardStatus(self.current_folder_id),
             ),
+            Message::OpenAnkiFileSelection => commands.push(Command::OpenAnkiFileSelection),
+            Message::OpenAnkiFileResult(open_result) => {
+                for path in open_result {
+                    let flashcards = parse_ankifile(&path);
+                    match flashcards {
+                        Ok(flashcards) => commands.push(Command::ImportFlashcards(flashcards)),
+                        Err(err) => println!("{:?}", err), //TODO: Error handling?
+                    }
+                }
+            }
         }
 
         commands
@@ -605,6 +618,19 @@ impl Flashcards {
                         .padding([10, 0, 10, 0])
                         .width(Length::Fill)
                     },
+                )
+                .into(),
+            widget::settings::view_section(fl!("import-anki-title"))
+                .add(
+                    widget::button(
+                        widget::text(fl!("import-anki-button"))
+                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                            .width(Length::Fill),
+                    )
+                    .on_press(Message::OpenAnkiFileSelection)
+                    .style(theme::Button::Suggested)
+                    .padding([10, 0, 10, 0])
+                    .width(Length::Fill),
                 )
                 .into(),
             widget::settings::view_section(fl!("reset-folder-flashcards-title"))
