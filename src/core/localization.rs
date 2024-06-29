@@ -2,7 +2,7 @@
 
 use i18n_embed::{
     fluent::{fluent_language_loader, FluentLanguageLoader},
-    LanguageLoader,
+    DefaultLocalizer, LanguageLoader, Localizer,
 };
 use once_cell::sync::Lazy;
 use rust_embed::RustEmbed;
@@ -30,4 +30,9 @@ macro_rules! fl {
     ($message_id:literal, $($args:expr),*) => {{
         i18n_embed_fl::fl!($crate::core::localization::LANGUAGE_LOADER, $message_id, $($args), *)
     }};
+}
+
+#[must_use]
+pub fn localizer() -> Box<dyn Localizer> {
+    Box::from(DefaultLocalizer::new(&*LANGUAGE_LOADER, &Localizations))
 }
