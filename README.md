@@ -18,7 +18,7 @@ This project is related to my [other flashcard project](https://github.com/marii
 
 ## Anki Importing Support
 
-- Please Look at: [ANKI_IMPORTING](https://github.com/mariinkys/oboete/main/info/ANKI_IMPORTING.md)
+- Please Look at: [ANKI_IMPORTING](https://github.com/mariinkys/oboete/blob/main/info/ANKI_IMPORTING.md)
 
 # Installation
 ```

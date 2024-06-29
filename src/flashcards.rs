@@ -648,7 +648,7 @@ impl Flashcards {
                         .push(
                             widget::button::link(fl!("about-anki-importing"))
                                 .on_press(Message::LaunchUrl(
-                                "https://github.com/mariinkys/oboete/main/info/ANKI_IMPORTING.md"
+                                "https://github.com/mariinkys/oboete/blob/main/info/ANKI_IMPORTING.md"
                                     .to_string(),
                             )),
                         )
