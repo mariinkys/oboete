@@ -16,3 +16,4 @@ Cargo.lock
 # Flatpak Support
 .flatpak-builder
 flatpak-cargo-generator.py
+repo

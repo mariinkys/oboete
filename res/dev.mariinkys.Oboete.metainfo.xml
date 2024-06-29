@@ -1,37 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>dev.mariinkys.Oboete</id>
-  <metadata_license>CC0-1.0</metadata_license>
-  <project_license>GPL-3.0-only</project_license>
-  <project_group>COSMIC</project_group>
-  <developer_name>mariinkys</developer_name>
-  <update_contact>kysdev.owjga@aleeas.com</update_contact>
-  <url type="homepage">https://github.com/mariinkys/oboete</url>
-  <url type="bugtracker">https://github.com/mariinkys/oboete/issues</url>
-  <name>Oboete</name>
-  <summary>A simple flashcards application</summary>
-  <description>
-    <p>A simple flashcards application</p>
-  </description>
-  <launchable type="desktop-id">dev.mariinkys.Oboete.desktop</launchable>
-  <icon type="remote" height="256" width="256">https://raw.githubusercontent.com/mariinkys/oboete/master/res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg</icon>
-  <screenshots>
-    <screenshot type="default">
-        <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/main-dark.png</image>
-      </screenshot>
-      <screenshot>
-        <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/folder-inside-dark.png</image>
-      </screenshot>
-      <screenshot>
-        <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/study-dark.png</image>
-      </screenshot>
-  </screenshots>
-  <provides>
-    <mimetypes>
-      <mimetype>text/plain</mimetype>
-    </mimetypes>
-    <binaries>
-      <binary>oboete</binary>
-    </binaries>
-  </provides>
+    <id>dev.mariinkys.Oboete</id>
+    <developer id="dev.mariinkys">
+        <name>mariinkys</name>
+    </developer>
+    <url type="homepage">https://github.com/mariinkys/oboete</url>
+    <url type="bugtracker">https://github.com/mariinkys/oboete/issues</url>
+    <url type="donation">https://buymeacoffee.com/mariinkys</url>
+
+    <name>Oboete</name>
+    <summary>A simple flashcards application</summary>
+
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>GPL-3.0-only</project_license>
+
+    <description>
+        <p>Oboete is a simple flashcards application for the COSMIC™ desktop written using libcosmic and Rust</p>
+        <ul>
+            <li>Fast and easy to use</li>
+            <li>Works out of the box</li>
+            <li>Can import flashcards from other sources such as Anki</li>
+            <li>Does NOT sync to the cloud</li>
+        </ul>
+    </description>
+
+    <launchable type="desktop-id">dev.mariinkys.Oboete.desktop</launchable>
+    <content_rating type="oars-1.1"/>
+
+    <screenshots>
+        <screenshot type="default" xml:lang="en">
+            <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/main-dark.png</image>
+            <caption>Studysets page</caption>
+        </screenshot>
+        <screenshot xml:lang="en">
+            <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/folder-inside-dark.png</image>
+            <caption>Inside folder</caption>
+        </screenshot>
+        <screenshot xml:lang="en">
+            <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/study-dark.png</image>
+            <caption>Study mode</caption>
+        </screenshot>
+    </screenshots>
+
+    <branding>
+        <color type="primary" scheme_preference="light">#94ebeb</color>
+        <color type="primary" scheme_preference="dark">#578383</color>
+    </branding>
+
+    <releases>
+        <!-- <release version="1.0.1" date="2024-06-29">
+            <description>
+                <p>Bug Fixes</p>
+                <p>Improvements</p>
+                <p>Code Cleanup</p>
+            </description>
+        </release> -->
+        <release version="0.1.0" date="2024-06-29">
+            <description>
+                <p>First Stable Release</p>
+            </description>
+        </release>
+    </releases>
 </component>
