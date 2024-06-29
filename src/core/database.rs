@@ -529,3 +529,65 @@ pub async fn import_flashcards(
     }
     Ok(())
 }
+
+pub async fn reset_single_flashcard_status(
+    db: Option<OboeteDb>,
+    flashcard_id: Option<i32>,
+) -> Result<(), OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let command = sqlx::query(
+        "UPDATE flashcards
+             SET
+                 status = $1
+             WHERE
+                 id = $2",
+    )
+    .bind(0)
+    .bind(flashcard_id.unwrap())
+    .execute(&pool.db_pool)
+    .await;
+
+    match command {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err.into()),
+    }
+}
+
+pub async fn reset_folder_flashcard_status(
+    db: Option<OboeteDb>,
+    folder_id: Option<i32>,
+) -> Result<(), OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let command = sqlx::query(
+        "UPDATE flashcards
+             SET
+                 status = $1
+             WHERE
+                 folder_id = $2",
+    )
+    .bind(0)
+    .bind(folder_id.unwrap())
+    .execute(&pool.db_pool)
+    .await;
+
+    match command {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err.into()),
+    }
+}

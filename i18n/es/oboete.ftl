@@ -46,6 +46,8 @@ flashcard-back-title = Reverso de la Flashcard
 flashcard-front-placeholder = Contenido de la Cara
 flashcard-back-placeholder = Contenido del Reverso
 create = Create
+reset-flashcard-title = Reiniciar estado de la Flashcard
+reset-flashcard-button = Reiniciar
 
 <#-- Flashcard Options Context Page -->
 flashcard-options = Opciones de la Flashcard
@@ -57,3 +59,5 @@ import-between-cards-placeholder = Carácter Entre Flashcards
 import-content-title = Contenido a Importar
 import-content-placeholder = Contenido a Importar
 import-button = Importar
+reset-folder-flashcards-title = Reinicar Estado de todas las Flashcard
+reset-folder-flashcards-button = Reinicar

@@ -75,6 +75,8 @@ pub enum Message {
     ToggleOptionsPage,
     OptionsPageInput(OptionsContextPageInputActions),
     Import,
+    RestartSingleFlashcardStatus(Option<i32>),
+    RestartFolderFlashcardStatus,
 }
 
 pub enum Command {
@@ -87,6 +89,8 @@ pub enum Command {
     DeleteFlashcard(Option<i32>),
     ToggleOptionsPage,
     ImportFlashcards(Vec<Flashcard>),
+    RestartSingleFlashcardStatus(Option<i32>),
+    RestartFolderFlashcardStatus(i32),
 }
 
 #[derive(Debug, Clone)]
@@ -206,6 +210,12 @@ impl Flashcards {
                 );
                 commands.push(Command::ImportFlashcards(content))
             }
+            Message::RestartSingleFlashcardStatus(flashcard_id) => {
+                commands.push(Command::RestartSingleFlashcardStatus(flashcard_id))
+            }
+            Message::RestartFolderFlashcardStatus => commands.push(
+                Command::RestartFolderFlashcardStatus(self.current_folder_id),
+            ),
         }
 
         commands
@@ -327,86 +337,109 @@ impl Flashcards {
     pub fn create_edit_flashcard_contextpage(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        widget::settings::view_column(vec![widget::settings::view_section(fl!(
-            "flashcard-options"
-        ))
-        .add(
-            widget::column::with_children(vec![
-                widget::text::body(fl!("flashcard-front-title")).into(),
-                widget::text_input(
-                    fl!("flashcard-front-placeholder"),
-                    &self.new_edit_flashcard.front,
+        widget::settings::view_column(vec![
+            widget::settings::view_section(fl!("flashcard-options"))
+                .add(
+                    widget::column::with_children(vec![
+                        widget::text::body(fl!("flashcard-front-title")).into(),
+                        widget::text_input(
+                            fl!("flashcard-front-placeholder"),
+                            &self.new_edit_flashcard.front,
+                        )
+                        .on_input(Message::ContextPageFrontInput)
+                        .into(),
+                    ])
+                    .spacing(spacing.space_xxs)
+                    .padding([0, 15, 0, 15]),
                 )
-                .on_input(Message::ContextPageFrontInput)
-                .into(),
-            ])
-            .spacing(spacing.space_xxs)
-            .padding([0, 15, 0, 15]),
-        )
-        .add(
-            widget::column::with_children(vec![
-                widget::text::body(fl!("flashcard-back-title")).into(),
-                widget::text_input(
-                    fl!("flashcard-back-placeholder"),
-                    &self.new_edit_flashcard.back,
+                .add(
+                    widget::column::with_children(vec![
+                        widget::text::body(fl!("flashcard-back-title")).into(),
+                        widget::text_input(
+                            fl!("flashcard-back-placeholder"),
+                            &self.new_edit_flashcard.back,
+                        )
+                        .on_input(Message::ContextPageBackInput)
+                        .into(),
+                    ])
+                    .spacing(spacing.space_xxs)
+                    .padding([0, 15, 0, 15]),
                 )
-                .on_input(Message::ContextPageBackInput)
+                .add(match self.new_edit_flashcard.id {
+                    Some(_id) => {
+                        if self.new_edit_flashcard.front.is_empty() == false
+                            && self.new_edit_flashcard.back.is_empty() == false
+                        {
+                            widget::button(
+                                widget::text(fl!("edit"))
+                                    .horizontal_alignment(
+                                        cosmic::iced::alignment::Horizontal::Center,
+                                    )
+                                    .width(Length::Fill),
+                            )
+                            .on_press(Message::Upsert)
+                            .style(theme::Button::Suggested)
+                            .padding([10, 0, 10, 0])
+                            .width(Length::Fill)
+                        } else {
+                            widget::button(
+                                widget::text(fl!("edit"))
+                                    .horizontal_alignment(
+                                        cosmic::iced::alignment::Horizontal::Center,
+                                    )
+                                    .width(Length::Fill),
+                            )
+                            .style(theme::Button::Suggested)
+                            .padding([10, 0, 10, 0])
+                            .width(Length::Fill)
+                        }
+                    }
+                    None => {
+                        if self.new_edit_flashcard.front.is_empty() == false
+                            && self.new_edit_flashcard.back.is_empty() == false
+                        {
+                            widget::button(
+                                widget::text(fl!("create"))
+                                    .horizontal_alignment(
+                                        cosmic::iced::alignment::Horizontal::Center,
+                                    )
+                                    .width(Length::Fill),
+                            )
+                            .on_press(Message::Upsert)
+                            .style(theme::Button::Suggested)
+                            .padding([10, 0, 10, 0])
+                            .width(Length::Fill)
+                        } else {
+                            widget::button(
+                                widget::text(fl!("create"))
+                                    .horizontal_alignment(
+                                        cosmic::iced::alignment::Horizontal::Center,
+                                    )
+                                    .width(Length::Fill),
+                            )
+                            .style(theme::Button::Suggested)
+                            .padding([10, 0, 10, 0])
+                            .width(Length::Fill)
+                        }
+                    }
+                })
                 .into(),
-            ])
-            .spacing(spacing.space_xxs)
-            .padding([0, 15, 0, 15]),
-        )
-        .add(match self.new_edit_flashcard.id {
-            Some(_id) => {
-                if self.new_edit_flashcard.front.is_empty() == false
-                    && self.new_edit_flashcard.back.is_empty() == false
-                {
+            widget::settings::view_section(fl!("reset-flashcard-title"))
+                .add(
                     widget::button(
-                        widget::text(fl!("edit"))
+                        widget::text(fl!("reset-flashcard-button"))
                             .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
                             .width(Length::Fill),
                     )
-                    .on_press(Message::Upsert)
-                    .style(theme::Button::Suggested)
+                    .on_press(Message::RestartSingleFlashcardStatus(
+                        self.new_edit_flashcard.id,
+                    ))
+                    .style(theme::Button::Destructive)
                     .padding([10, 0, 10, 0])
-                    .width(Length::Fill)
-                } else {
-                    widget::button(
-                        widget::text(fl!("edit"))
-                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                            .width(Length::Fill),
-                    )
-                    .style(theme::Button::Suggested)
-                    .padding([10, 0, 10, 0])
-                    .width(Length::Fill)
-                }
-            }
-            None => {
-                if self.new_edit_flashcard.front.is_empty() == false
-                    && self.new_edit_flashcard.back.is_empty() == false
-                {
-                    widget::button(
-                        widget::text(fl!("create"))
-                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                            .width(Length::Fill),
-                    )
-                    .on_press(Message::Upsert)
-                    .style(theme::Button::Suggested)
-                    .padding([10, 0, 10, 0])
-                    .width(Length::Fill)
-                } else {
-                    widget::button(
-                        widget::text(fl!("create"))
-                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                            .width(Length::Fill),
-                    )
-                    .style(theme::Button::Suggested)
-                    .padding([10, 0, 10, 0])
-                    .width(Length::Fill)
-                }
-            }
-        })
-        .into()])
+                    .width(Length::Fill),
+                )
+                .into(),
+        ])
         .into()
     }
 
@@ -494,85 +527,100 @@ impl Flashcards {
     pub fn flashcard_options_contextpage(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        widget::settings::view_column(vec![widget::settings::view_section(fl!("folder-import"))
-            .add(
-                widget::column::with_children(vec![
-                    widget::text::body(fl!("import-between-term-title")).into(),
-                    widget::text_input(
-                        fl!("import-between-term-placeholder"),
-                        &self.options_page_input.between_terms,
-                    )
-                    .on_input(|value| {
-                        Message::OptionsPageInput(OptionsContextPageInputActions::BetweenTerms(
-                            value,
-                        ))
-                    })
-                    .into(),
-                ])
-                .spacing(spacing.space_xxs)
-                .padding([0, 15, 0, 15]),
-            )
-            .add(
-                widget::column::with_children(vec![
-                    widget::text::body(fl!("import-between-cards-title")).into(),
-                    widget::text_input(
-                        fl!("import-between-cards-placeholder"),
-                        &self.options_page_input.between_cards,
-                    )
-                    .on_input(|value| {
-                        Message::OptionsPageInput(OptionsContextPageInputActions::BetweenCards(
-                            value,
-                        ))
-                    })
-                    .into(),
-                ])
-                .spacing(spacing.space_xxs)
-                .padding([0, 15, 0, 15]),
-            )
-            .add(
-                widget::column::with_children(vec![
-                    widget::text::body(fl!("import-content-title")).into(),
-                    //TODO: Can we Increase the Height of the Input without touching the width?
-                    widget::text_input(
-                        fl!("import-content-placeholder"),
-                        &self.options_page_input.import_content,
-                    )
-                    .on_input(|value| {
-                        Message::OptionsPageInput(OptionsContextPageInputActions::ImportContent(
-                            value,
-                        ))
-                    })
-                    .into(),
-                ])
-                .spacing(spacing.space_xxs)
-                .padding([0, 15, 0, 15]),
-            )
-            .add(
-                if self.options_page_input.import_content.is_empty() == false
-                    && self.options_page_input.between_cards.is_empty() == false
-                    && self.options_page_input.between_terms.is_empty() == false
-                {
+        widget::settings::view_column(vec![
+            widget::settings::view_section(fl!("folder-import"))
+                .add(
+                    widget::column::with_children(vec![
+                        widget::text::body(fl!("import-between-term-title")).into(),
+                        widget::text_input(
+                            fl!("import-between-term-placeholder"),
+                            &self.options_page_input.between_terms,
+                        )
+                        .on_input(|value| {
+                            Message::OptionsPageInput(OptionsContextPageInputActions::BetweenTerms(
+                                value,
+                            ))
+                        })
+                        .into(),
+                    ])
+                    .spacing(spacing.space_xxs)
+                    .padding([0, 15, 0, 15]),
+                )
+                .add(
+                    widget::column::with_children(vec![
+                        widget::text::body(fl!("import-between-cards-title")).into(),
+                        widget::text_input(
+                            fl!("import-between-cards-placeholder"),
+                            &self.options_page_input.between_cards,
+                        )
+                        .on_input(|value| {
+                            Message::OptionsPageInput(OptionsContextPageInputActions::BetweenCards(
+                                value,
+                            ))
+                        })
+                        .into(),
+                    ])
+                    .spacing(spacing.space_xxs)
+                    .padding([0, 15, 0, 15]),
+                )
+                .add(
+                    widget::column::with_children(vec![
+                        widget::text::body(fl!("import-content-title")).into(),
+                        //TODO: Can we Increase the Height of the Input without touching the width?
+                        widget::text_input(
+                            fl!("import-content-placeholder"),
+                            &self.options_page_input.import_content,
+                        )
+                        .on_input(|value| {
+                            Message::OptionsPageInput(
+                                OptionsContextPageInputActions::ImportContent(value),
+                            )
+                        })
+                        .into(),
+                    ])
+                    .spacing(spacing.space_xxs)
+                    .padding([0, 15, 0, 15]),
+                )
+                .add(
+                    if self.options_page_input.import_content.is_empty() == false
+                        && self.options_page_input.between_cards.is_empty() == false
+                        && self.options_page_input.between_terms.is_empty() == false
+                    {
+                        widget::button(
+                            widget::text(fl!("import-button"))
+                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                                .width(Length::Fill),
+                        )
+                        .on_press(Message::Import)
+                        .style(theme::Button::Suggested)
+                        .padding([10, 0, 10, 0])
+                        .width(Length::Fill)
+                    } else {
+                        widget::button(
+                            widget::text(fl!("import-button"))
+                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                                .width(Length::Fill),
+                        )
+                        .style(theme::Button::Suggested)
+                        .padding([10, 0, 10, 0])
+                        .width(Length::Fill)
+                    },
+                )
+                .into(),
+            widget::settings::view_section(fl!("reset-folder-flashcards-title"))
+                .add(
                     widget::button(
-                        widget::text(fl!("import-button"))
+                        widget::text(fl!("reset-folder-flashcards-button"))
                             .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
                             .width(Length::Fill),
                     )
-                    .on_press(Message::Import)
-                    .style(theme::Button::Suggested)
+                    .on_press(Message::RestartFolderFlashcardStatus)
+                    .style(theme::Button::Destructive)
                     .padding([10, 0, 10, 0])
-                    .width(Length::Fill)
-                } else {
-                    widget::button(
-                        widget::text(fl!("import-button"))
-                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                            .width(Length::Fill),
-                    )
-                    .style(theme::Button::Suggested)
-                    .padding([10, 0, 10, 0])
-                    .width(Length::Fill)
-                },
-            )
-            .into()])
+                    .width(Length::Fill),
+                )
+                .into(),
+        ])
         .into()
     }
 }

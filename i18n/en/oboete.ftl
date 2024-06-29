@@ -46,6 +46,8 @@ flashcard-back-title = Flashcard Back
 flashcard-front-placeholder = Front Content
 flashcard-back-placeholder = Back Content
 create = Create
+reset-flashcard-title = Reset Flashcard Status
+reset-flashcard-button = Reset
 
 <#-- Flashcard Options Context Page -->
 flashcard-options = Flashcard Options
@@ -57,3 +59,5 @@ import-between-cards-placeholder = Character Between Cards
 import-content-title = Import Content
 import-content-placeholder = Content to Import
 import-button = Import
+reset-folder-flashcards-title = Reset All Flashcard Status
+reset-folder-flashcards-button = Reset
