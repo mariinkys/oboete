@@ -16,9 +16,13 @@ This application has been made thanks to the [libcosmic Documentation](https://p
 
 This project is related to my [other flashcard project](https://github.com/mariinkys/delphinus_flashcards), if you want Chinese or Japanese flashcards you can [check it out](https://github.com/mariinkys/delphinus_flashcards)!
 
+## Known Issues
+
+- [Flatpak not displaying some Languages (Displaying TOFU characters)](https://github.com/mariinkys/oboete/issues/4)
+
 ## Anki Importing Support
 
-- Please Look at: [ANKI_IMPORTING](https://github.com/mariinkys/oboete/blob/main/info/ANKI_IMPORTING.md)
+Please Look at: [ANKI_IMPORTING](https://github.com/mariinkys/oboete/blob/main/info/ANKI_IMPORTING.md)
 
 # Installation
 ```
