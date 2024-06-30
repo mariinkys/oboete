@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 use std::path::Path;
 
 use crate::models::Flashcard;
@@ -94,4 +94,15 @@ pub fn parse_ankifile(file_path: &str) -> Result<Vec<Flashcard>, io::Error> {
     }
 
     Ok(flashcards)
+}
+
+pub fn export_flashcards(file_path: &str, flashcards: &Vec<Flashcard>) -> Result<(), io::Error> {
+    let mut file = File::create(file_path)?;
+
+    for flashcard in flashcards {
+        writeln!(file, "{}\\#*#\\{}", flashcard.front, flashcard.back)?;
+        writeln!(file, "/#")?;
+    }
+
+    Ok(())
 }

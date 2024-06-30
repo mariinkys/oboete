@@ -65,3 +65,5 @@ reset-folder-flashcards-title = Reset All Flashcard Status
 reset-folder-flashcards-button = Reset
 import-anki-title = Import from Anki File
 import-anki-button = Select Anki File
+export-folder-flashcards-title = Export Folder Flashcards
+export-folder-flashcards-button = Export

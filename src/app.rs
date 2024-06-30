@@ -532,6 +532,39 @@ impl Application for Oboete {
                             );
                             commands.push(command);
                         }
+                        flashcards::Command::OpenFolderExportDestination => {
+                            let command = Command::perform(
+                                async move {
+                                    let result = SelectedFiles::save_file()
+                                        .title("Save Export")
+                                        .accept_label("Save")
+                                        .modal(true)
+                                        .filter(FileFilter::new("TXT File").glob("*.txt"))
+                                        .send()
+                                        .await
+                                        .unwrap()
+                                        .response();
+
+                                    if let Ok(result) = result {
+                                        result
+                                            .uris()
+                                            .iter()
+                                            .map(|file| file.path().to_string())
+                                            .collect::<Vec<String>>()
+                                    } else {
+                                        Vec::new()
+                                    }
+                                },
+                                |files| {
+                                    message::app(Message::Flashcards(
+                                        flashcards::Message::OpenFolderExportDestinationResult(
+                                            files,
+                                        ),
+                                    ))
+                                },
+                            );
+                            commands.push(command);
+                        }
                     }
                 }
             }

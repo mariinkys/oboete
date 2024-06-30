@@ -12,7 +12,7 @@ use crate::{
     core::icon_cache::IconCache,
     fl,
     models::Flashcard,
-    utils::{parse_ankifile, parse_import_content, select_random_flashcard},
+    utils::{export_flashcards, parse_ankifile, parse_import_content, select_random_flashcard},
 };
 pub struct Flashcards {
     pub current_folder_id: i32,
@@ -76,6 +76,7 @@ pub enum Message {
     RestartSingleFlashcardStatus(Option<i32>),
     RestartFolderFlashcardStatus,
     OpenAnkiFileSelection,
+    OpenFolderExportDestination,
 
     UpdatedStatus(Vec<Flashcard>),
     LoadedSingle(Flashcard),
@@ -83,6 +84,7 @@ pub enum Message {
     ContextPageFrontInput(String),
     OpenAnkiFileResult(Vec<String>),
     OptionsPageInput(OptionsContextPageInputActions),
+    OpenFolderExportDestinationResult(Vec<String>),
 }
 
 pub enum Command {
@@ -98,6 +100,7 @@ pub enum Command {
     RestartSingleFlashcardStatus(Option<i32>),
     RestartFolderFlashcardStatus(i32),
     OpenAnkiFileSelection,
+    OpenFolderExportDestination,
 }
 
 #[derive(Debug, Clone)]
@@ -235,8 +238,18 @@ impl Flashcards {
                     }
                 }
             }
+            Message::OpenFolderExportDestination => {
+                if self.flashcards.is_empty() == false {
+                    commands.push(Command::OpenFolderExportDestination)
+                }
+            }
             Message::LaunchUrl(url) => {
                 let _result = open::that_detached(url);
+            }
+            Message::OpenFolderExportDestinationResult(save_result) => {
+                for path in save_result {
+                    let _ = export_flashcards(&path, &self.flashcards);
+                }
             }
         }
 
@@ -670,6 +683,19 @@ impl Flashcards {
                     .width(Length::Fill),
                 )
                 .into(),
+            widget::settings::view_section(fl!("export-folder-flashcards-title"))
+                .add(
+                    widget::button(
+                        widget::text(fl!("export-folder-flashcards-button"))
+                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                            .width(Length::Fill),
+                    )
+                    .on_press(Message::OpenFolderExportDestination)
+                    .style(theme::Button::Suggested)
+                    .padding([10, 0, 10, 0])
+                    .width(Length::Fill),
+                )
+                .into()
         ])
         .into()
     }
