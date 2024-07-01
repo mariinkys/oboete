@@ -9,7 +9,7 @@
   <img alt="Folder Window Dark" width="200" src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/folder-inside-dark.png"/>
   <img alt="Study Window Dark" width="200" src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/study-dark.png"/>
 
-  <br>
+  <br><br>
 
   <a href="https://flathub.org/apps/dev.mariinkys.Oboete">
     <img width='240' alt='Download on Flathub' src='https://flathub.org/api/badge?locale=en'/>
