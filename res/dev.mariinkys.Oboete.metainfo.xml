@@ -48,13 +48,18 @@
     </branding>
 
     <releases>
-        <!-- <release version="1.0.1" date="2024-06-29">
+        <release version="0.1.2" date="2024-07-02">
             <description>
-                <p>Bug Fixes</p>
-                <p>Improvements</p>
-                <p>Code Cleanup</p>
+                <p>Added Export feature</p>
+                <p>Added Italian translation</p>
+                <p>Updated dependencies</p>
             </description>
-        </release> -->
+        </release>
+        <release version="0.1.1" date="2024-06-30">
+            <description>
+                <p>Last fixes needed for the Flatpak release</p>
+            </description>
+        </release>
         <release version="0.1.0" date="2024-06-29">
             <description>
                 <p>First Stable Release</p>
