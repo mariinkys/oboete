@@ -5,9 +5,15 @@
 
   <h3>A simple flashcards application for the COSMIC™ desktop</h3>
 
-  ![main-dark.png](https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/main-dark.png)
-  ![folder-inside-dark.png](https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/folder-inside-dark.png)
-  ![study-dark.png](https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/study-dark.png)
+  <img alt="Main Window Dark" width="200" src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/main-dark.png"/>
+  <img alt="Folder Window Dark" width="200" src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/folder-inside-dark.png"/>
+  <img alt="Study Window Dark" width="200" src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/study-dark.png"/>
+
+  <br>
+
+  <a href="https://flathub.org/apps/dev.mariinkys.Oboete">
+    <img width='240' alt='Download on Flathub' src='https://flathub.org/api/badge?locale=en'/>
+  </a>
 </div>
 
 # Notes
