@@ -15,8 +15,8 @@
     <project_license>GPL-3.0-only</project_license>
 
     <description>
-        <p>Oboete is a simple flashcards application for the COSMIC™ desktop written using libcosmic and Rust</p>
         <ul>
+            <li>Study flashcards with ease</li>
             <li>Fast and easy to use</li>
             <li>Works out of the box</li>
             <li>Can import flashcards from other sources such as Anki</li>
