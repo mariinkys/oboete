@@ -12,7 +12,10 @@ use crate::{
     core::icon_cache::IconCache,
     fl,
     models::Flashcard,
-    utils::{export_flashcards, parse_ankifile, parse_import_content, select_random_flashcard},
+    utils::{
+        export_flashcards, export_flashcards_anki, parse_ankifile, parse_import_content,
+        select_random_flashcard,
+    },
 };
 pub struct Flashcards {
     pub current_folder_id: i32,
@@ -76,7 +79,7 @@ pub enum Message {
     RestartSingleFlashcardStatus(Option<i32>),
     RestartFolderFlashcardStatus,
     OpenAnkiFileSelection,
-    OpenFolderExportDestination,
+    OpenFolderExportDestination(ExportOptions),
 
     UpdatedStatus(Vec<Flashcard>),
     LoadedSingle(Flashcard),
@@ -84,7 +87,7 @@ pub enum Message {
     ContextPageFrontInput(String),
     OpenAnkiFileResult(Vec<String>),
     OptionsPageInput(OptionsContextPageInputActions),
-    OpenFolderExportDestinationResult(Vec<String>),
+    OpenFolderExportDestinationResult(Vec<String>, ExportOptions),
 }
 
 pub enum Command {
@@ -100,7 +103,7 @@ pub enum Command {
     RestartSingleFlashcardStatus(Option<i32>),
     RestartFolderFlashcardStatus(i32),
     OpenAnkiFileSelection,
-    OpenFolderExportDestination,
+    OpenFolderExportDestination(ExportOptions),
 }
 
 #[derive(Debug, Clone)]
@@ -123,6 +126,11 @@ pub enum OptionsContextPageInputActions {
     ImportContent(String),
 }
 
+#[derive(Debug, Clone)]
+pub enum ExportOptions {
+    Normal,
+    Anki,
+}
 impl Flashcards {
     pub fn new() -> Self {
         Self {
@@ -238,19 +246,26 @@ impl Flashcards {
                     }
                 }
             }
-            Message::OpenFolderExportDestination => {
+            Message::OpenFolderExportDestination(options) => {
                 if self.flashcards.is_empty() == false {
-                    commands.push(Command::OpenFolderExportDestination)
+                    commands.push(Command::OpenFolderExportDestination(options))
                 }
             }
             Message::LaunchUrl(url) => {
                 let _result = open::that_detached(url);
             }
-            Message::OpenFolderExportDestinationResult(save_result) => {
-                for path in save_result {
-                    let _ = export_flashcards(&path, &self.flashcards);
+            Message::OpenFolderExportDestinationResult(save_result, options) => match options {
+                ExportOptions::Normal => {
+                    for path in save_result {
+                        let _ = export_flashcards(&path, &self.flashcards);
+                    }
                 }
-            }
+                ExportOptions::Anki => {
+                    for path in save_result {
+                        let _ = export_flashcards_anki(&path, &self.flashcards);
+                    }
+                }
+            },
         }
 
         commands
@@ -672,28 +687,73 @@ impl Flashcards {
                 .into(),
             widget::settings::view_section(fl!("reset-folder-flashcards-title"))
                 .add(
-                    widget::button(
-                        widget::text(fl!("reset-folder-flashcards-button"))
-                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                            .width(Length::Fill),
-                    )
-                    .on_press(Message::RestartFolderFlashcardStatus)
-                    .style(theme::Button::Destructive)
-                    .padding([10, 0, 10, 0])
-                    .width(Length::Fill),
+                    if self.flashcards.is_empty() == false {
+                        widget::button(
+                            widget::text(fl!("reset-folder-flashcards-button"))
+                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                                .width(Length::Fill),
+                        )
+                        .on_press(Message::RestartFolderFlashcardStatus)
+                        .style(theme::Button::Destructive)
+                        .padding([10, 0, 10, 0])
+                        .width(Length::Fill)
+                    } else {
+                        widget::button(
+                            widget::text(fl!("reset-folder-flashcards-button"))
+                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                                .width(Length::Fill),
+                        )
+                        .style(theme::Button::Destructive)
+                        .padding([10, 0, 10, 0])
+                        .width(Length::Fill)
+                    }
+                   
                 )
                 .into(),
             widget::settings::view_section(fl!("export-folder-flashcards-title"))
                 .add(
-                    widget::button(
-                        widget::text(fl!("export-folder-flashcards-button"))
-                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                            .width(Length::Fill),
-                    )
-                    .on_press(Message::OpenFolderExportDestination)
-                    .style(theme::Button::Suggested)
-                    .padding([10, 0, 10, 0])
-                    .width(Length::Fill),
+                    if self.flashcards.is_empty() == false {
+                        widget::button(
+                            widget::text(fl!("export-folder-flashcards-button"))
+                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                                .width(Length::Fill),
+                        )
+                        .on_press(Message::OpenFolderExportDestination(ExportOptions::Normal))
+                        .style(theme::Button::Suggested)
+                        .padding([10, 0, 10, 0])
+                        .width(Length::Fill)
+                    } else {
+                        widget::button(
+                            widget::text(fl!("export-folder-flashcards-button"))
+                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                                .width(Length::Fill),
+                        )
+                        .style(theme::Button::Suggested)
+                        .padding([10, 0, 10, 0])
+                        .width(Length::Fill)
+                    }
+                )
+                .add(
+                    if self.flashcards.is_empty() == false {
+                        widget::button(
+                            widget::text(fl!("export-folder-flashcards-anki-button"))
+                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                                .width(Length::Fill),
+                        )
+                        .on_press(Message::OpenFolderExportDestination(ExportOptions::Anki))
+                        .style(theme::Button::Suggested)
+                        .padding([10, 0, 10, 0])
+                        .width(Length::Fill)
+                    } else {
+                        widget::button(
+                            widget::text(fl!("export-folder-flashcards-anki-button"))
+                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
+                                .width(Length::Fill),
+                        )
+                        .style(theme::Button::Suggested)
+                        .padding([10, 0, 10, 0])
+                        .width(Length::Fill)
+                    }
                 )
                 .into()
         ])

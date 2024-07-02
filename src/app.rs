@@ -532,7 +532,7 @@ impl Application for Oboete {
                             );
                             commands.push(command);
                         }
-                        flashcards::Command::OpenFolderExportDestination => {
+                        flashcards::Command::OpenFolderExportDestination(options) => {
                             let command = Command::perform(
                                 async move {
                                     let result = SelectedFiles::save_file()
@@ -558,7 +558,7 @@ impl Application for Oboete {
                                 |files| {
                                     message::app(Message::Flashcards(
                                         flashcards::Message::OpenFolderExportDestinationResult(
-                                            files,
+                                            files, options,
                                         ),
                                     ))
                                 },

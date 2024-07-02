@@ -67,3 +67,4 @@ import-anki-title = Importar desde Archivo de Anki
 import-anki-button = Seleccionar Archivo
 export-folder-flashcards-title = Exportar Flashcards
 export-folder-flashcards-button = Exportar
+export-folder-flashcards-anki-button = Exportar a Anki

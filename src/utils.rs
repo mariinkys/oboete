@@ -106,3 +106,20 @@ pub fn export_flashcards(file_path: &str, flashcards: &Vec<Flashcard>) -> Result
 
     Ok(())
 }
+
+pub fn export_flashcards_anki(
+    file_path: &str,
+    flashcards: &Vec<Flashcard>,
+) -> Result<(), io::Error> {
+    let correct_file_path = format!("{}.txt", file_path);
+    let mut file = File::create(correct_file_path)?;
+
+    writeln!(file, "#separator:tab")?;
+    writeln!(file, "#html:false")?;
+
+    for flashcard in flashcards {
+        writeln!(file, "{}\t{}", flashcard.front, flashcard.back)?;
+    }
+
+    Ok(())
+}
