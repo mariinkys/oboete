@@ -513,7 +513,7 @@ impl Flashcards {
             .height(Length::Fill)
             .width(Length::Fill),
         )
-        .style(theme::Container::ContextDrawer)
+        .style(container_appearance(self.currently_studying_flashcard.status))
         .width(Length::Fill)
         .height(Length::Fill);
 
@@ -848,10 +848,10 @@ fn button_appearance(
         },
         // Darker Red
         ButtonStyle::BadButton => Color {
-            r: 107.0 / 255.0,
-            g: 7.0 / 255.0,
-            b: 7.0 / 255.0,
-            a: 1.0,
+            r: 191.0 / 255.0,
+            g: 57.0 / 255.0,
+            b: 57.0 / 255.0,
+            a: 0.75,
         },
         ButtonStyle::NoHover => Color::from(cosmic.bg_color()),
     };
@@ -875,4 +875,47 @@ fn button_style(selected: bool, accent: bool, style: ButtonStyle) -> theme::Butt
             button_appearance(theme, selected, focused, accent, style)
         }),
     }
+}
+
+fn container_appearance(flashard_status: i32) -> theme::Container {
+    // Got this from: https://github.com/pop-os/cosmic-files/blob/master/src/tab.rs#L2038
+    theme::Container::custom(move |t| {
+        let mut a = cosmic::iced_style::container::StyleSheet::appearance(
+            t,
+            &theme::Container::ContextDrawer,
+        );
+
+        let custom_border_color = match flashard_status {
+            // Orange (Ok Flashcard)
+            2 => Color {
+                r: 245.0 / 255.0,
+                g: 188.0 / 255.0,
+                b: 66.0 / 255.0,
+                a: 0.75,
+            },
+            // Green (Good Flashcard)
+            3 => Color {
+                r: 21.0 / 255.0,
+            g: 191.0 / 255.0,
+            b: 89.0 / 255.0,
+            a: 0.75,
+            },
+            // Red (Bad Flashcard)
+            1 => Color {
+                r: 107.0 / 255.0,
+                g: 7.0 / 255.0,
+                b: 7.0 / 255.0,
+                a: 1.0,
+            },
+            _ => a.border.color,
+        };
+
+        a.border = cosmic::iced::Border {
+            color: custom_border_color,
+            width: a.border.width,
+            radius: a.border.radius,
+        };
+        a.shadow = cosmic::iced_core::Shadow { color: custom_border_color, offset: a.shadow.offset, blur_radius: a.shadow.blur_radius };
+        a
+    })
 }
