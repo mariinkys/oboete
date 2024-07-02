@@ -4,6 +4,8 @@ save = Guardar
 empty-page = Vacio
 empty-page-noset = Prueba a crear una Unidad de Estudio
 about-anki-importing = ACERCA DE LA IMPORTACIÓN A ANKI
+backup = Copia de Seguridad
+import = Restaurar Copia de Seguridad
 
 <#-- Application MenuBar -->
 file = Archivo

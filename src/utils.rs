@@ -123,3 +123,37 @@ pub fn export_flashcards_anki(
 
     Ok(())
 }
+
+pub fn export_flashcards_json(
+    file_path: &str,
+    studysets: Vec<crate::models::StudySet>,
+) -> Result<(), io::Error> {
+    let correct_file_path = format!("{}.json", file_path);
+    let path = Path::new(&correct_file_path);
+    let mut file = File::create(path)?;
+
+    let json_data = serde_json::to_string_pretty(&studysets)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Serialization error: {}", e)))?;
+
+    // Write the JSON data to the file
+    file.write_all(json_data.as_bytes())?;
+
+    Ok(())
+}
+
+pub fn import_flashcards_json(file_path: &str) -> Result<Vec<crate::models::StudySet>, io::Error> {
+    let mut file = File::open(file_path)?;
+
+    let mut json_data = String::new();
+    io::Read::read_to_string(&mut file, &mut json_data)?;
+
+    let studysets: Vec<crate::models::StudySet> =
+        serde_json::from_str(&json_data).map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("Deserialization error: {}", e),
+            )
+        })?;
+
+    Ok(studysets)
+}

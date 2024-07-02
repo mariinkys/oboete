@@ -591,3 +591,227 @@ pub async fn reset_folder_flashcard_status(
         Err(err) => Err(err.into()),
     }
 }
+
+pub async fn get_all_data(db: Option<OboeteDb>) -> Result<Vec<StudySet>, OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let rows = sqlx::query(
+        r#"
+        SELECT 
+            s.id AS studyset_id, s.name AS studyset_name,
+            f.id AS folder_id, f.name AS folder_name,
+            fc.id AS flashcard_id, fc.front, fc.back, fc.status
+        FROM studysets s
+        LEFT JOIN folders f ON s.id = f.studyset_id
+        LEFT JOIN flashcards fc ON f.id = fc.folder_id
+        ORDER BY s.id, f.id, fc.id
+        "#,
+    )
+    .fetch_all(&pool.db_pool)
+    .await
+    .map_err(|e| OboeteError {
+        message: format!("Failed to fetch data: {}", e),
+    })?;
+
+    let mut study_sets: Vec<StudySet> = Vec::new();
+    let mut current_studyset: Option<StudySet> = None;
+
+    for row in rows {
+        let studyset_id: i32 = row.get("studyset_id");
+        let studyset_name: String = row.get("studyset_name");
+        let folder_id: Option<i32> = row.get("folder_id");
+        let folder_name: Option<String> = row.get("folder_name");
+        let flashcard_id: Option<i32> = row.get("flashcard_id");
+
+        if current_studyset.is_none() || current_studyset.as_ref().unwrap().id != Some(studyset_id)
+        {
+            if let Some(studyset) = current_studyset {
+                study_sets.push(studyset);
+            }
+            current_studyset = Some(StudySet {
+                id: Some(studyset_id),
+                name: studyset_name,
+                folders: Vec::new(),
+            });
+        }
+
+        if let Some(folder_id) = folder_id {
+            let current_studyset = current_studyset.as_mut().unwrap();
+            let folder = current_studyset
+                .folders
+                .iter_mut()
+                .find(|f| f.id == Some(folder_id));
+
+            if let Some(folder) = folder {
+                if let Some(flashcard_id) = flashcard_id {
+                    let flashcard = Flashcard {
+                        id: Some(flashcard_id),
+                        front: row.get("front"),
+                        back: row.get("back"),
+                        status: row.get("status"),
+                    };
+                    folder.flashcards.push(flashcard);
+                }
+            } else {
+                let mut new_folder = Folder {
+                    id: Some(folder_id),
+                    name: folder_name.unwrap(),
+                    flashcards: Vec::new(),
+                };
+
+                if let Some(flashcard_id) = flashcard_id {
+                    let flashcard = Flashcard {
+                        id: Some(flashcard_id),
+                        front: row.get("front"),
+                        back: row.get("back"),
+                        status: row.get("status"),
+                    };
+                    new_folder.flashcards.push(flashcard);
+                }
+
+                current_studyset.folders.push(new_folder);
+            }
+        }
+    }
+
+    if let Some(studyset) = current_studyset {
+        study_sets.push(studyset);
+    }
+
+    Ok(study_sets)
+}
+
+// pub async fn import_flashcards_to_db(
+//     db: Option<OboeteDb>,
+//     studysets: Vec<StudySet>,
+// ) -> Result<(), OboeteError> {
+//     let pool = match db {
+//         Some(db) => db,
+//         None => {
+//             return Err(OboeteError {
+//                 message: String::from("Cannot access DB pool"),
+//             })
+//         }
+//     };
+
+//     //TODO: This should be a transaction
+//     for studyset in studysets {
+//         let command = sqlx::query(
+//             r#"
+//                 INSERT INTO studysets (name)
+//                 VALUES (?)
+//                 "#,
+//         )
+//         .bind(studyset.name)
+//         .execute(&pool.db_pool)
+//         .await;
+
+//         if command.is_ok() {
+//             let new_set_id = command.unwrap().last_insert_rowid();
+
+//             for folder in studyset.folders {
+//                 let command = sqlx::query(
+//                     r#"
+//                         INSERT INTO folders (name, studyset_id)
+//                         VALUES (?, ?)
+//                         "#,
+//                 )
+//                 .bind(folder.name)
+//                 .bind(new_set_id)
+//                 .execute(&pool.db_pool)
+//                 .await;
+
+//                 if command.is_ok() {
+//                     let new_folder_id = command.unwrap().last_insert_rowid();
+
+//                     for flashcard in folder.flashcards {
+//                         let _ = sqlx::query(
+//                             r#"
+//                                 INSERT INTO flashcards (front, back, status, folder_id)
+//                                 VALUES (?, ?, ?, ?)
+//                                 "#,
+//                         )
+//                         .bind(flashcard.front)
+//                         .bind(flashcard.back)
+//                         .bind(flashcard.status)
+//                         .bind(new_folder_id)
+//                         .execute(&pool.db_pool)
+//                         .await;
+//                     }
+//                 }
+//             }
+//         }
+//     }
+
+//     Ok(())
+// }
+
+pub async fn import_flashcards_to_db(
+    db: Option<OboeteDb>,
+    studysets: Vec<StudySet>,
+) -> Result<(), OboeteError> {
+    let pool = match db {
+        Some(db) => db,
+        None => {
+            return Err(OboeteError {
+                message: String::from("Cannot access DB pool"),
+            })
+        }
+    };
+
+    let mut transaction = pool.db_pool.begin().await.map_err(|e| OboeteError {
+        message: format!("Failed to start transaction: {}", e),
+    })?;
+
+    for studyset in studysets {
+        let studyset_id = sqlx::query("INSERT INTO studysets (name) VALUES (?) RETURNING id")
+            .bind(&studyset.name)
+            .fetch_one(&mut *transaction)
+            .await
+            .map_err(|e| OboeteError {
+                message: format!("Failed to insert studyset: {}", e),
+            })?
+            .get::<i32, _>("id");
+
+        for folder in studyset.folders {
+            let folder_id =
+                sqlx::query("INSERT INTO folders (name, studyset_id) VALUES (?, ?) RETURNING id")
+                    .bind(&folder.name)
+                    .bind(studyset_id)
+                    .fetch_one(&mut *transaction)
+                    .await
+                    .map_err(|e| OboeteError {
+                        message: format!("Failed to insert folder: {}", e),
+                    })?
+                    .get::<i32, _>("id");
+
+            for flashcard in folder.flashcards {
+                sqlx::query(
+                    "INSERT INTO flashcards (front, back, status, folder_id) VALUES (?, ?, ?, ?)",
+                )
+                .bind(&flashcard.front)
+                .bind(&flashcard.back)
+                .bind(flashcard.status)
+                .bind(folder_id)
+                .execute(&mut *transaction)
+                .await
+                .map_err(|e| OboeteError {
+                    message: format!("Failed to insert flashcard: {}", e),
+                })?;
+            }
+        }
+    }
+
+    transaction.commit().await.map_err(|e| OboeteError {
+        message: format!("Failed to commit transaction: {}", e),
+    })?;
+
+    Ok(())
+}

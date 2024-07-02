@@ -3,16 +3,17 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::core::database::{
-    delete_flashcard, delete_folder, delete_studyset, get_all_studysets, get_folder_flashcards,
-    get_single_flashcard, get_single_folder, get_studyset_folders, import_flashcards,
-    reset_folder_flashcard_status, reset_single_flashcard_status, update_flashcard_status,
-    upsert_flashcard, upsert_folder, upsert_studyset, OboeteDb,
+    delete_flashcard, delete_folder, delete_studyset, get_all_data, get_all_studysets,
+    get_folder_flashcards, get_single_flashcard, get_single_folder, get_studyset_folders,
+    import_flashcards, import_flashcards_to_db, reset_folder_flashcard_status,
+    reset_single_flashcard_status, update_flashcard_status, upsert_flashcard, upsert_folder,
+    upsert_studyset, OboeteDb,
 };
 use crate::fl;
 use crate::flashcards::{self, Flashcards};
 use crate::folders::{self, Folders};
 use crate::models::{Folder, StudySet};
-use crate::utils::select_random_flashcard;
+use crate::utils::{export_flashcards_json, import_flashcards_json, select_random_flashcard};
 use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::app::{message, Core, Message as CosmicMessage};
 use cosmic::iced::{Alignment, Length};
@@ -43,6 +44,8 @@ pub struct Oboete {
     folders: Folders,
     /// Flashcards Page (A folder flashcards, not all flashcards)
     flashcards: Flashcards,
+    /// Contains the data to backup in case a backup is requested
+    backup_data: Option<Vec<StudySet>>,
 }
 
 #[derive(Debug, Clone)]
@@ -63,6 +66,14 @@ pub enum Message {
     AddStudySet(StudySet),
     DeleteStudySet,
     OpenNewFolderDialog,
+
+    Backup,
+    SetBackupData(Vec<StudySet>),
+    OpenSaveBackupFileDialog,
+    SaveBackupFile(Vec<String>),
+
+    Import,
+    OpenImportFileResult(Vec<String>),
 }
 
 /// Identifies a page in the application.
@@ -99,6 +110,8 @@ pub enum MenuAction {
     NewStudySet,
     RenameStudySet,
     DeleteStudySet,
+    Backup,
+    Import,
 }
 
 impl menu::action::MenuAction for MenuAction {
@@ -110,6 +123,8 @@ impl menu::action::MenuAction for MenuAction {
             MenuAction::NewStudySet => Message::OpenNewStudySetDialog,
             MenuAction::RenameStudySet => Message::OpenRenameStudySetDialog,
             MenuAction::DeleteStudySet => Message::OpenDeleteStudySetDialog,
+            MenuAction::Backup => Message::Backup,
+            MenuAction::Import => Message::Import,
         }
     }
 }
@@ -159,6 +174,7 @@ impl Application for Oboete {
             flashcards: Flashcards::new(),
             dialog_pages: VecDeque::new(),
             dialog_text_input: widget::Id::unique(),
+            backup_data: None,
         };
 
         //Connect to the Database and Run the needed migrations
@@ -176,10 +192,11 @@ impl Application for Oboete {
                 menu::root(fl!("file")),
                 menu::items(
                     &self.key_binds,
-                    vec![menu::Item::Button(
-                        fl!("new-studyset"),
-                        MenuAction::NewStudySet,
-                    )],
+                    vec![
+                        menu::Item::Button(fl!("new-studyset"), MenuAction::NewStudySet),
+                        menu::Item::Button(fl!("backup"), MenuAction::Backup),
+                        menu::Item::Button(fl!("import"), MenuAction::Import),
+                    ],
                 ),
             ),
             menu::Tree::with_children(
@@ -693,6 +710,104 @@ impl Application for Oboete {
                 self.dialog_pages
                     .push_back(DialogPage::NewFolder(String::new()));
                 return widget::text_input::focus(self.dialog_text_input.clone());
+            }
+            Message::Backup => {
+                if self.backup_data.is_none() {
+                    let command =
+                        Command::perform(get_all_data(self.db.clone()), |result| match result {
+                            Ok(data) => message::app(Message::SetBackupData(data)),
+                            Err(_) => message::none(),
+                        });
+
+                    commands.push(command);
+                    commands.push(self.update(Message::OpenSaveBackupFileDialog));
+                }
+            }
+            Message::SetBackupData(data) => {
+                self.backup_data = Some(data);
+            }
+            Message::OpenSaveBackupFileDialog => {
+                let command = Command::perform(
+                    async move {
+                        let result = SelectedFiles::save_file()
+                            .title("Save Backup")
+                            .accept_label("Save")
+                            .modal(true)
+                            .filter(FileFilter::new("JSON File").glob("*.json"))
+                            .send()
+                            .await
+                            .unwrap()
+                            .response();
+
+                        if let Ok(result) = result {
+                            result
+                                .uris()
+                                .iter()
+                                .map(|file| file.path().to_string())
+                                .collect::<Vec<String>>()
+                        } else {
+                            Vec::new()
+                        }
+                    },
+                    |files| message::app(Message::SaveBackupFile(files)),
+                );
+                commands.push(command);
+            }
+            Message::SaveBackupFile(open_result) => {
+                for path in open_result {
+                    if self.backup_data.is_some() {
+                        let _result =
+                            export_flashcards_json(&path, self.backup_data.clone().unwrap());
+                    }
+                }
+                self.backup_data = None;
+            }
+            Message::Import => {
+                let command = Command::perform(
+                    async move {
+                        let result = SelectedFiles::open_file()
+                            .title("Open Backup File")
+                            .accept_label("Open")
+                            .modal(true)
+                            .multiple(false)
+                            .filter(FileFilter::new("JSON File").glob("*.json"))
+                            .send()
+                            .await
+                            .unwrap()
+                            .response();
+
+                        if let Ok(result) = result {
+                            result
+                                .uris()
+                                .iter()
+                                .map(|file| file.path().to_string())
+                                .collect::<Vec<String>>()
+                        } else {
+                            Vec::new()
+                        }
+                    },
+                    |files| message::app(Message::OpenImportFileResult(files)),
+                );
+                commands.push(command);
+            }
+            Message::OpenImportFileResult(open_result) => {
+                for path in open_result {
+                    let result = import_flashcards_json(&path);
+                    match result {
+                        Ok(studysets) => {
+                            let command = Command::perform(
+                                import_flashcards_to_db(self.db.clone(), studysets),
+                                |result| match result {
+                                    Ok(_) => message::app(Message::FetchStudySets),
+                                    Err(_) => message::app(Message::FetchStudySets),
+                                },
+                            );
+
+                            commands.push(command);
+                        }
+                        Err(_) => println!("Error importing JSON"),
+                    }
+                }
             }
         }
 

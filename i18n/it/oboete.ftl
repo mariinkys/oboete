@@ -4,6 +4,8 @@ save = Salva
 empty-page = Vuoto
 empty-page-noset = Prova a creare un set di studio
 about-anki-importing = INFORMAZIONI SULL'IMPORTAZIONE DI ANKI
+backup = Backup
+import = Ripristinare il backup
 
 <#-- Application MenuBar -->
 file = File

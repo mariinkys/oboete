@@ -4,6 +4,8 @@ save = Save
 empty-page = Empty
 empty-page-noset = Try to create a StudySet
 about-anki-importing = ABOUT ANKI IMPORTING
+backup = Backup
+import = Import Backup
 
 <#-- Application MenuBar -->
 file = File

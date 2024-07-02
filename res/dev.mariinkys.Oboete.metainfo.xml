@@ -51,6 +51,9 @@
         <release version="0.1.2" date="2024-07-02">
             <description>
                 <p>Added Export feature</p>
+                <p>Added Anki Export feature</p>
+                <p>Flashcards now show status while studying</p>
+                <p>Added application wide Backup & Restore</p>
                 <p>Added Italian translation</p>
                 <p>Updated dependencies</p>
             </description>

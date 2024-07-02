@@ -1,4 +1,6 @@
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Flashcard {
     pub id: Option<i32>,
     pub front: String,
@@ -17,7 +19,7 @@ impl Flashcard {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StudySet {
     pub id: Option<i32>,
     pub name: String,
@@ -35,7 +37,7 @@ impl StudySet {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Folder {
     pub id: Option<i32>,
     pub name: String,
