@@ -3,6 +3,12 @@
   <img src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg" width="150" />
   <h1>Oboete</h1>
 
+  ![Flathub Version](https://img.shields.io/flathub/v/dev.mariinkys.Oboete)
+  ![Flathub Downloads](https://img.shields.io/flathub/downloads/dev.mariinkys.Oboete)
+  ![GitHub License](https://img.shields.io/github/license/mariinkys/oboete)
+  ![GitHub Repo stars](https://img.shields.io/github/stars/mariinkys/Oboete)
+
+
   <h3>A simple flashcards application for the COSMIC™ desktop</h3>
 
   <img alt="Main Window Dark" width="320" src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/main-dark.png"/>
