@@ -1130,6 +1130,7 @@ impl Oboete {
             .push(icon)
             .push(title)
             .push(link)
+            .push(widget::text(format!("v{}", env!("CARGO_PKG_VERSION"))))
             .align_items(Alignment::Center)
             .spacing(space_xxs)
             .into()
