@@ -25,8 +25,14 @@
         </ul>
     </description>
 
+    <icon type="remote" height="256" width="256">https://raw.githubusercontent.com/mariinkys/oboete/main/res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg</icon>
     <launchable type="desktop-id">dev.mariinkys.Oboete.desktop</launchable>
     <content_rating type="oars-1.1"/>
+
+    <provides>
+        <id>dev.mariinkys.Oboete.desktop</id>
+        <binary>oboete</binary>
+    </provides>
 
     <screenshots>
         <screenshot type="default" xml:lang="en">
@@ -67,6 +73,13 @@
     </keywords>
 
     <releases>
+        <release version="0.1.4" date="2024-07-09">
+            <description>
+                <p>Added keybinds</p>
+                <p>Added theming settings</p>
+                <p>Updated application screenshots</p>
+            </description>
+        </release>
         <release version="0.1.3" date="2024-07-05">
             <description>
                 <p>Fix application categories</p>

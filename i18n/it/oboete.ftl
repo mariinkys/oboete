@@ -7,6 +7,16 @@ about-anki-importing = INFORMAZIONI SULL'IMPORTAZIONE DI ANKI
 backup = Backup
 import = Ripristinare il backup
 
+<#-- Appearance -->
+appearance = Aspetto
+theme = Tema
+match-desktop = Adatta al Desktop
+dark = Scuro
+light = Chiaro
+
+<#-- Settings -->
+settings = Impostazioni
+
 <#-- Application MenuBar -->
 file = File
 new-studyset = Nuovo set di Studio

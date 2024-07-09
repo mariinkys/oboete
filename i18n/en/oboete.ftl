@@ -7,6 +7,16 @@ about-anki-importing = ABOUT ANKI IMPORTING
 backup = Backup
 import = Import Backup
 
+<#-- Appearance -->
+appearance = Appearance
+theme = Theme
+match-desktop = Match desktop
+dark = Dark
+light = Light
+
+<#-- Settings -->
+settings = Settings
+
 <#-- Application MenuBar -->
 file = File
 new-studyset = New StudySet

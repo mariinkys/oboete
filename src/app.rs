@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::any::TypeId;
 use std::collections::{HashMap, VecDeque};
 
+use crate::core::config::{self, AppTheme, CONFIG_VERSION};
 use crate::core::database::{
     delete_flashcard, delete_folder, delete_studyset, get_all_data, get_all_studysets,
     get_folder_flashcards, get_single_flashcard, get_single_folder, get_studyset_folders,
@@ -9,6 +11,7 @@ use crate::core::database::{
     reset_single_flashcard_status, update_flashcard_status, upsert_flashcard, upsert_folder,
     upsert_studyset, OboeteDb,
 };
+use crate::core::key_bind::key_binds;
 use crate::fl;
 use crate::flashcards::{self, Flashcards};
 use crate::folders::{self, Folders};
@@ -16,10 +19,13 @@ use crate::models::{Folder, StudySet};
 use crate::utils::{export_flashcards_json, import_flashcards_json, select_random_flashcard};
 use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::app::{message, Core, Message as CosmicMessage};
+use cosmic::iced::{event, keyboard::Event as KeyEvent, Event, Subscription};
 use cosmic::iced::{Alignment, Length};
+use cosmic::iced_core::keyboard::{Key, Modifiers};
+use cosmic::widget::menu::{action::MenuAction, key_bind::KeyBind};
 use cosmic::widget::segmented_button::{EntityMut, SingleSelect};
 use cosmic::widget::{self, menu, nav_bar, segmented_button};
-use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Command, Element};
+use cosmic::{cosmic_config, cosmic_theme, theme, Application, ApplicationExt, Command, Element};
 
 const REPOSITORY: &str = "https://github.com/mariinkys/oboete";
 
@@ -28,8 +34,6 @@ pub struct Oboete {
     core: Core,
     /// Display a context drawer with the designated page if defined.
     context_page: ContextPage,
-    /// Key bindings for the application's menu bar.
-    key_binds: HashMap<menu::KeyBind, MenuAction>,
     /// A model that contains all of the pages assigned to the nav bar panel.
     nav: segmented_button::SingleSelectModel,
     /// Currently selected Page
@@ -46,6 +50,16 @@ pub struct Oboete {
     flashcards: Flashcards,
     /// Contains the data to backup in case a backup is requested
     backup_data: Option<Vec<StudySet>>,
+    /// Application Themes
+    app_themes: Vec<String>,
+    /// Config Handler
+    config_handler: Option<cosmic_config::Config>,
+    /// Application Config
+    config: config::OboeteConfig,
+    /// Application KeyBinds
+    key_binds: HashMap<KeyBind, Action>,
+    /// Application Modifiers
+    modifiers: Modifiers,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +67,12 @@ pub enum Message {
     LaunchUrl(String),
     ToggleContextPage(ContextPage),
     DbConnected(OboeteDb),
+    AppTheme(usize),
+    #[allow(dead_code)]
+    SystemThemeModeChange(cosmic_theme::ThemeMode),
+    Key(Modifiers, Key),
+    Modifiers(Modifiers),
+
     Folders(folders::Message),
     Flashcards(flashcards::Message),
     FetchStudySets,
@@ -88,6 +108,7 @@ pub enum Page {
 pub enum ContextPage {
     #[default]
     About,
+    Settings,
     EditFolder,
     CreateEditFlashcard,
     FlashcardOptions,
@@ -97,6 +118,7 @@ impl ContextPage {
     fn title(&self) -> String {
         match self {
             Self::About => fl!("about"),
+            Self::Settings => fl!("settings"),
             Self::EditFolder => fl!("folder-details"),
             Self::CreateEditFlashcard => fl!("flashcard-options"),
             Self::FlashcardOptions => fl!("flashcard-options"),
@@ -104,9 +126,16 @@ impl ContextPage {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct Flags {
+    pub config_handler: Option<cosmic_config::Config>,
+    pub config: config::OboeteConfig,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum MenuAction {
+pub enum Action {
     About,
+    Settings,
     NewStudySet,
     RenameStudySet,
     DeleteStudySet,
@@ -114,17 +143,18 @@ pub enum MenuAction {
     Import,
 }
 
-impl menu::action::MenuAction for MenuAction {
+impl menu::action::MenuAction for Action {
     type Message = Message;
 
     fn message(&self) -> Self::Message {
         match self {
-            MenuAction::About => Message::ToggleContextPage(ContextPage::About),
-            MenuAction::NewStudySet => Message::OpenNewStudySetDialog,
-            MenuAction::RenameStudySet => Message::OpenRenameStudySetDialog,
-            MenuAction::DeleteStudySet => Message::OpenDeleteStudySetDialog,
-            MenuAction::Backup => Message::Backup,
-            MenuAction::Import => Message::Import,
+            Action::About => Message::ToggleContextPage(ContextPage::About),
+            Action::Settings => Message::ToggleContextPage(ContextPage::Settings),
+            Action::NewStudySet => Message::OpenNewStudySetDialog,
+            Action::RenameStudySet => Message::OpenRenameStudySetDialog,
+            Action::DeleteStudySet => Message::OpenDeleteStudySetDialog,
+            Action::Backup => Message::Backup,
+            Action::Import => Message::Import,
         }
     }
 }
@@ -140,7 +170,7 @@ pub enum DialogPage {
 impl Application for Oboete {
     type Executor = cosmic::executor::Default;
 
-    type Flags = ();
+    type Flags = Flags;
 
     type Message = Message;
 
@@ -159,14 +189,13 @@ impl Application for Oboete {
         Some(&self.nav)
     }
 
-    fn init(mut core: Core, _flags: Self::Flags) -> (Self, Command<CosmicMessage<Self::Message>>) {
+    fn init(mut core: Core, flags: Self::Flags) -> (Self, Command<CosmicMessage<Self::Message>>) {
         core.nav_bar_toggle_condensed();
         let nav = segmented_button::ModelBuilder::default().build();
 
         let app = Oboete {
             core,
             context_page: ContextPage::default(),
-            key_binds: HashMap::new(),
             nav,
             current_page: Page::Folders,
             db: None,
@@ -175,6 +204,11 @@ impl Application for Oboete {
             dialog_pages: VecDeque::new(),
             dialog_text_input: widget::Id::unique(),
             backup_data: None,
+            app_themes: vec![fl!("match-desktop"), fl!("dark"), fl!("light")],
+            config_handler: flags.config_handler,
+            config: flags.config,
+            key_binds: key_binds(),
+            modifiers: Modifiers::empty(),
         };
 
         //Connect to the Database and Run the needed migrations
@@ -193,9 +227,9 @@ impl Application for Oboete {
                 menu::items(
                     &self.key_binds,
                     vec![
-                        menu::Item::Button(fl!("new-studyset"), MenuAction::NewStudySet),
-                        menu::Item::Button(fl!("backup"), MenuAction::Backup),
-                        menu::Item::Button(fl!("import"), MenuAction::Import),
+                        menu::Item::Button(fl!("new-studyset"), Action::NewStudySet),
+                        menu::Item::Button(fl!("backup"), Action::Backup),
+                        menu::Item::Button(fl!("import"), Action::Import),
                     ],
                 ),
             ),
@@ -204,8 +238,8 @@ impl Application for Oboete {
                 menu::items(
                     &self.key_binds,
                     vec![
-                        menu::Item::Button(fl!("rename-studyset"), MenuAction::RenameStudySet),
-                        menu::Item::Button(fl!("delete-studyset"), MenuAction::DeleteStudySet),
+                        menu::Item::Button(fl!("rename-studyset"), Action::RenameStudySet),
+                        menu::Item::Button(fl!("delete-studyset"), Action::DeleteStudySet),
                     ],
                 ),
             ),
@@ -213,10 +247,16 @@ impl Application for Oboete {
                 menu::root(fl!("view")),
                 menu::items(
                     &self.key_binds,
-                    vec![menu::Item::Button(fl!("about"), MenuAction::About)],
+                    vec![
+                        menu::Item::Button(fl!("about"), Action::About),
+                        menu::Item::Button(fl!("settings"), Action::Settings),
+                    ],
                 ),
             ),
-        ]);
+        ])
+        .item_height(menu::ItemHeight::Dynamic(40))
+        .item_width(menu::ItemWidth::Uniform(240))
+        .spacing(4.0);
 
         vec![menu_bar.into()]
     }
@@ -236,7 +276,86 @@ impl Application for Oboete {
             .into()
     }
 
+    fn subscription(&self) -> Subscription<Self::Message> {
+        struct ConfigSubscription;
+        struct ThemeSubscription;
+
+        let subscriptions = vec![
+            event::listen_with(|event, status| match event {
+                Event::Keyboard(KeyEvent::KeyPressed { key, modifiers, .. }) => match status {
+                    event::Status::Ignored => Some(Message::Key(modifiers, key)),
+                    event::Status::Captured => None,
+                },
+                Event::Keyboard(KeyEvent::ModifiersChanged(modifiers)) => {
+                    Some(Message::Modifiers(modifiers))
+                }
+                _ => None,
+            }),
+            cosmic_config::config_subscription(
+                TypeId::of::<ConfigSubscription>(),
+                Self::APP_ID.into(),
+                CONFIG_VERSION,
+            )
+            .map(|update| {
+                if !update.errors.is_empty() {
+                    log::info!(
+                        "errors loading config {:?}: {:?}",
+                        update.keys,
+                        update.errors
+                    );
+                }
+                Message::SystemThemeModeChange(update.config)
+            }),
+            cosmic_config::config_subscription::<_, cosmic_theme::ThemeMode>(
+                TypeId::of::<ThemeSubscription>(),
+                cosmic_theme::THEME_MODE_ID.into(),
+                cosmic_theme::ThemeMode::version(),
+            )
+            .map(|update| {
+                if !update.errors.is_empty() {
+                    log::info!(
+                        "errors loading theme mode {:?}: {:?}",
+                        update.keys,
+                        update.errors
+                    );
+                }
+                Message::SystemThemeModeChange(update.config)
+            }),
+        ];
+
+        // subscriptions.push(self.content.subscription().map(Message::Content));
+
+        Subscription::batch(subscriptions)
+    }
+
     fn update(&mut self, message: Self::Message) -> Command<CosmicMessage<Self::Message>> {
+        // Helper for updating config values efficiently
+        macro_rules! config_set {
+            ($name: ident, $value: expr) => {
+                match &self.config_handler {
+                    Some(config_handler) => {
+                        match paste::paste! { self.config.[<set_ $name>](config_handler, $value) } {
+                            Ok(_) => {}
+                            Err(err) => {
+                                log::warn!(
+                                    "failed to save config {:?}: {}",
+                                    stringify!($name),
+                                    err
+                                );
+                            }
+                        }
+                    }
+                    None => {
+                        self.config.$name = $value;
+                        log::warn!(
+                            "failed to save config {:?}: no config handler",
+                            stringify!($name)
+                        );
+                    }
+                }
+            };
+        }
+
         let mut commands = vec![];
 
         match message {
@@ -809,6 +928,28 @@ impl Application for Oboete {
                     }
                 }
             }
+            Message::AppTheme(index) => {
+                let app_theme = match index {
+                    1 => AppTheme::Dark,
+                    2 => AppTheme::Light,
+                    _ => AppTheme::System,
+                };
+                config_set!(app_theme, app_theme);
+                return self.update_config();
+            }
+            Message::SystemThemeModeChange(_) => {
+                return self.update_config();
+            }
+            Message::Key(modifiers, key) => {
+                for (key_bind, action) in self.key_binds.iter() {
+                    if key_bind.matches(modifiers, &key) {
+                        return self.update(action.message());
+                    }
+                }
+            }
+            Message::Modifiers(modifiers) => {
+                self.modifiers = modifiers;
+            }
         }
 
         Command::batch(commands)
@@ -822,6 +963,7 @@ impl Application for Oboete {
 
         Some(match self.context_page {
             ContextPage::About => self.about(),
+            ContextPage::Settings => self.settings(),
             ContextPage::EditFolder => self.folders.edit_folder_contextpage().map(Message::Folders),
             ContextPage::CreateEditFlashcard => self
                 .flashcards
@@ -947,6 +1089,29 @@ impl Application for Oboete {
 }
 
 impl Oboete {
+    fn update_config(&mut self) -> Command<CosmicMessage<Message>> {
+        cosmic::app::command::set_theme(self.config.app_theme.theme())
+    }
+
+    /// The settings page for this app.
+    fn settings(&self) -> Element<Message> {
+        let app_theme_selected = match self.config.app_theme {
+            AppTheme::Dark => 1,
+            AppTheme::Light => 2,
+            AppTheme::System => 0,
+        };
+        widget::settings::view_column(vec![widget::settings::view_section(fl!("appearance"))
+            .add(
+                widget::settings::item::builder(fl!("theme")).control(widget::dropdown(
+                    &self.app_themes,
+                    Some(app_theme_selected),
+                    Message::AppTheme,
+                )),
+            )
+            .into()])
+        .into()
+    }
+
     /// The about page for this app.
     pub fn about(&self) -> Element<Message> {
         let cosmic_theme::Spacing { space_xxs, .. } = theme::active().cosmic().spacing;

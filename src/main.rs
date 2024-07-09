@@ -19,8 +19,8 @@ mod utils;
 fn main() -> cosmic::iced::Result {
     init_localizer();
 
-    let settings = core::settings::init();
-    cosmic::app::run::<Oboete>(settings, ())
+    let (settings, flags) = core::settings::init();
+    cosmic::app::run::<Oboete>(settings, flags)
 }
 
 fn init_localizer() {
