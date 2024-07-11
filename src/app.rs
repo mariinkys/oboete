@@ -255,7 +255,7 @@ impl Application for Oboete {
             ),
         ])
         .item_height(menu::ItemHeight::Dynamic(40))
-        .item_width(menu::ItemWidth::Uniform(240))
+        .item_width(menu::ItemWidth::Uniform(270))
         .spacing(4.0);
 
         vec![menu_bar.into()]
