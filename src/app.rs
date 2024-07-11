@@ -1126,11 +1126,17 @@ impl Oboete {
             .on_press(Message::LaunchUrl(REPOSITORY.to_string()))
             .padding(0);
 
+        let version_link = widget::button::link(format!("v{}", env!("CARGO_PKG_VERSION")))
+            .on_press(Message::LaunchUrl(
+                "https://github.com/mariinkys/oboete/releases".to_string(),
+            ))
+            .padding(0);
+
         widget::column()
             .push(icon)
             .push(title)
             .push(link)
-            .push(widget::text(format!("v{}", env!("CARGO_PKG_VERSION"))))
+            .push(version_link)
             .align_items(Alignment::Center)
             .spacing(space_xxs)
             .into()
