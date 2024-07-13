@@ -73,7 +73,7 @@
     </keywords>
 
     <releases>
-        <release version="0.1.5" date="2024-07-12">
+        <release version="0.1.5" date="2024-07-13">
             <description>
                 <p>Fixed Flatpak theming when using Cosmic</p>
                 <p>Fixed width on header options</p>
