@@ -746,7 +746,7 @@ impl Application for Oboete {
                 if let Some(dialog_page) = self.dialog_pages.pop_front() {
                     match dialog_page {
                         DialogPage::NewStudySet(name) => {
-                            if name.is_empty() == false {
+                            if !name.is_empty() {
                                 let set = StudySet::new(name);
                                 commands.push(Command::perform(
                                     upsert_studyset(self.db.clone(), set),
@@ -758,7 +758,7 @@ impl Application for Oboete {
                             }
                         }
                         DialogPage::RenameStudySet { to: name } => {
-                            if name.is_empty() == false {
+                            if !name.is_empty() {
                                 let entity = self.nav.active();
                                 self.nav.text_set(entity, name.clone());
                                 if let Some(set) = self.nav.active_data_mut::<StudySet>() {
@@ -775,7 +775,7 @@ impl Application for Oboete {
                             commands.push(self.update(Message::DeleteStudySet));
                         }
                         DialogPage::NewFolder(name) => {
-                            if name.is_empty() == false {
+                            if !name.is_empty() {
                                 let folder = Folder::new(name);
                                 commands.push(Command::perform(
                                     upsert_folder(

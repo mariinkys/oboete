@@ -28,6 +28,6 @@ fn init_localizer() {
     let requested_languages = DesktopLanguageRequester::requested_languages();
 
     if let Err(why) = localizer.select(&requested_languages) {
-        panic!("can't load localizations: {}", why.to_string());
+        panic!("can't load localizations: {}", why);
     }
 }

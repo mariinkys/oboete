@@ -46,7 +46,7 @@ pub fn select_random_flashcard(flashcards: &Vec<Flashcard>) -> Option<Flashcard>
 pub fn parse_import_content(
     line_delimiter: &String,
     term_delimiter: &String,
-    content: &String,
+    content: &str,
 ) -> Vec<Flashcard> {
     content
         .split(line_delimiter)
@@ -71,7 +71,7 @@ pub fn parse_ankifile(file_path: &str) -> Result<Vec<Flashcard>, io::Error> {
         .decode_utf8_lossy()
         .to_string();
     let path = Path::new(&decoded_path);
-    let file = File::open(&path)?;
+    let file = File::open(path)?;
     let reader = io::BufReader::new(file);
 
     let mut flashcards = Vec::new();

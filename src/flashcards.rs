@@ -247,7 +247,7 @@ impl Flashcards {
                 }
             }
             Message::OpenFolderExportDestination(options) => {
-                if self.flashcards.is_empty() == false {
+                if !self.flashcards.is_empty() {
                     commands.push(Command::OpenFolderExportDestination(options))
                 }
             }
@@ -286,7 +286,7 @@ impl Flashcards {
             .padding(spacing.space_xxs)
             .on_press(Message::ToggleOptionsPage);
 
-        let study_button = if self.flashcards.is_empty() == false {
+        let study_button = if !self.flashcards.is_empty() {
             widget::button(widget::text(fl!("study")))
                 .style(theme::Button::Suggested)
                 .padding(spacing.space_xxs)
@@ -311,7 +311,7 @@ impl Flashcards {
     pub fn view(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        if self.flashcards.is_empty() == false {
+        if !self.flashcards.is_empty() {
             let mut flashcards = widget::list::list_column()
                 .style(theme::Container::ContextDrawer)
                 .spacing(spacing.space_xxxs)
@@ -417,8 +417,8 @@ impl Flashcards {
                 )
                 .add(match self.new_edit_flashcard.id {
                     Some(_id) => {
-                        if self.new_edit_flashcard.front.is_empty() == false
-                            && self.new_edit_flashcard.back.is_empty() == false
+                        if !self.new_edit_flashcard.front.is_empty()
+                            && !self.new_edit_flashcard.back.is_empty()
                         {
                             widget::button(
                                 widget::text(fl!("edit"))
@@ -445,8 +445,8 @@ impl Flashcards {
                         }
                     }
                     None => {
-                        if self.new_edit_flashcard.front.is_empty() == false
-                            && self.new_edit_flashcard.back.is_empty() == false
+                        if !self.new_edit_flashcard.front.is_empty()
+                            && !self.new_edit_flashcard.back.is_empty()
                         {
                             widget::button(
                                 widget::text(fl!("create"))
@@ -513,7 +513,9 @@ impl Flashcards {
             .height(Length::Fill)
             .width(Length::Fill),
         )
-        .style(container_appearance(self.currently_studying_flashcard.status))
+        .style(container_appearance(
+            self.currently_studying_flashcard.status,
+        ))
         .width(Length::Fill)
         .height(Length::Fill);
 
@@ -632,9 +634,9 @@ impl Flashcards {
                     .padding([0, 15, 0, 15]),
                 )
                 .add(
-                    if self.options_page_input.import_content.is_empty() == false
-                        && self.options_page_input.between_cards.is_empty() == false
-                        && self.options_page_input.between_terms.is_empty() == false
+                    if !self.options_page_input.import_content.is_empty()
+                        && !self.options_page_input.between_cards.is_empty()
+                        && !self.options_page_input.between_terms.is_empty()
                     {
                         widget::button(
                             widget::text(fl!("import-button"))
@@ -687,7 +689,7 @@ impl Flashcards {
                 .into(),
             widget::settings::view_section(fl!("reset-folder-flashcards-title"))
                 .add(
-                    if self.flashcards.is_empty() == false {
+                    if !self.flashcards.is_empty() {
                         widget::button(
                             widget::text(fl!("reset-folder-flashcards-button"))
                                 .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
@@ -707,12 +709,12 @@ impl Flashcards {
                         .padding([10, 0, 10, 0])
                         .width(Length::Fill)
                     }
-                   
+
                 )
                 .into(),
             widget::settings::view_section(fl!("export-folder-flashcards-title"))
                 .add(
-                    if self.flashcards.is_empty() == false {
+                    if !self.flashcards.is_empty() {
                         widget::button(
                             widget::text(fl!("export-folder-flashcards-button"))
                                 .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
@@ -734,7 +736,7 @@ impl Flashcards {
                     }
                 )
                 .add(
-                    if self.flashcards.is_empty() == false {
+                    if !self.flashcards.is_empty() {
                         widget::button(
                             widget::text(fl!("export-folder-flashcards-anki-button"))
                                 .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
@@ -856,8 +858,8 @@ fn button_appearance(
         ButtonStyle::NoHover => Color::from(cosmic.bg_color()),
     };
 
-    appearance.background = Some(Color::from(custom_bg_color).into());
-    appearance.border_color = Color::from(custom_border_color);
+    appearance.background = Some(custom_bg_color.into());
+    appearance.border_color = custom_border_color;
 
     appearance
 }
@@ -896,9 +898,9 @@ fn container_appearance(flashard_status: i32) -> theme::Container {
             // Green (Good Flashcard)
             3 => Color {
                 r: 21.0 / 255.0,
-            g: 191.0 / 255.0,
-            b: 89.0 / 255.0,
-            a: 0.75,
+                g: 191.0 / 255.0,
+                b: 89.0 / 255.0,
+                a: 0.75,
             },
             // Red (Bad Flashcard)
             1 => Color {
@@ -915,7 +917,11 @@ fn container_appearance(flashard_status: i32) -> theme::Container {
             width: a.border.width,
             radius: a.border.radius,
         };
-        a.shadow = cosmic::iced_core::Shadow { color: custom_border_color, offset: a.shadow.offset, blur_radius: a.shadow.blur_radius };
+        a.shadow = cosmic::iced_core::Shadow {
+            color: custom_border_color,
+            offset: a.shadow.offset,
+            blur_radius: a.shadow.blur_radius,
+        };
         a
     })
 }

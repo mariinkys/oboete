@@ -282,7 +282,7 @@ pub async fn get_folder_flashcards(
             id: Some(id),
             front: String::from(front),
             back: String::from(back),
-            status: status,
+            status,
         };
 
         if let Some(_id) = flashcard.id {
@@ -415,7 +415,7 @@ pub async fn update_flashcard_status(
             id: Some(id),
             front: String::from(front),
             back: String::from(back),
-            status: status,
+            status,
         };
 
         if let Some(_id) = flashcard.id {
@@ -604,7 +604,7 @@ pub async fn get_all_data(db: Option<OboeteDb>) -> Result<Vec<StudySet>, OboeteE
 
     let rows = sqlx::query(
         r#"
-        SELECT 
+        SELECT
             s.id AS studyset_id, s.name AS studyset_name,
             f.id AS folder_id, f.name AS folder_name,
             fc.id AS flashcard_id, fc.front, fc.back, fc.status

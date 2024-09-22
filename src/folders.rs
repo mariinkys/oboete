@@ -125,7 +125,7 @@ impl Folders {
         let spacing = theme::active().cosmic().spacing;
 
         if self.current_studyset_id.is_some() {
-            if self.folders.is_empty() == false {
+            if !self.folders.is_empty() {
                 let mut folders = widget::list::list_column()
                     .style(theme::Container::ContextDrawer)
                     .spacing(spacing.space_xxxs)
@@ -231,7 +231,7 @@ impl Folders {
                 .spacing(spacing.space_xxs)
                 .padding([0, 15, 0, 15]),
             )
-            .add(if self.new_folder.name.is_empty() == false {
+            .add(if !self.new_folder.name.is_empty() {
                 widget::button(
                     widget::text(fl!("edit"))
                         .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)

@@ -39,11 +39,10 @@ pub fn get_app_settings() -> Settings {
 pub fn get_flags() -> Flags {
     let (config_handler, config) = (OboeteConfig::config_handler(), OboeteConfig::config());
 
-    let flags = Flags {
+    Flags {
         config_handler,
         config,
-    };
-    flags
+    }
 }
 
 pub fn set_icon_cache() {
