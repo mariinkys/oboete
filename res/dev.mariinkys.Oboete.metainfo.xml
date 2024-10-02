@@ -30,7 +30,7 @@
     <content_rating type="oars-1.1"/>
 
     <provides>
-        <id>dev.mariinkys.Oboete.desktop</id>
+        <id>com.system76.CosmicApplication</id>
         <binary>oboete</binary>
     </provides>
 
@@ -73,6 +73,11 @@
     </keywords>
 
     <releases>
+        <release version="0.1.6" date="2024-10-02">
+            <description>
+                <p>Updated dependencies</p>
+            </description>
+        </release>
         <release version="0.1.5" date="2024-07-13">
             <description>
                 <p>Fixed Flatpak theming when using Cosmic</p>

@@ -107,9 +107,8 @@ impl Folders {
         let spacing = theme::active().cosmic().spacing;
 
         //TODO: IconCache::get("add-symbolic", 18) - For now it causes visual issues on the flashcard page when it's empty & i want some consistency
-        let new_folder_button = widget::button(widget::text(fl!("new")))
+        let new_folder_button = widget::button::text(fl!("new"))
             .style(theme::Button::Suggested)
-            .padding(spacing.space_xxs)
             .on_press(Message::OpenCreateFolderDialog);
 
         widget::row::with_capacity(2)
@@ -132,20 +131,22 @@ impl Folders {
                     .padding([spacing.space_none, spacing.space_xxs]);
 
                 for folder in &self.folders {
-                    let edit_button = widget::button(IconCache::get("edit-button-symbolic", 18))
-                        .padding(spacing.space_xxs)
-                        .style(theme::Button::Standard)
-                        .on_press(Message::ToggleEditContextPage(Some(folder.clone())));
+                    // TODO: widget::button::icon
+                    let edit_button =
+                        widget::button::custom(IconCache::get("edit-button-symbolic", 18))
+                            .style(theme::Button::Standard)
+                            .on_press(Message::ToggleEditContextPage(Some(folder.clone())));
 
-                    let open_button = widget::button(IconCache::get("folder-open-symbolic", 18))
-                        .padding(spacing.space_xxs)
-                        .style(theme::Button::Suggested)
-                        .width(Length::Shrink)
-                        .on_press(Message::OpenFolder(folder.id.unwrap()));
+                    // TODO: widget::button::icon
+                    let open_button =
+                        widget::button::custom(IconCache::get("folder-open-symbolic", 18))
+                            .style(theme::Button::Suggested)
+                            .width(Length::Shrink)
+                            .on_press(Message::OpenFolder(folder.id.unwrap()));
 
+                    // TODO: widget::button::icon
                     let delete_button =
-                        widget::button(IconCache::get("user-trash-full-symbolic", 18))
-                            .padding(spacing.space_xxs)
+                        widget::button::custom(IconCache::get("user-trash-full-symbolic", 18))
                             .style(theme::Button::Destructive)
                             .on_press(Message::Delete(folder.id));
 
@@ -220,7 +221,8 @@ impl Folders {
     pub fn edit_folder_contextpage(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
-        widget::settings::view_column(vec![widget::settings::view_section(fl!("folder-details"))
+        widget::settings::view_column(vec![widget::settings::section()
+            .title(fl!("folder-details"))
             .add(
                 widget::column::with_children(vec![
                     widget::text::body(fl!("folder-name")).into(),
@@ -232,24 +234,14 @@ impl Folders {
                 .padding([0, 15, 0, 15]),
             )
             .add(if !self.new_folder.name.is_empty() {
-                widget::button(
-                    widget::text(fl!("edit"))
-                        .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                        .width(Length::Fill),
-                )
-                .on_press(Message::Upsert)
-                .style(theme::Button::Suggested)
-                .padding([10, 0, 10, 0])
-                .width(Length::Fill)
+                widget::button::text(fl!("edit"))
+                    .on_press(Message::Upsert)
+                    .style(theme::Button::Suggested)
+                    .width(Length::Fill)
             } else {
-                widget::button(
-                    widget::text(fl!("edit"))
-                        .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                        .width(Length::Fill),
-                )
-                .style(theme::Button::Suggested)
-                .padding([10, 0, 10, 0])
-                .width(Length::Fill)
+                widget::button::text(fl!("edit"))
+                    .style(theme::Button::Suggested)
+                    .width(Length::Fill)
             })
             .into()])
         .into()

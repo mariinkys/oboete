@@ -275,26 +275,21 @@ impl Flashcards {
         let spacing = theme::active().cosmic().spacing;
 
         //TODO: Replace Text with IconCache::get("add-symbolic", 18) - For now it causes visual issues when the page is empty...
-        let new_flashcard_button = widget::button(widget::text(fl!("new")))
+        let new_flashcard_button = widget::button::text(fl!("new"))
             .style(theme::Button::Suggested)
-            .padding(spacing.space_xxs)
             .on_press(Message::ToggleCreatePage(None));
 
         //TODO: IconCache::get("menu-vertical-symbolic", 18) - For now it causes visual issues when the page is empty...
-        let flashcard_options_button = widget::button(widget::text(fl!("options")))
+        let flashcard_options_button = widget::button::text(fl!("options"))
             .style(theme::Button::Standard)
-            .padding(spacing.space_xxs)
             .on_press(Message::ToggleOptionsPage);
 
         let study_button = if !self.flashcards.is_empty() {
-            widget::button(widget::text(fl!("study")))
+            widget::button::text(fl!("study"))
                 .style(theme::Button::Suggested)
-                .padding(spacing.space_xxs)
                 .on_press(Message::StudyFlashcards)
         } else {
-            widget::button(widget::text(fl!("study")))
-                .style(theme::Button::Suggested)
-                .padding(spacing.space_xxs)
+            widget::button::text(fl!("study")).style(theme::Button::Suggested)
         };
 
         widget::row::with_capacity(3)
@@ -318,15 +313,19 @@ impl Flashcards {
                 .padding([spacing.space_none, spacing.space_xxs]);
 
             for flashcard in &self.flashcards {
-                let edit_button = widget::button(IconCache::get("edit-button-symbolic", 18))
-                    .padding(spacing.space_xxs)
-                    .style(theme::Button::Standard)
-                    .on_press(Message::ToggleCreatePage(Some(flashcard.clone())));
+                let edit_button =
+                    // TODO: widget::button::icon
+                    widget::button::custom(IconCache::get("edit-button-symbolic", 18))
+                        .padding(spacing.space_xxs)
+                        .style(theme::Button::Standard)
+                        .on_press(Message::ToggleCreatePage(Some(flashcard.clone())));
 
-                let delete_button = widget::button(IconCache::get("user-trash-full-symbolic", 18))
-                    .padding(spacing.space_xxs)
-                    .style(theme::Button::Destructive)
-                    .on_press(Message::Delete(flashcard.id));
+                let delete_button =
+                    // TODO: widget::button::icon
+                    widget::button::custom(IconCache::get("user-trash-full-symbolic", 18))
+                        .padding(spacing.space_xxs)
+                        .style(theme::Button::Destructive)
+                        .on_press(Message::Delete(flashcard.id));
 
                 //TODO: Custom Button to make it look like a badge
                 let badge = widget::text(match flashcard.status {
@@ -388,7 +387,8 @@ impl Flashcards {
         let spacing = theme::active().cosmic().spacing;
 
         widget::settings::view_column(vec![
-            widget::settings::view_section(fl!("flashcard-options"))
+            widget::settings::section()
+                .title(fl!("flashcard-options"))
                 .add(
                     widget::column::with_children(vec![
                         widget::text::body(fl!("flashcard-front-title")).into(),
@@ -420,73 +420,41 @@ impl Flashcards {
                         if !self.new_edit_flashcard.front.is_empty()
                             && !self.new_edit_flashcard.back.is_empty()
                         {
-                            widget::button(
-                                widget::text(fl!("edit"))
-                                    .horizontal_alignment(
-                                        cosmic::iced::alignment::Horizontal::Center,
-                                    )
-                                    .width(Length::Fill),
-                            )
-                            .on_press(Message::Upsert)
-                            .style(theme::Button::Suggested)
-                            .padding([10, 0, 10, 0])
-                            .width(Length::Fill)
+                            widget::button::text(fl!("edit"))
+                                .on_press(Message::Upsert)
+                                .style(theme::Button::Suggested)
+                                .width(Length::Fill)
                         } else {
-                            widget::button(
-                                widget::text(fl!("edit"))
-                                    .horizontal_alignment(
-                                        cosmic::iced::alignment::Horizontal::Center,
-                                    )
-                                    .width(Length::Fill),
-                            )
-                            .style(theme::Button::Suggested)
-                            .padding([10, 0, 10, 0])
-                            .width(Length::Fill)
+                            widget::button::text(fl!("edit"))
+                                .style(theme::Button::Suggested)
+                                .width(Length::Fill)
                         }
                     }
                     None => {
                         if !self.new_edit_flashcard.front.is_empty()
                             && !self.new_edit_flashcard.back.is_empty()
                         {
-                            widget::button(
-                                widget::text(fl!("create"))
-                                    .horizontal_alignment(
-                                        cosmic::iced::alignment::Horizontal::Center,
-                                    )
-                                    .width(Length::Fill),
-                            )
-                            .on_press(Message::Upsert)
-                            .style(theme::Button::Suggested)
-                            .padding([10, 0, 10, 0])
-                            .width(Length::Fill)
+                            widget::button::text(fl!("create"))
+                                .on_press(Message::Upsert)
+                                .style(theme::Button::Suggested)
+                                .width(Length::Fill)
                         } else {
-                            widget::button(
-                                widget::text(fl!("create"))
-                                    .horizontal_alignment(
-                                        cosmic::iced::alignment::Horizontal::Center,
-                                    )
-                                    .width(Length::Fill),
-                            )
-                            .style(theme::Button::Suggested)
-                            .padding([10, 0, 10, 0])
-                            .width(Length::Fill)
+                            widget::button::text(fl!("create"))
+                                .style(theme::Button::Suggested)
+                                .width(Length::Fill)
                         }
                     }
                 })
                 .into(),
-            widget::settings::view_section(fl!("reset-flashcard-title"))
+            widget::settings::section()
+                .title(fl!("reset-flashcard-title"))
                 .add(
-                    widget::button(
-                        widget::text(fl!("reset-flashcard-button"))
-                            .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                            .width(Length::Fill),
-                    )
-                    .on_press(Message::RestartSingleFlashcardStatus(
-                        self.new_edit_flashcard.id,
-                    ))
-                    .style(theme::Button::Destructive)
-                    .padding([10, 0, 10, 0])
-                    .width(Length::Fill),
+                    widget::button::text(fl!("reset-flashcard-button"))
+                        .on_press(Message::RestartSingleFlashcardStatus(
+                            self.new_edit_flashcard.id,
+                        ))
+                        .style(theme::Button::Destructive)
+                        .width(Length::Fill),
                 )
                 .into(),
         ])
@@ -497,7 +465,7 @@ impl Flashcards {
         let spacing = theme::active().cosmic().spacing;
 
         let flashcard_container = widget::container(
-            widget::button(
+            widget::button::custom(
                 widget::Text::new(match self.currently_studying_flashcard_side {
                     CurrentFlashcardSide::Front => &self.currently_studying_flashcard.front,
                     CurrentFlashcardSide::Back => &self.currently_studying_flashcard.back,
@@ -521,7 +489,7 @@ impl Flashcards {
 
         let options_row = widget::row::with_capacity(3)
             .push(
-                widget::button(
+                widget::button::custom(
                     widget::Text::new(fl!("bad-status"))
                         .horizontal_alignment(Horizontal::Center)
                         .vertical_alignment(Vertical::Center),
@@ -535,7 +503,7 @@ impl Flashcards {
                 .width(Length::Fill),
             )
             .push(
-                widget::button(
+                widget::button::custom(
                     widget::Text::new(fl!("ok-status"))
                         .horizontal_alignment(Horizontal::Center)
                         .vertical_alignment(Vertical::Center),
@@ -549,7 +517,7 @@ impl Flashcards {
                 .width(Length::Fill),
             )
             .push(
-                widget::button(
+                widget::button::custom(
                     widget::Text::new(fl!("good-status"))
                         .horizontal_alignment(Horizontal::Center)
                         .vertical_alignment(Vertical::Center),
@@ -580,7 +548,7 @@ impl Flashcards {
         let spacing = theme::active().cosmic().spacing;
 
         widget::settings::view_column(vec![
-            widget::settings::view_section(fl!("folder-import"))
+            widget::settings::section().title(fl!("folder-import"))
                 .add(
                     widget::column::with_children(vec![
                         widget::text::body(fl!("import-between-term-title")).into(),
@@ -638,41 +606,24 @@ impl Flashcards {
                         && !self.options_page_input.between_cards.is_empty()
                         && !self.options_page_input.between_terms.is_empty()
                     {
-                        widget::button(
-                            widget::text(fl!("import-button"))
-                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                                .width(Length::Fill),
-                        )
+                        widget::button::text(fl!("import-button"))
                         .on_press(Message::Import)
                         .style(theme::Button::Suggested)
-                        .padding([10, 0, 10, 0])
                         .width(Length::Fill)
                     } else {
-                        widget::button(
-                            widget::text(fl!("import-button"))
-                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                                .width(Length::Fill),
-                        )
+                        widget::button::text(fl!("import-button"))
                         .style(theme::Button::Suggested)
-                        .padding([10, 0, 10, 0])
                         .width(Length::Fill)
                     },
                 )
                 .into(),
-            widget::settings::view_section(fl!("import-anki-title"))
+            widget::settings::section().title(fl!("import-anki-title"))
                 .add(
                     widget::column()
                         .push(
-                            widget::button(
-                                widget::text(fl!("import-anki-button"))
-                                    .horizontal_alignment(
-                                        cosmic::iced::alignment::Horizontal::Center,
-                                    )
-                                    .width(Length::Fill),
-                            )
+                            widget::button::text(fl!("import-anki-button"))
                             .on_press(Message::OpenAnkiFileSelection)
                             .style(theme::Button::Suggested)
-                            .padding([10, 0, 10, 0])
                             .width(Length::Fill),
                         )
                         .push(
@@ -687,73 +638,43 @@ impl Flashcards {
                         .align_items(Alignment::Center),
                 )
                 .into(),
-            widget::settings::view_section(fl!("reset-folder-flashcards-title"))
+            widget::settings::section().title(fl!("reset-folder-flashcards-title"))
                 .add(
                     if !self.flashcards.is_empty() {
-                        widget::button(
-                            widget::text(fl!("reset-folder-flashcards-button"))
-                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                                .width(Length::Fill),
-                        )
+                        widget::button::text(fl!("reset-folder-flashcards-button"))
                         .on_press(Message::RestartFolderFlashcardStatus)
                         .style(theme::Button::Destructive)
-                        .padding([10, 0, 10, 0])
                         .width(Length::Fill)
                     } else {
-                        widget::button(
-                            widget::text(fl!("reset-folder-flashcards-button"))
-                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                                .width(Length::Fill),
-                        )
+                        widget::button::text(fl!("reset-folder-flashcards-button"))
                         .style(theme::Button::Destructive)
-                        .padding([10, 0, 10, 0])
                         .width(Length::Fill)
                     }
 
                 )
                 .into(),
-            widget::settings::view_section(fl!("export-folder-flashcards-title"))
+            widget::settings::section().title(fl!("export-folder-flashcards-title"))
                 .add(
                     if !self.flashcards.is_empty() {
-                        widget::button(
-                            widget::text(fl!("export-folder-flashcards-button"))
-                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                                .width(Length::Fill),
-                        )
+                        widget::button::text(fl!("export-folder-flashcards-button"))
                         .on_press(Message::OpenFolderExportDestination(ExportOptions::Normal))
                         .style(theme::Button::Suggested)
-                        .padding([10, 0, 10, 0])
                         .width(Length::Fill)
                     } else {
-                        widget::button(
-                            widget::text(fl!("export-folder-flashcards-button"))
-                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                                .width(Length::Fill),
-                        )
+                        widget::button::text(fl!("export-folder-flashcards-button"))
                         .style(theme::Button::Suggested)
-                        .padding([10, 0, 10, 0])
                         .width(Length::Fill)
                     }
                 )
                 .add(
                     if !self.flashcards.is_empty() {
-                        widget::button(
-                            widget::text(fl!("export-folder-flashcards-anki-button"))
-                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                                .width(Length::Fill),
-                        )
+                        widget::button::text(fl!("export-folder-flashcards-anki-button"))
                         .on_press(Message::OpenFolderExportDestination(ExportOptions::Anki))
                         .style(theme::Button::Suggested)
-                        .padding([10, 0, 10, 0])
                         .width(Length::Fill)
                     } else {
-                        widget::button(
-                            widget::text(fl!("export-folder-flashcards-anki-button"))
-                                .horizontal_alignment(cosmic::iced::alignment::Horizontal::Center)
-                                .width(Length::Fill),
-                        )
+                        widget::button::text(fl!("export-folder-flashcards-anki-button"))
                         .style(theme::Button::Suggested)
-                        .padding([10, 0, 10, 0])
                         .width(Length::Fill)
                     }
                 )

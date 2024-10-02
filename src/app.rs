@@ -1100,7 +1100,8 @@ impl Oboete {
             AppTheme::Light => 2,
             AppTheme::System => 0,
         };
-        widget::settings::view_column(vec![widget::settings::view_section(fl!("appearance"))
+        widget::settings::view_column(vec![widget::settings::section()
+            .title(fl!("appearance"))
             .add(
                 widget::settings::item::builder(fl!("theme")).control(widget::dropdown(
                     &self.app_themes,
