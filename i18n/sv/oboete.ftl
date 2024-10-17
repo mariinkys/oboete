@@ -1,7 +1,7 @@
 app-title = Oboete
 cancel = Avbryt
 save = Spara
-empty-page = Töm
+empty-page = Tom
 empty-page-noset = Försök att skapa en studieuppsättning
 about-anki-importing = OM ANKI IMPORTERING
 backup = Säkerhetskopiering
