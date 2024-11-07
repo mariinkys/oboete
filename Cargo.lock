@@ -3539,7 +3539,6 @@ dependencies = [
  "i18n-embed-fl",
  "libcosmic",
  "log",
- "once_cell",
  "open",
  "paste",
  "percent-encoding",
