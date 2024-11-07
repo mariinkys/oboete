@@ -65,18 +65,18 @@ impl Folders {
     }
 
     pub fn update(&mut self, message: Message) -> Vec<Command> {
-        let mut commands = Vec::new();
+        let mut tasks = Vec::new();
 
         match message {
-            Message::OpenCreateFolderDialog => commands.push(Command::OpenCreateFolderDialog),
-            Message::Upsert => commands.push(Command::UpsertFolder(Folder {
+            Message::OpenCreateFolderDialog => tasks.push(Command::OpenCreateFolderDialog),
+            Message::Upsert => tasks.push(Command::UpsertFolder(Folder {
                 id: self.new_folder.id,
                 name: self.new_folder.name.to_string(),
                 flashcards: Vec::new(),
             })),
             Message::Upserted => {
                 self.new_folder = NewFolderState::new();
-                commands.push(Command::LoadFolders(self.current_studyset_id.unwrap()))
+                tasks.push(Command::LoadFolders(self.current_studyset_id.unwrap()))
             }
             Message::LoadedSingle(folder) => {
                 self.new_folder = NewFolderState {
@@ -85,22 +85,22 @@ impl Folders {
                 };
             }
             Message::LoadFolders => match self.current_studyset_id {
-                Some(set_id) => commands.push(Command::LoadFolders(set_id)),
+                Some(set_id) => tasks.push(Command::LoadFolders(set_id)),
                 None => self.current_studyset_id = None,
             },
             Message::SetFolders(folders) => self.folders = folders,
             Message::NewFolderNameInput(value) => self.new_folder.name = value,
-            Message::OpenFolder(id) => commands.push(Command::OpenFolder(id)),
+            Message::OpenFolder(id) => tasks.push(Command::OpenFolder(id)),
             Message::ToggleEditContextPage(folder) => {
                 if folder.is_none() {
                     self.new_folder = NewFolderState::new();
                 }
 
-                commands.push(Command::ToggleEditContextPage(folder))
+                tasks.push(Command::ToggleEditContextPage(folder))
             }
-            Message::Delete(folder_id) => commands.push(Command::DeleteFolder(folder_id)),
+            Message::Delete(folder_id) => tasks.push(Command::DeleteFolder(folder_id)),
         }
-        commands
+        tasks
     }
 
     fn folder_header_row(&self) -> Element<Message> {
@@ -108,11 +108,11 @@ impl Folders {
 
         //TODO: IconCache::get("add-symbolic", 18) - For now it causes visual issues on the flashcard page when it's empty & i want some consistency
         let new_folder_button = widget::button::text(fl!("new"))
-            .style(theme::Button::Suggested)
+            .class(theme::Button::Suggested)
             .on_press(Message::OpenCreateFolderDialog);
 
         widget::row::with_capacity(2)
-            .align_items(cosmic::iced::Alignment::Center)
+            .align_y(cosmic::iced::Alignment::Center)
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
             .push(widget::text::title3(fl!("folders")).width(Length::Fill))
@@ -134,29 +134,29 @@ impl Folders {
                     // TODO: widget::button::icon
                     let edit_button =
                         widget::button::custom(IconCache::get("edit-button-symbolic", 18))
-                            .style(theme::Button::Standard)
+                            .class(theme::Button::Standard)
                             .on_press(Message::ToggleEditContextPage(Some(folder.clone())));
 
                     // TODO: widget::button::icon
                     let open_button =
                         widget::button::custom(IconCache::get("folder-open-symbolic", 18))
-                            .style(theme::Button::Suggested)
+                            .class(theme::Button::Suggested)
                             .width(Length::Shrink)
                             .on_press(Message::OpenFolder(folder.id.unwrap()));
 
                     // TODO: widget::button::icon
                     let delete_button =
                         widget::button::custom(IconCache::get("user-trash-full-symbolic", 18))
-                            .style(theme::Button::Destructive)
+                            .class(theme::Button::Destructive)
                             .on_press(Message::Delete(folder.id));
 
                     let folder_name = widget::text(folder.name.clone())
-                        .vertical_alignment(Vertical::Center)
-                        .horizontal_alignment(Horizontal::Left)
+                        .align_y(Vertical::Center)
+                        .align_x(Horizontal::Left)
                         .width(Length::Fill);
 
                     let row = widget::row::with_capacity(2)
-                        .align_items(Alignment::Center)
+                        .align_y(Alignment::Center)
                         .spacing(spacing.space_xxs)
                         .padding([spacing.space_xxxs, spacing.space_xxs])
                         .push(open_button)
@@ -197,13 +197,13 @@ impl Folders {
                 .push(
                     widget::Text::new(fl!("empty-page"))
                         .size(spacing.space_xl)
-                        .horizontal_alignment(Horizontal::Center)
+                        .align_x(Horizontal::Center)
                         .width(Length::Fill),
                 )
                 .push(
                     widget::Text::new(fl!("empty-page-noset"))
                         .size(spacing.space_l)
-                        .horizontal_alignment(Horizontal::Center)
+                        .align_x(Horizontal::Center)
                         .width(Length::Fill),
                 )
                 .width(Length::Fill);
@@ -236,11 +236,11 @@ impl Folders {
             .add(if !self.new_folder.name.is_empty() {
                 widget::button::text(fl!("edit"))
                     .on_press(Message::Upsert)
-                    .style(theme::Button::Suggested)
+                    .class(theme::Button::Suggested)
                     .width(Length::Fill)
             } else {
                 widget::button::text(fl!("edit"))
-                    .style(theme::Button::Suggested)
+                    .class(theme::Button::Suggested)
                     .width(Length::Fill)
             })
             .into()])

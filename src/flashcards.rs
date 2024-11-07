@@ -126,7 +126,7 @@ pub enum OptionsContextPageInputActions {
     ImportContent(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ExportOptions {
     Normal,
     Anki,
@@ -149,10 +149,10 @@ impl Flashcards {
     }
 
     pub fn update(&mut self, message: Message) -> Vec<Command> {
-        let mut commands = Vec::new();
+        let mut tasks = Vec::new();
 
         match message {
-            Message::Upsert => commands.push(Command::UpsertFlashcard(Flashcard {
+            Message::Upsert => tasks.push(Command::UpsertFlashcard(Flashcard {
                 id: self.new_edit_flashcard.id,
                 front: self.new_edit_flashcard.front.to_string(),
                 back: self.new_edit_flashcard.back.to_string(),
@@ -162,7 +162,7 @@ impl Flashcards {
                 self.new_edit_flashcard = CreateEditFlashcardState::new();
                 self.options_page_input = OptionsContextPageInputState::new();
 
-                commands.push(Command::LoadFlashcards(self.current_folder_id))
+                tasks.push(Command::LoadFlashcards(self.current_folder_id))
             }
             Message::LoadedSingle(flashcard) => {
                 self.new_edit_flashcard = CreateEditFlashcardState {
@@ -178,9 +178,9 @@ impl Flashcards {
                     self.new_edit_flashcard = CreateEditFlashcardState::new();
                 }
 
-                commands.push(Command::ToggleCreateFlashcardPage(flashcard))
+                tasks.push(Command::ToggleCreateFlashcardPage(flashcard))
             }
-            Message::StudyFlashcards => commands.push(Command::OpenStudyFolderFlashcardsPage),
+            Message::StudyFlashcards => tasks.push(Command::OpenStudyFolderFlashcardsPage),
             Message::ContextPageFrontInput(value) => self.new_edit_flashcard.front = value,
             Message::ContextPageBackInput(value) => self.new_edit_flashcard.back = value,
             Message::UpdateFlashcardStatus(mut flashcard, action) => {
@@ -190,7 +190,7 @@ impl Flashcards {
                     StudyActions::Good => flashcard.status = 3,
                 }
 
-                commands.push(Command::UpdateFlashcardStatus(flashcard))
+                tasks.push(Command::UpdateFlashcardStatus(flashcard))
             }
             Message::UpdatedStatus(flashcards) => {
                 self.flashcards = flashcards;
@@ -206,11 +206,9 @@ impl Flashcards {
                     self.currently_studying_flashcard_side = CurrentFlashcardSide::Front
                 }
             },
-            Message::Delete(flashcard_id) => commands.push(Command::DeleteFlashcard(flashcard_id)),
-            Message::LoadFlashcards => {
-                commands.push(Command::LoadFlashcards(self.current_folder_id))
-            }
-            Message::ToggleOptionsPage => commands.push(Command::ToggleOptionsPage),
+            Message::Delete(flashcard_id) => tasks.push(Command::DeleteFlashcard(flashcard_id)),
+            Message::LoadFlashcards => tasks.push(Command::LoadFlashcards(self.current_folder_id)),
+            Message::ToggleOptionsPage => tasks.push(Command::ToggleOptionsPage),
             Message::OptionsPageInput(input) => match input {
                 OptionsContextPageInputActions::BetweenTerms(value) => {
                     self.options_page_input.between_terms = value
@@ -228,27 +226,27 @@ impl Flashcards {
                     &self.options_page_input.between_terms,
                     &self.options_page_input.import_content,
                 );
-                commands.push(Command::ImportFlashcards(content))
+                tasks.push(Command::ImportFlashcards(content))
             }
             Message::RestartSingleFlashcardStatus(flashcard_id) => {
-                commands.push(Command::RestartSingleFlashcardStatus(flashcard_id))
+                tasks.push(Command::RestartSingleFlashcardStatus(flashcard_id))
             }
-            Message::RestartFolderFlashcardStatus => commands.push(
+            Message::RestartFolderFlashcardStatus => tasks.push(
                 Command::RestartFolderFlashcardStatus(self.current_folder_id),
             ),
-            Message::OpenAnkiFileSelection => commands.push(Command::OpenAnkiFileSelection),
+            Message::OpenAnkiFileSelection => tasks.push(Command::OpenAnkiFileSelection),
             Message::OpenAnkiFileResult(open_result) => {
                 for path in open_result {
                     let flashcards = parse_ankifile(&path);
                     match flashcards {
-                        Ok(flashcards) => commands.push(Command::ImportFlashcards(flashcards)),
+                        Ok(flashcards) => tasks.push(Command::ImportFlashcards(flashcards)),
                         Err(err) => println!("{:?}", err), //TODO: Error handling?
                     }
                 }
             }
             Message::OpenFolderExportDestination(options) => {
                 if !self.flashcards.is_empty() {
-                    commands.push(Command::OpenFolderExportDestination(options))
+                    tasks.push(Command::OpenFolderExportDestination(options))
                 }
             }
             Message::LaunchUrl(url) => {
@@ -268,7 +266,7 @@ impl Flashcards {
             },
         }
 
-        commands
+        tasks
     }
 
     fn flashcard_header_row(&self) -> Element<Message> {
@@ -276,24 +274,24 @@ impl Flashcards {
 
         //TODO: Replace Text with IconCache::get("add-symbolic", 18) - For now it causes visual issues when the page is empty...
         let new_flashcard_button = widget::button::text(fl!("new"))
-            .style(theme::Button::Suggested)
+            .class(theme::Button::Suggested)
             .on_press(Message::ToggleCreatePage(None));
 
         //TODO: IconCache::get("menu-vertical-symbolic", 18) - For now it causes visual issues when the page is empty...
         let flashcard_options_button = widget::button::text(fl!("options"))
-            .style(theme::Button::Standard)
+            .class(theme::Button::Standard)
             .on_press(Message::ToggleOptionsPage);
 
         let study_button = if !self.flashcards.is_empty() {
             widget::button::text(fl!("study"))
-                .style(theme::Button::Suggested)
+                .class(theme::Button::Suggested)
                 .on_press(Message::StudyFlashcards)
         } else {
-            widget::button::text(fl!("study")).style(theme::Button::Suggested)
+            widget::button::text(fl!("study")).class(theme::Button::Suggested)
         };
 
         widget::row::with_capacity(3)
-            .align_items(cosmic::iced::Alignment::Center)
+            .align_y(cosmic::iced::Alignment::Center)
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
             .push(widget::text::title3(fl!("flashcards")).width(Length::Fill))
@@ -317,14 +315,14 @@ impl Flashcards {
                     // TODO: widget::button::icon
                     widget::button::custom(IconCache::get("edit-button-symbolic", 18))
                         .padding(spacing.space_xxs)
-                        .style(theme::Button::Standard)
+                        .class(theme::Button::Standard)
                         .on_press(Message::ToggleCreatePage(Some(flashcard.clone())));
 
                 let delete_button =
                     // TODO: widget::button::icon
                     widget::button::custom(IconCache::get("user-trash-full-symbolic", 18))
                         .padding(spacing.space_xxs)
-                        .style(theme::Button::Destructive)
+                        .class(theme::Button::Destructive)
                         .on_press(Message::Delete(flashcard.id));
 
                 //TODO: Custom Button to make it look like a badge
@@ -334,17 +332,17 @@ impl Flashcards {
                     3 => format!("{}     ", fl!("good-status")), // Low chance (status = 3 = flashcard Good)
                     _ => String::new(), // Default chance for other statuses
                 })
-                .vertical_alignment(Vertical::Center)
-                .horizontal_alignment(Horizontal::Left)
+                .align_y(Vertical::Center)
+                .align_x(Horizontal::Left)
                 .width(Length::Shrink);
 
                 let flashcard_front = widget::text(flashcard.front.clone())
-                    .vertical_alignment(Vertical::Center)
-                    .horizontal_alignment(Horizontal::Left)
+                    .align_y(Vertical::Center)
+                    .align_x(Horizontal::Left)
                     .width(Length::Fill);
 
                 let row = widget::row::with_capacity(2)
-                    .align_items(Alignment::Center)
+                    .align_y(Alignment::Center)
                     .spacing(spacing.space_xxs)
                     .padding([spacing.space_xxxs, spacing.space_xxs])
                     .push(flashcard_front)
@@ -422,11 +420,11 @@ impl Flashcards {
                         {
                             widget::button::text(fl!("edit"))
                                 .on_press(Message::Upsert)
-                                .style(theme::Button::Suggested)
+                                .class(theme::Button::Suggested)
                                 .width(Length::Fill)
                         } else {
                             widget::button::text(fl!("edit"))
-                                .style(theme::Button::Suggested)
+                                .class(theme::Button::Suggested)
                                 .width(Length::Fill)
                         }
                     }
@@ -436,11 +434,11 @@ impl Flashcards {
                         {
                             widget::button::text(fl!("create"))
                                 .on_press(Message::Upsert)
-                                .style(theme::Button::Suggested)
+                                .class(theme::Button::Suggested)
                                 .width(Length::Fill)
                         } else {
                             widget::button::text(fl!("create"))
-                                .style(theme::Button::Suggested)
+                                .class(theme::Button::Suggested)
                                 .width(Length::Fill)
                         }
                     }
@@ -453,7 +451,7 @@ impl Flashcards {
                         .on_press(Message::RestartSingleFlashcardStatus(
                             self.new_edit_flashcard.id,
                         ))
-                        .style(theme::Button::Destructive)
+                        .class(theme::Button::Destructive)
                         .width(Length::Fill),
                 )
                 .into(),
@@ -473,15 +471,15 @@ impl Flashcards {
                 .size(spacing.space_xxl)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .vertical_alignment(Vertical::Center)
-                .horizontal_alignment(Horizontal::Center),
+                .align_y(Vertical::Center)
+                .align_x(Horizontal::Center),
             )
             .on_press(Message::SwapFlashcardSide)
-            .style(button_style(false, false, ButtonStyle::NoHover))
+            .class(button_style(false, false, ButtonStyle::NoHover))
             .height(Length::Fill)
             .width(Length::Fill),
         )
-        .style(container_appearance(
+        .class(container_appearance(
             self.currently_studying_flashcard.status,
         ))
         .width(Length::Fill)
@@ -491,46 +489,46 @@ impl Flashcards {
             .push(
                 widget::button::custom(
                     widget::Text::new(fl!("bad-status"))
-                        .horizontal_alignment(Horizontal::Center)
-                        .vertical_alignment(Vertical::Center),
+                        .align_x(Horizontal::Center)
+                        .align_y(Vertical::Center),
                 )
                 .on_press(Message::UpdateFlashcardStatus(
                     self.currently_studying_flashcard.clone(),
                     StudyActions::Bad,
                 ))
-                .style(button_style(false, false, ButtonStyle::BadButton))
+                .class(button_style(false, false, ButtonStyle::BadButton))
                 .height(Length::Fixed(60.0))
                 .width(Length::Fill),
             )
             .push(
                 widget::button::custom(
                     widget::Text::new(fl!("ok-status"))
-                        .horizontal_alignment(Horizontal::Center)
-                        .vertical_alignment(Vertical::Center),
+                        .align_x(Horizontal::Center)
+                        .align_y(Vertical::Center),
                 )
                 .on_press(Message::UpdateFlashcardStatus(
                     self.currently_studying_flashcard.clone(),
                     StudyActions::Ok,
                 ))
-                .style(button_style(false, false, ButtonStyle::OkButton))
+                .class(button_style(false, false, ButtonStyle::OkButton))
                 .height(Length::Fixed(60.0))
                 .width(Length::Fill),
             )
             .push(
                 widget::button::custom(
                     widget::Text::new(fl!("good-status"))
-                        .horizontal_alignment(Horizontal::Center)
-                        .vertical_alignment(Vertical::Center),
+                        .align_x(Horizontal::Center)
+                        .align_y(Vertical::Center),
                 )
                 .on_press(Message::UpdateFlashcardStatus(
                     self.currently_studying_flashcard.clone(),
                     StudyActions::Good,
                 ))
-                .style(button_style(false, false, ButtonStyle::GoodButton))
+                .class(button_style(false, false, ButtonStyle::GoodButton))
                 .height(Length::Fixed(60.0))
                 .width(Length::Fill),
             )
-            .align_items(cosmic::iced::Alignment::Center)
+            .align_y(cosmic::iced::Alignment::Center)
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
             .width(Length::Fill);
@@ -608,11 +606,11 @@ impl Flashcards {
                     {
                         widget::button::text(fl!("import-button"))
                         .on_press(Message::Import)
-                        .style(theme::Button::Suggested)
+                        .class(theme::Button::Suggested)
                         .width(Length::Fill)
                     } else {
                         widget::button::text(fl!("import-button"))
-                        .style(theme::Button::Suggested)
+                        .class(theme::Button::Suggested)
                         .width(Length::Fill)
                     },
                 )
@@ -623,7 +621,7 @@ impl Flashcards {
                         .push(
                             widget::button::text(fl!("import-anki-button"))
                             .on_press(Message::OpenAnkiFileSelection)
-                            .style(theme::Button::Suggested)
+                            .class(theme::Button::Suggested)
                             .width(Length::Fill),
                         )
                         .push(
@@ -635,7 +633,7 @@ impl Flashcards {
                         )
                         .spacing(3.0)
                         .width(Length::Fill)
-                        .align_items(Alignment::Center),
+                        .align_x(Alignment::Center),
                 )
                 .into(),
             widget::settings::section().title(fl!("reset-folder-flashcards-title"))
@@ -643,11 +641,11 @@ impl Flashcards {
                     if !self.flashcards.is_empty() {
                         widget::button::text(fl!("reset-folder-flashcards-button"))
                         .on_press(Message::RestartFolderFlashcardStatus)
-                        .style(theme::Button::Destructive)
+                        .class(theme::Button::Destructive)
                         .width(Length::Fill)
                     } else {
                         widget::button::text(fl!("reset-folder-flashcards-button"))
-                        .style(theme::Button::Destructive)
+                        .class(theme::Button::Destructive)
                         .width(Length::Fill)
                     }
 
@@ -658,11 +656,11 @@ impl Flashcards {
                     if !self.flashcards.is_empty() {
                         widget::button::text(fl!("export-folder-flashcards-button"))
                         .on_press(Message::OpenFolderExportDestination(ExportOptions::Normal))
-                        .style(theme::Button::Suggested)
+                        .class(theme::Button::Suggested)
                         .width(Length::Fill)
                     } else {
                         widget::button::text(fl!("export-folder-flashcards-button"))
-                        .style(theme::Button::Suggested)
+                        .class(theme::Button::Suggested)
                         .width(Length::Fill)
                     }
                 )
@@ -670,11 +668,11 @@ impl Flashcards {
                     if !self.flashcards.is_empty() {
                         widget::button::text(fl!("export-folder-flashcards-anki-button"))
                         .on_press(Message::OpenFolderExportDestination(ExportOptions::Anki))
-                        .style(theme::Button::Suggested)
+                        .class(theme::Button::Suggested)
                         .width(Length::Fill)
                     } else {
                         widget::button::text(fl!("export-folder-flashcards-anki-button"))
-                        .style(theme::Button::Suggested)
+                        .class(theme::Button::Suggested)
                         .width(Length::Fill)
                     }
                 )
@@ -698,9 +696,9 @@ fn button_appearance(
     _focused: bool,
     _accent: bool,
     style: ButtonStyle,
-) -> widget::button::Appearance {
+) -> widget::button::Style {
     let cosmic = theme.cosmic();
-    let mut appearance = widget::button::Appearance::new();
+    let mut appearance = widget::button::Style::new();
 
     // Sample Code from cosmic-files (src/tab.rs I belive)
     // if selected {
@@ -800,13 +798,11 @@ fn button_style(selected: bool, accent: bool, style: ButtonStyle) -> theme::Butt
     }
 }
 
-fn container_appearance(flashard_status: i32) -> theme::Container {
+fn container_appearance<'a>(flashard_status: i32) -> theme::Container<'a> {
     // Got this from: https://github.com/pop-os/cosmic-files/blob/master/src/tab.rs#L2038
+    // New reference: https://github.com/pop-os/libcosmic/blob/master/src/theme/style/iced.rs
     theme::Container::custom(move |t| {
-        let mut a = cosmic::iced_style::container::StyleSheet::appearance(
-            t,
-            &theme::Container::ContextDrawer,
-        );
+        let mut a = theme::style::Container::primary(t.cosmic());
 
         let custom_border_color = match flashard_status {
             // Orange (Ok Flashcard)
@@ -835,13 +831,13 @@ fn container_appearance(flashard_status: i32) -> theme::Container {
 
         a.border = cosmic::iced::Border {
             color: custom_border_color,
-            width: a.border.width,
-            radius: a.border.radius,
+            width: 0.0,
+            radius: t.cosmic().corner_radii.radius_s.into(),
         };
         a.shadow = cosmic::iced_core::Shadow {
             color: custom_border_color,
-            offset: a.shadow.offset,
-            blur_radius: a.shadow.blur_radius,
+            offset: cosmic::iced::Vector::new(0.0, 0.0),
+            blur_radius: 16.0,
         };
         a
     })

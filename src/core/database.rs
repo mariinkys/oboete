@@ -523,6 +523,7 @@ pub async fn import_flashcards(
     folder_id: i32,
 ) -> Result<(), OboeteError> {
     for flashcard in flashcards {
+        #[allow(clippy::question_mark)]
         if let Err(err) = upsert_flashcard(db.clone(), flashcard, folder_id).await {
             return Err(err);
         }

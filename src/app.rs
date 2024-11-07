@@ -18,14 +18,14 @@ use crate::folders::{self, Folders};
 use crate::models::{Folder, StudySet};
 use crate::utils::{export_flashcards_json, import_flashcards_json, select_random_flashcard};
 use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
-use cosmic::app::{message, Core, Message as CosmicMessage};
+use cosmic::app::{Core, Task};
 use cosmic::iced::{event, keyboard::Event as KeyEvent, Event, Subscription};
 use cosmic::iced::{Alignment, Length};
 use cosmic::iced_core::keyboard::{Key, Modifiers};
 use cosmic::widget::menu::{action::MenuAction, key_bind::KeyBind};
 use cosmic::widget::segmented_button::{EntityMut, SingleSelect};
 use cosmic::widget::{self, menu, nav_bar, segmented_button};
-use cosmic::{cosmic_config, cosmic_theme, theme, Application, ApplicationExt, Command, Element};
+use cosmic::{cosmic_config, cosmic_theme, theme, Application, ApplicationExt, Element};
 
 const REPOSITORY: &str = "https://github.com/mariinkys/oboete";
 
@@ -189,7 +189,7 @@ impl Application for Oboete {
         Some(&self.nav)
     }
 
-    fn init(mut core: Core, flags: Self::Flags) -> (Self, Command<CosmicMessage<Self::Message>>) {
+    fn init(mut core: Core, flags: Self::Flags) -> (Self, Task<Self::Message>) {
         core.nav_bar_toggle_condensed();
         let nav = segmented_button::ModelBuilder::default().build();
 
@@ -212,11 +212,11 @@ impl Application for Oboete {
         };
 
         //Connect to the Database and Run the needed migrations
-        let commands = vec![Command::perform(OboeteDb::init(Self::APP_ID), |database| {
-            message::app(Message::DbConnected(database))
+        let tasks = vec![Task::perform(OboeteDb::init(Self::APP_ID), |database| {
+            cosmic::app::message::app(Message::DbConnected(database))
         })];
 
-        (app, Command::batch(commands))
+        (app, Task::batch(tasks))
     }
 
     /// Elements to pack at the start of the header bar.
@@ -281,7 +281,7 @@ impl Application for Oboete {
         struct ThemeSubscription;
 
         let subscriptions = vec![
-            event::listen_with(|event, status| match event {
+            event::listen_with(|event, status, _| match event {
                 Event::Keyboard(KeyEvent::KeyPressed { key, modifiers, .. }) => match status {
                     event::Status::Ignored => Some(Message::Key(modifiers, key)),
                     event::Status::Captured => None,
@@ -328,7 +328,7 @@ impl Application for Oboete {
         Subscription::batch(subscriptions)
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<CosmicMessage<Self::Message>> {
+    fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
         // Helper for updating config values efficiently
         macro_rules! config_set {
             ($name: ident, $value: expr) => {
@@ -356,7 +356,7 @@ impl Application for Oboete {
             };
         }
 
-        let mut commands = vec![];
+        let mut tasks = vec![];
 
         match message {
             Message::LaunchUrl(url) => {
@@ -379,7 +379,7 @@ impl Application for Oboete {
             Message::DbConnected(db) => {
                 self.db = Some(db);
                 let command = self.update(Message::FetchStudySets);
-                commands.push(command);
+                tasks.push(command);
             }
             Message::Folders(message) => {
                 let folder_commands = self.folders.update(message);
@@ -388,55 +388,59 @@ impl Application for Oboete {
                     match folder_command {
                         //Loads the folders of a given studyset
                         folders::Command::LoadFolders(studyset_id) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 get_studyset_folders(self.db.clone(), studyset_id),
                                 |result| match result {
-                                    Ok(folders) => message::app(Message::Folders(
+                                    Ok(folders) => cosmic::app::message::app(Message::Folders(
                                         folders::Message::SetFolders(folders),
                                     )),
-                                    Err(_) => message::none(),
+                                    Err(_) => cosmic::app::message::none(),
                                 },
                             );
 
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         //Opens a folder => Loads the flashcards of a given folder => Updates the current_folder_id
                         folders::Command::OpenFolder(folder_id) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 get_folder_flashcards(self.db.clone(), folder_id),
                                 |result| match result {
-                                    Ok(flashcards) => message::app(Message::Flashcards(
-                                        flashcards::Message::SetFlashcards(flashcards),
-                                    )),
-                                    Err(_) => message::none(),
+                                    Ok(flashcards) => {
+                                        cosmic::app::message::app(Message::Flashcards(
+                                            flashcards::Message::SetFlashcards(flashcards),
+                                        ))
+                                    }
+                                    Err(_) => cosmic::app::message::none(),
                                 },
                             );
                             self.current_page = Page::FolderFlashcards;
                             self.flashcards.current_folder_id = folder_id;
 
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         folders::Command::OpenCreateFolderDialog => {
                             //TODO: Less terrible way to do this?
-                            let command = Command::perform(
-                                async { message::app(Message::OpenNewFolderDialog) },
+                            let command = Task::perform(
+                                async { cosmic::app::message::app(Message::OpenNewFolderDialog) },
                                 |msg| msg,
                             );
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         folders::Command::UpsertFolder(folder) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 upsert_folder(
                                     self.db.clone(),
                                     folder,
                                     self.flashcards.current_folder_id,
                                 ),
                                 |_result| {
-                                    message::app(Message::Folders(folders::Message::Upserted))
+                                    cosmic::app::message::app(Message::Folders(
+                                        folders::Message::Upserted,
+                                    ))
                                 },
                             );
                             self.core.window.show_context = false;
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         folders::Command::ToggleEditContextPage(folder) => {
                             if self.context_page == ContextPage::EditFolder {
@@ -450,32 +454,32 @@ impl Application for Oboete {
 
                             //Loads the flashcard in case is an edit operation
                             if folder.is_some() {
-                                let command = Command::perform(
+                                let command = Task::perform(
                                     get_single_folder(self.db.clone(), folder.unwrap().id.unwrap()),
                                     |result| match result {
-                                        Ok(folder) => message::app(Message::Folders(
+                                        Ok(folder) => cosmic::app::message::app(Message::Folders(
                                             folders::Message::LoadedSingle(folder),
                                         )),
-                                        Err(_) => message::none(),
+                                        Err(_) => cosmic::app::message::none(),
                                     },
                                 );
-                                commands.push(command);
+                                tasks.push(command);
                             }
 
                             // Set the title of the context drawer.
                             self.set_context_title(ContextPage::EditFolder.title());
                         }
                         folders::Command::DeleteFolder(folder_id) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 delete_folder(self.db.clone(), folder_id.unwrap()),
                                 |result| match result {
-                                    Ok(_) => message::app(Message::Folders(
+                                    Ok(_) => cosmic::app::message::app(Message::Folders(
                                         folders::Message::LoadFolders,
                                     )),
-                                    Err(_) => message::none(),
+                                    Err(_) => cosmic::app::message::none(),
                                 },
                             );
-                            commands.push(command);
+                            tasks.push(command);
                         }
                     }
                 }
@@ -487,17 +491,19 @@ impl Application for Oboete {
                     match flashcard_command {
                         //Loads the flashcards of a given folder
                         flashcards::Command::LoadFlashcards(folder_id) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 get_folder_flashcards(self.db.clone(), folder_id),
                                 |result| match result {
-                                    Ok(flashcards) => message::app(Message::Flashcards(
-                                        flashcards::Message::SetFlashcards(flashcards),
-                                    )),
-                                    Err(_) => message::none(),
+                                    Ok(flashcards) => {
+                                        cosmic::app::message::app(Message::Flashcards(
+                                            flashcards::Message::SetFlashcards(flashcards),
+                                        ))
+                                    }
+                                    Err(_) => cosmic::app::message::none(),
                                 },
                             );
 
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         //Opens the NewFlashcard ContextPage
                         flashcards::Command::ToggleCreateFlashcardPage(flashcard) => {
@@ -512,19 +518,21 @@ impl Application for Oboete {
 
                             //Loads the flashcard in case is an edit operation
                             if flashcard.is_some() {
-                                let command = Command::perform(
+                                let command = Task::perform(
                                     get_single_flashcard(
                                         self.db.clone(),
                                         flashcard.unwrap().id.unwrap(),
                                     ),
                                     |result| match result {
-                                        Ok(flashcard) => message::app(Message::Flashcards(
-                                            flashcards::Message::LoadedSingle(flashcard),
-                                        )),
-                                        Err(_) => message::none(),
+                                        Ok(flashcard) => {
+                                            cosmic::app::message::app(Message::Flashcards(
+                                                flashcards::Message::LoadedSingle(flashcard),
+                                            ))
+                                        }
+                                        Err(_) => cosmic::app::message::none(),
                                     },
                                 );
-                                commands.push(command);
+                                tasks.push(command);
                             }
 
                             // Set the title of the context drawer.
@@ -532,18 +540,20 @@ impl Application for Oboete {
                         }
                         //Upserts a Flashcard inside a Folder
                         flashcards::Command::UpsertFlashcard(flashcard) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 upsert_flashcard(
                                     self.db.clone(),
                                     flashcard,
                                     self.flashcards.current_folder_id,
                                 ),
                                 |_result| {
-                                    message::app(Message::Flashcards(flashcards::Message::Upserted))
+                                    cosmic::app::message::app(Message::Flashcards(
+                                        flashcards::Message::Upserted,
+                                    ))
                                 },
                             );
                             self.core.window.show_context = false;
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         //We select a random (weighted) flashcard and open the page
                         flashcards::Command::OpenStudyFolderFlashcardsPage => {
@@ -554,32 +564,34 @@ impl Application for Oboete {
                         }
                         //Update the status on the db and return the folder flashcards once again (with the updated status)
                         flashcards::Command::UpdateFlashcardStatus(flashcard) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 update_flashcard_status(
                                     self.db.clone(),
                                     flashcard,
                                     self.flashcards.current_folder_id,
                                 ),
                                 |result| match result {
-                                    Ok(flashcards) => message::app(Message::Flashcards(
-                                        flashcards::Message::UpdatedStatus(flashcards),
-                                    )),
-                                    Err(_) => message::none(),
+                                    Ok(flashcards) => {
+                                        cosmic::app::message::app(Message::Flashcards(
+                                            flashcards::Message::UpdatedStatus(flashcards),
+                                        ))
+                                    }
+                                    Err(_) => cosmic::app::message::none(),
                                 },
                             );
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         flashcards::Command::DeleteFlashcard(flashcard_id) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 delete_flashcard(self.db.clone(), flashcard_id.unwrap()),
                                 |result| match result {
-                                    Ok(_) => message::app(Message::Flashcards(
+                                    Ok(_) => cosmic::app::message::app(Message::Flashcards(
                                         flashcards::Message::LoadFlashcards,
                                     )),
-                                    Err(_) => message::none(),
+                                    Err(_) => cosmic::app::message::none(),
                                 },
                             );
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         flashcards::Command::ToggleOptionsPage => {
                             if self.context_page == ContextPage::FlashcardOptions {
@@ -595,49 +607,51 @@ impl Application for Oboete {
                             self.set_context_title(ContextPage::FlashcardOptions.title());
                         }
                         flashcards::Command::ImportFlashcards(flashcards) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 import_flashcards(
                                     self.db.clone(),
                                     flashcards,
                                     self.flashcards.current_folder_id,
                                 ),
                                 |_result| {
-                                    message::app(Message::Flashcards(flashcards::Message::Upserted))
+                                    cosmic::app::message::app(Message::Flashcards(
+                                        flashcards::Message::Upserted,
+                                    ))
                                 },
                             );
                             self.core.window.show_context = false;
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         flashcards::Command::RestartSingleFlashcardStatus(flashcard_id) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 reset_single_flashcard_status(self.db.clone(), flashcard_id),
                                 |result| match result {
-                                    Ok(_) => message::app(Message::Flashcards(
+                                    Ok(_) => cosmic::app::message::app(Message::Flashcards(
                                         flashcards::Message::LoadFlashcards,
                                     )),
-                                    Err(_) => message::none(),
+                                    Err(_) => cosmic::app::message::none(),
                                 },
                             );
 
                             self.core.window.show_context = false;
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         flashcards::Command::RestartFolderFlashcardStatus(folder_id) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 reset_folder_flashcard_status(self.db.clone(), Some(folder_id)),
                                 |result| match result {
-                                    Ok(_) => message::app(Message::Flashcards(
+                                    Ok(_) => cosmic::app::message::app(Message::Flashcards(
                                         flashcards::Message::LoadFlashcards,
                                     )),
-                                    Err(_) => message::none(),
+                                    Err(_) => cosmic::app::message::none(),
                                 },
                             );
 
                             self.core.window.show_context = false;
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         flashcards::Command::OpenAnkiFileSelection => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 async move {
                                     let result = SelectedFiles::open_file()
                                         .title("Open Anki File")
@@ -661,15 +675,15 @@ impl Application for Oboete {
                                     }
                                 },
                                 |files| {
-                                    message::app(Message::Flashcards(
+                                    cosmic::app::message::app(Message::Flashcards(
                                         flashcards::Message::OpenAnkiFileResult(files),
                                     ))
                                 },
                             );
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         flashcards::Command::OpenFolderExportDestination(options) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 async move {
                                     let result = SelectedFiles::save_file()
                                         .title("Save Export")
@@ -680,7 +694,6 @@ impl Application for Oboete {
                                         .await
                                         .unwrap()
                                         .response();
-
                                     if let Ok(result) = result {
                                         result
                                             .uris()
@@ -691,25 +704,25 @@ impl Application for Oboete {
                                         Vec::new()
                                     }
                                 },
-                                |files| {
-                                    message::app(Message::Flashcards(
+                                move |files| {
+                                    cosmic::app::message::app(Message::Flashcards(
                                         flashcards::Message::OpenFolderExportDestinationResult(
                                             files, options,
                                         ),
                                     ))
                                 },
                             );
-                            commands.push(command);
+                            tasks.push(command);
                         }
                     }
                 }
             }
             Message::FetchStudySets => {
-                commands.push(Command::perform(
+                tasks.push(Task::perform(
                     get_all_studysets(self.db.clone()),
                     |result| match result {
-                        Ok(data) => message::app(Message::PopulateStudySets(data)),
-                        Err(_) => message::none(),
+                        Ok(data) => cosmic::app::message::app(Message::PopulateStudySets(data)),
+                        Err(_) => cosmic::app::message::none(),
                     },
                 ));
             }
@@ -718,11 +731,11 @@ impl Application for Oboete {
                     self.create_nav_item(set);
                 }
                 let Some(entity) = self.nav.iter().next() else {
-                    return Command::none();
+                    return Task::none();
                 };
                 self.nav.activate(entity);
                 let command = self.on_nav_select(entity);
-                commands.push(command);
+                tasks.push(command);
             }
             Message::OpenNewStudySetDialog => {
                 self.dialog_pages
@@ -748,11 +761,13 @@ impl Application for Oboete {
                         DialogPage::NewStudySet(name) => {
                             if !name.is_empty() {
                                 let set = StudySet::new(name);
-                                commands.push(Command::perform(
+                                tasks.push(Task::perform(
                                     upsert_studyset(self.db.clone(), set),
                                     |result| match result {
-                                        Ok(set) => message::app(Message::AddStudySet(set)),
-                                        Err(_) => message::none(),
+                                        Ok(set) => {
+                                            cosmic::app::message::app(Message::AddStudySet(set))
+                                        }
+                                        Err(_) => cosmic::app::message::none(),
                                     },
                                 ));
                             }
@@ -763,31 +778,31 @@ impl Application for Oboete {
                                 self.nav.text_set(entity, name.clone());
                                 if let Some(set) = self.nav.active_data_mut::<StudySet>() {
                                     set.name = name.clone();
-                                    let command = Command::perform(
+                                    let command = Task::perform(
                                         upsert_studyset(self.db.clone(), set.to_owned().clone()),
-                                        |_| message::none(),
+                                        |_| cosmic::app::message::none(),
                                     );
-                                    commands.push(command);
+                                    tasks.push(command);
                                 }
                             }
                         }
                         DialogPage::DeleteStudySet => {
-                            commands.push(self.update(Message::DeleteStudySet));
+                            tasks.push(self.update(Message::DeleteStudySet));
                         }
                         DialogPage::NewFolder(name) => {
                             if !name.is_empty() {
                                 let folder = Folder::new(name);
-                                commands.push(Command::perform(
+                                tasks.push(Task::perform(
                                     upsert_folder(
                                         self.db.clone(),
                                         folder,
                                         self.folders.current_studyset_id.unwrap(),
                                     ),
                                     |result| match result {
-                                        Ok(_folder_id) => message::app(Message::Folders(
-                                            folders::Message::Upserted,
-                                        )),
-                                        Err(_) => message::none(),
+                                        Ok(_folder_id) => cosmic::app::message::app(
+                                            Message::Folders(folders::Message::Upserted),
+                                        ),
+                                        Err(_) => cosmic::app::message::none(),
                                     },
                                 ));
                             }
@@ -804,24 +819,24 @@ impl Application for Oboete {
             Message::AddStudySet(set) => {
                 self.create_nav_item(set);
                 let Some(entity) = self.nav.iter().last() else {
-                    return Command::none();
+                    return Task::none();
                 };
                 let command = self.on_nav_select(entity);
-                commands.push(command);
+                tasks.push(command);
             }
             Message::DeleteStudySet => {
                 if let Some(set) = self.nav.data::<StudySet>(self.nav.active()) {
-                    let command = Command::perform(
+                    let command = Task::perform(
                         delete_studyset(self.db.clone(), set.id.unwrap()),
                         |result| match result {
-                            Ok(_) => message::none(),
-                            Err(_) => message::none(),
+                            Ok(_) => cosmic::app::message::none(),
+                            Err(_) => cosmic::app::message::none(),
                         },
                     );
 
                     self.folders.current_studyset_id = None;
-                    commands.push(self.update(Message::Folders(folders::Message::LoadFolders)));
-                    commands.push(command);
+                    tasks.push(self.update(Message::Folders(folders::Message::LoadFolders)));
+                    tasks.push(command);
                 }
                 self.nav.remove(self.nav.active());
             }
@@ -833,20 +848,20 @@ impl Application for Oboete {
             Message::Backup => {
                 if self.backup_data.is_none() {
                     let command =
-                        Command::perform(get_all_data(self.db.clone()), |result| match result {
-                            Ok(data) => message::app(Message::SetBackupData(data)),
-                            Err(_) => message::none(),
+                        Task::perform(get_all_data(self.db.clone()), |result| match result {
+                            Ok(data) => cosmic::app::message::app(Message::SetBackupData(data)),
+                            Err(_) => cosmic::app::message::none(),
                         });
 
-                    commands.push(command);
-                    commands.push(self.update(Message::OpenSaveBackupFileDialog));
+                    tasks.push(command);
+                    tasks.push(self.update(Message::OpenSaveBackupFileDialog));
                 }
             }
             Message::SetBackupData(data) => {
                 self.backup_data = Some(data);
             }
             Message::OpenSaveBackupFileDialog => {
-                let command = Command::perform(
+                let command = Task::perform(
                     async move {
                         let result = SelectedFiles::save_file()
                             .title("Save Backup")
@@ -868,9 +883,9 @@ impl Application for Oboete {
                             Vec::new()
                         }
                     },
-                    |files| message::app(Message::SaveBackupFile(files)),
+                    |files| cosmic::app::message::app(Message::SaveBackupFile(files)),
                 );
-                commands.push(command);
+                tasks.push(command);
             }
             Message::SaveBackupFile(open_result) => {
                 for path in open_result {
@@ -882,7 +897,7 @@ impl Application for Oboete {
                 self.backup_data = None;
             }
             Message::Import => {
-                let command = Command::perform(
+                let command = Task::perform(
                     async move {
                         let result = SelectedFiles::open_file()
                             .title("Open Backup File")
@@ -905,24 +920,24 @@ impl Application for Oboete {
                             Vec::new()
                         }
                     },
-                    |files| message::app(Message::OpenImportFileResult(files)),
+                    |files| cosmic::app::message::app(Message::OpenImportFileResult(files)),
                 );
-                commands.push(command);
+                tasks.push(command);
             }
             Message::OpenImportFileResult(open_result) => {
                 for path in open_result {
                     let result = import_flashcards_json(&path);
                     match result {
                         Ok(studysets) => {
-                            let command = Command::perform(
+                            let command = Task::perform(
                                 import_flashcards_to_db(self.db.clone(), studysets),
                                 |result| match result {
-                                    Ok(_) => message::app(Message::FetchStudySets),
-                                    Err(_) => message::app(Message::FetchStudySets),
+                                    Ok(_) => cosmic::app::message::app(Message::FetchStudySets),
+                                    Err(_) => cosmic::app::message::app(Message::FetchStudySets),
                                 },
                             );
 
-                            commands.push(command);
+                            tasks.push(command);
                         }
                         Err(_) => println!("Error importing JSON"),
                     }
@@ -952,7 +967,7 @@ impl Application for Oboete {
             }
         }
 
-        Command::batch(commands)
+        Task::batch(tasks)
     }
 
     /// Display a context drawer if the context page is requested.
@@ -1063,10 +1078,7 @@ impl Application for Oboete {
     }
 
     /// Called when a nav item is selected.
-    fn on_nav_select(
-        &mut self,
-        entity: segmented_button::Entity,
-    ) -> Command<CosmicMessage<Self::Message>> {
+    fn on_nav_select(&mut self, entity: segmented_button::Entity) -> Task<Self::Message> {
         let mut commands = vec![];
         self.nav.activate(entity);
         let location_opt = self.nav.data::<StudySet>(entity);
@@ -1078,18 +1090,21 @@ impl Application for Oboete {
             let message = Message::Folders(folders::Message::LoadFolders);
             let window_title = format!("Oboete - {}", set.name);
 
-            commands.push(self.set_window_title(window_title.clone()));
-            self.set_header_title(window_title);
+            commands.push(if let Some(id) = self.core.main_window_id() {
+                self.set_window_title(window_title, id)
+            } else {
+                Task::none()
+            });
 
             return self.update(message);
         }
 
-        Command::batch(commands)
+        Task::batch(commands)
     }
 }
 
 impl Oboete {
-    fn update_config(&mut self) -> Command<CosmicMessage<Message>> {
+    fn update_config(&mut self) -> Task<Message> {
         cosmic::app::command::set_theme(self.config.app_theme.theme())
     }
 
@@ -1138,7 +1153,7 @@ impl Oboete {
             .push(title)
             .push(link)
             .push(version_link)
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .spacing(space_xxs)
             .into()
     }
