@@ -18,7 +18,7 @@ use crate::folders::{self, Folders};
 use crate::models::{Folder, StudySet};
 use crate::utils::{export_flashcards_json, import_flashcards_json, select_random_flashcard};
 use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
-use cosmic::app::{Core, Task};
+use cosmic::app::{context_drawer, Core, Task};
 use cosmic::iced::{event, keyboard::Event as KeyEvent, Event, Subscription};
 use cosmic::iced::{Alignment, Length};
 use cosmic::iced_core::keyboard::{Key, Modifiers};
@@ -112,18 +112,6 @@ pub enum ContextPage {
     EditFolder,
     CreateEditFlashcard,
     FlashcardOptions,
-}
-
-impl ContextPage {
-    fn title(&self) -> String {
-        match self {
-            Self::About => fl!("about"),
-            Self::Settings => fl!("settings"),
-            Self::EditFolder => fl!("folder-details"),
-            Self::CreateEditFlashcard => fl!("flashcard-options"),
-            Self::FlashcardOptions => fl!("flashcard-options"),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -227,9 +215,9 @@ impl Application for Oboete {
                 menu::items(
                     &self.key_binds,
                     vec![
-                        menu::Item::Button(fl!("new-studyset"), Action::NewStudySet),
-                        menu::Item::Button(fl!("backup"), Action::Backup),
-                        menu::Item::Button(fl!("import"), Action::Import),
+                        menu::Item::Button(fl!("new-studyset"), None, Action::NewStudySet),
+                        menu::Item::Button(fl!("backup"), None, Action::Backup),
+                        menu::Item::Button(fl!("import"), None, Action::Import),
                     ],
                 ),
             ),
@@ -238,8 +226,8 @@ impl Application for Oboete {
                 menu::items(
                     &self.key_binds,
                     vec![
-                        menu::Item::Button(fl!("rename-studyset"), Action::RenameStudySet),
-                        menu::Item::Button(fl!("delete-studyset"), Action::DeleteStudySet),
+                        menu::Item::Button(fl!("rename-studyset"), None, Action::RenameStudySet),
+                        menu::Item::Button(fl!("delete-studyset"), None, Action::DeleteStudySet),
                     ],
                 ),
             ),
@@ -248,8 +236,8 @@ impl Application for Oboete {
                 menu::items(
                     &self.key_binds,
                     vec![
-                        menu::Item::Button(fl!("about"), Action::About),
-                        menu::Item::Button(fl!("settings"), Action::Settings),
+                        menu::Item::Button(fl!("about"), None, Action::About),
+                        menu::Item::Button(fl!("settings"), None, Action::Settings),
                     ],
                 ),
             ),
@@ -372,9 +360,6 @@ impl Application for Oboete {
                     self.context_page = context_page;
                     self.core.window.show_context = true;
                 }
-
-                // Set the title of the context drawer.
-                self.set_context_title(context_page.title());
             }
             Message::DbConnected(db) => {
                 self.db = Some(db);
@@ -465,9 +450,6 @@ impl Application for Oboete {
                                 );
                                 tasks.push(command);
                             }
-
-                            // Set the title of the context drawer.
-                            self.set_context_title(ContextPage::EditFolder.title());
                         }
                         folders::Command::DeleteFolder(folder_id) => {
                             let command = Task::perform(
@@ -534,9 +516,6 @@ impl Application for Oboete {
                                 );
                                 tasks.push(command);
                             }
-
-                            // Set the title of the context drawer.
-                            self.set_context_title(ContextPage::CreateEditFlashcard.title());
                         }
                         //Upserts a Flashcard inside a Folder
                         flashcards::Command::UpsertFlashcard(flashcard) => {
@@ -602,9 +581,6 @@ impl Application for Oboete {
                                 self.context_page = ContextPage::FlashcardOptions;
                                 self.core.window.show_context = true;
                             }
-
-                            // Set the title of the context drawer.
-                            self.set_context_title(ContextPage::FlashcardOptions.title());
                         }
                         flashcards::Command::ImportFlashcards(flashcards) => {
                             let command = Task::perform(
@@ -971,23 +947,41 @@ impl Application for Oboete {
     }
 
     /// Display a context drawer if the context page is requested.
-    fn context_drawer(&self) -> Option<Element<Self::Message>> {
+    fn context_drawer(&self) -> Option<context_drawer::ContextDrawer<Self::Message>> {
         if !self.core.window.show_context {
             return None;
         }
 
         Some(match self.context_page {
-            ContextPage::About => self.about(),
-            ContextPage::Settings => self.settings(),
-            ContextPage::EditFolder => self.folders.edit_folder_contextpage().map(Message::Folders),
-            ContextPage::CreateEditFlashcard => self
-                .flashcards
-                .create_edit_flashcard_contextpage()
-                .map(Message::Flashcards),
-            ContextPage::FlashcardOptions => self
-                .flashcards
-                .flashcard_options_contextpage()
-                .map(Message::Flashcards),
+            ContextPage::About => context_drawer::context_drawer(
+                self.about(),
+                Message::ToggleContextPage(ContextPage::About),
+            )
+            .title(fl!("about")),
+            ContextPage::Settings => context_drawer::context_drawer(
+                self.settings(),
+                Message::ToggleContextPage(ContextPage::Settings),
+            )
+            .title(fl!("settings")),
+            ContextPage::EditFolder => context_drawer::context_drawer(
+                self.folders.edit_folder_contextpage().map(Message::Folders),
+                Message::ToggleContextPage(ContextPage::EditFolder),
+            )
+            .title(fl!("folder-details")),
+            ContextPage::CreateEditFlashcard => context_drawer::context_drawer(
+                self.flashcards
+                    .create_edit_flashcard_contextpage()
+                    .map(Message::Flashcards),
+                Message::ToggleContextPage(ContextPage::CreateEditFlashcard),
+            )
+            .title(fl!("flashcard-options")),
+            ContextPage::FlashcardOptions => context_drawer::context_drawer(
+                self.flashcards
+                    .flashcard_options_contextpage()
+                    .map(Message::Flashcards),
+                Message::ToggleContextPage(ContextPage::FlashcardOptions),
+            )
+            .title(fl!("flashcard-options")),
         })
     }
 
@@ -1000,7 +994,8 @@ impl Application for Oboete {
         let spacing = theme::active().cosmic().spacing;
 
         let dialog = match dialog_page {
-            DialogPage::NewStudySet(name) => widget::dialog(fl!("create-studyset"))
+            DialogPage::NewStudySet(name) => widget::dialog()
+                .title(fl!("create-studyset"))
                 .primary_action(
                     widget::button::suggested(fl!("save"))
                         .on_press_maybe(Some(Message::DialogComplete)),
@@ -1021,7 +1016,8 @@ impl Application for Oboete {
                     ])
                     .spacing(spacing.space_xxs),
                 ),
-            DialogPage::RenameStudySet { to: name } => widget::dialog(fl!("rename-studyset"))
+            DialogPage::RenameStudySet { to: name } => widget::dialog()
+                .title(fl!("rename-studyset"))
                 .primary_action(
                     widget::button::suggested(fl!("save"))
                         .on_press_maybe(Some(Message::DialogComplete)),
@@ -1042,7 +1038,8 @@ impl Application for Oboete {
                     ])
                     .spacing(spacing.space_xxs),
                 ),
-            DialogPage::DeleteStudySet => widget::dialog(fl!("delete-studyset"))
+            DialogPage::DeleteStudySet => widget::dialog()
+                .title(fl!("delete-studyset"))
                 .body(fl!("confirm-delete"))
                 .primary_action(
                     widget::button::suggested(fl!("ok"))
@@ -1051,7 +1048,8 @@ impl Application for Oboete {
                 .secondary_action(
                     widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
                 ),
-            DialogPage::NewFolder(name) => widget::dialog(fl!("create-folder"))
+            DialogPage::NewFolder(name) => widget::dialog()
+                .title(fl!("create-folder"))
                 .primary_action(
                     widget::button::suggested(fl!("save"))
                         .on_press_maybe(Some(Message::DialogComplete)),
