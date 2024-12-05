@@ -125,10 +125,8 @@ impl Folders {
 
         if self.current_studyset_id.is_some() {
             if !self.folders.is_empty() {
-                let mut folders = widget::list::list_column()
-                    .style(theme::Container::ContextDrawer)
-                    .spacing(spacing.space_xxxs)
-                    .padding([spacing.space_none, spacing.space_xxs]);
+                let mut folders =
+                    widget::list::list_column().style(theme::Container::ContextDrawer);
 
                 for folder in &self.folders {
                     // TODO: widget::button::icon
@@ -158,7 +156,6 @@ impl Folders {
                     let row = widget::row::with_capacity(2)
                         .align_y(Alignment::Center)
                         .spacing(spacing.space_xxs)
-                        .padding([spacing.space_xxxs, spacing.space_xxs])
                         .push(open_button)
                         .push(folder_name)
                         .push(delete_button)
@@ -230,8 +227,7 @@ impl Folders {
                         .on_input(Message::NewFolderNameInput)
                         .into(),
                 ])
-                .spacing(spacing.space_xxs)
-                .padding([0, 15, 0, 15]),
+                .spacing(spacing.space_xxs),
             )
             .add(if !self.new_folder.name.is_empty() {
                 widget::button::text(fl!("edit"))

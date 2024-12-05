@@ -305,23 +305,18 @@ impl Flashcards {
         let spacing = theme::active().cosmic().spacing;
 
         if !self.flashcards.is_empty() {
-            let mut flashcards = widget::list::list_column()
-                .style(theme::Container::ContextDrawer)
-                .spacing(spacing.space_xxxs)
-                .padding([spacing.space_none, spacing.space_xxs]);
+            let mut flashcards = widget::list::list_column().style(theme::Container::ContextDrawer);
 
             for flashcard in &self.flashcards {
                 let edit_button =
                     // TODO: widget::button::icon
                     widget::button::custom(IconCache::get("edit-button-symbolic", 18))
-                        .padding(spacing.space_xxs)
                         .class(theme::Button::Standard)
                         .on_press(Message::ToggleCreatePage(Some(flashcard.clone())));
 
                 let delete_button =
                     // TODO: widget::button::icon
                     widget::button::custom(IconCache::get("user-trash-full-symbolic", 18))
-                        .padding(spacing.space_xxs)
                         .class(theme::Button::Destructive)
                         .on_press(Message::Delete(flashcard.id));
 
@@ -344,7 +339,6 @@ impl Flashcards {
                 let row = widget::row::with_capacity(2)
                     .align_y(Alignment::Center)
                     .spacing(spacing.space_xxs)
-                    .padding([spacing.space_xxxs, spacing.space_xxs])
                     .push(flashcard_front)
                     .push(badge)
                     .push(delete_button)
@@ -397,8 +391,7 @@ impl Flashcards {
                         .on_input(Message::ContextPageFrontInput)
                         .into(),
                     ])
-                    .spacing(spacing.space_xxs)
-                    .padding([0, 15, 0, 15]),
+                    .spacing(spacing.space_xxs),
                 )
                 .add(
                     widget::column::with_children(vec![
@@ -410,8 +403,7 @@ impl Flashcards {
                         .on_input(Message::ContextPageBackInput)
                         .into(),
                     ])
-                    .spacing(spacing.space_xxs)
-                    .padding([0, 15, 0, 15]),
+                    .spacing(spacing.space_xxs),
                 )
                 .add(match self.new_edit_flashcard.id {
                     Some(_id) => {
