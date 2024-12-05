@@ -19,12 +19,12 @@ use crate::models::{Folder, StudySet};
 use crate::utils::{export_flashcards_json, import_flashcards_json, select_random_flashcard};
 use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::app::{context_drawer, Core, Task};
+use cosmic::iced::Length;
 use cosmic::iced::{event, keyboard::Event as KeyEvent, Event, Subscription};
-use cosmic::iced::{Alignment, Length};
 use cosmic::iced_core::keyboard::{Key, Modifiers};
 use cosmic::widget::menu::{action::MenuAction, key_bind::KeyBind};
 use cosmic::widget::segmented_button::{EntityMut, SingleSelect};
-use cosmic::widget::{self, menu, nav_bar, segmented_button};
+use cosmic::widget::{self, about::About, menu, nav_bar, segmented_button};
 use cosmic::{cosmic_config, cosmic_theme, theme, Application, ApplicationExt, Element};
 
 const REPOSITORY: &str = "https://github.com/mariinkys/oboete";
@@ -32,6 +32,8 @@ const REPOSITORY: &str = "https://github.com/mariinkys/oboete";
 pub struct Oboete {
     /// Application state which is managed by the COSMIC runtime.
     core: Core,
+    /// Application about page
+    about: About,
     /// Display a context drawer with the designated page if defined.
     context_page: ContextPage,
     /// A model that contains all of the pages assigned to the nav bar panel.
@@ -181,8 +183,22 @@ impl Application for Oboete {
         core.nav_bar_toggle_condensed();
         let nav = segmented_button::ModelBuilder::default().build();
 
+        // Application about page
+        let about = About::default()
+            .name(fl!("app-title"))
+            .icon(Self::APP_ID)
+            .version(env!("CARGO_PKG_VERSION"))
+            .author("mariinkys")
+            .license("GPL-3.0-only")
+            .links([
+                (fl!("repository"), REPOSITORY),
+                (fl!("support"), "https://github.com/mariinkys/oboete/issues"),
+            ])
+            .developers([("mariinkys", "kysdev.owjga@aleeas.com")]);
+
         let app = Oboete {
             core,
+            about,
             context_page: ContextPage::default(),
             nav,
             current_page: Page::Folders,
@@ -953,8 +969,9 @@ impl Application for Oboete {
         }
 
         Some(match self.context_page {
-            ContextPage::About => context_drawer::context_drawer(
-                self.about(),
+            ContextPage::About => context_drawer::about(
+                &self.about,
+                Message::LaunchUrl,
                 Message::ToggleContextPage(ContextPage::About),
             )
             .title(fl!("about")),
@@ -1124,36 +1141,6 @@ impl Oboete {
             )
             .into()])
         .into()
-    }
-
-    /// The about page for this app.
-    pub fn about(&self) -> Element<Message> {
-        let cosmic_theme::Spacing { space_xxs, .. } = theme::active().cosmic().spacing;
-
-        let icon = widget::svg(widget::svg::Handle::from_memory(
-            &include_bytes!("../res/icons/hicolor/128x128/apps/dev.mariinkys.Oboete.svg")[..],
-        ));
-
-        let title = widget::text::title3(fl!("app-title"));
-
-        let link = widget::button::link(REPOSITORY)
-            .on_press(Message::LaunchUrl(REPOSITORY.to_string()))
-            .padding(0);
-
-        let version_link = widget::button::link(format!("v{}", env!("CARGO_PKG_VERSION")))
-            .on_press(Message::LaunchUrl(
-                "https://github.com/mariinkys/oboete/releases".to_string(),
-            ))
-            .padding(0);
-
-        widget::column()
-            .push(icon)
-            .push(title)
-            .push(link)
-            .push(version_link)
-            .align_x(Alignment::Center)
-            .spacing(space_xxs)
-            .into()
     }
 
     fn create_nav_item(&mut self, studyset: StudySet) -> EntityMut<SingleSelect> {

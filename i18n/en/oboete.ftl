@@ -6,6 +6,8 @@ empty-page-noset = Try to create a StudySet
 about-anki-importing = ABOUT ANKI IMPORTING
 backup = Backup
 import = Import Backup
+repository = Repository
+support = Support
 
 <#-- Appearance -->
 appearance = Appearance
