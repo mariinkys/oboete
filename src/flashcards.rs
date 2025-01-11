@@ -305,7 +305,7 @@ impl Flashcards {
         let spacing = theme::active().cosmic().spacing;
 
         if !self.flashcards.is_empty() {
-            let mut flashcards = widget::list::list_column().style(theme::Container::ContextDrawer);
+            let mut flashcards = widget::list::list_column().style(theme::Container::Card);
 
             for flashcard in &self.flashcards {
                 let edit_button =

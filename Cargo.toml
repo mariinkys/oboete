@@ -14,26 +14,30 @@ name = "oboete"
 
 [dependencies]
 futures-util = "0.3.31"
-i18n-embed-fl = "0.9.2"
-open = "5.3.0"
+i18n-embed-fl = "0.9.3"
+open = "5.3.2"
 rust-embed = "8.5.0"
-tokio = { version = "1.41.0", features = ["full"] }
+tokio = { version = "1.43.0", features = ["full"] }
 
-sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio", "tls-rustls"] }
+sqlx = { version = "0.8.3", features = [
+    "sqlite",
+    "runtime-tokio",
+    "tls-rustls",
+] }
 futures = "0.3.31"
 dirs = "5.0.1"
 rand = "0.8.5"
 ashpd = { version = "0.10.2", features = ["wayland"] }
 percent-encoding = "2.1"
-serde = { version = "1.0.214", features = ["derive"] }
-serde_json = "1.0.132"
-log = "0.4"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.135"
+log = "0.4.24"
 tracing-subscriber = { version = "0.3.18", features = ["json"] }
 paste = "1.0"
 tracing = "0.1.40"
 
 [dependencies.i18n-embed]
-version = "0.15"
+version = "0.15.3"
 features = ["fluent-system", "desktop-requester"]
 
 [dependencies.libcosmic]

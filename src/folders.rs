@@ -125,8 +125,7 @@ impl Folders {
 
         if self.current_studyset_id.is_some() {
             if !self.folders.is_empty() {
-                let mut folders =
-                    widget::list::list_column().style(theme::Container::ContextDrawer);
+                let mut folders = widget::list::list_column().style(theme::Container::Card);
 
                 for folder in &self.folders {
                     // TODO: widget::button::icon
