@@ -25,13 +25,13 @@ sqlx = { version = "0.8.3", features = [
     "tls-rustls",
 ] }
 futures = "0.3.31"
-dirs = "5.0.1"
+dirs = "6.0.0"
 rand = "0.8.5"
 ashpd = { version = "0.10.2", features = ["wayland"] }
 percent-encoding = "2.1"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.135"
-log = "0.4.24"
+log = "0.4.25"
 tracing-subscriber = { version = "0.3.18", features = ["json"] }
 paste = "1.0"
 tracing = "0.1.40"
