@@ -1,34 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use core::localization;
+use std::sync::Mutex;
 
-use app::Oboete;
-use i18n_embed::DesktopLanguageRequester;
 mod app;
-mod core;
-mod flashcards;
-mod folders;
-mod models;
-mod utils;
+mod config;
+mod i18n;
+mod icons;
+mod key_binds;
+mod oboete;
 
-/// The `cosmic::app::run()` function is the starting point of your application.
-/// It takes two arguments:
-/// - `settings` is a structure that contains everything relevant with your app's configuration, such as antialiasing, themes, icons, etc...
-/// - `()` is the flags that your app needs to use before it starts.
-///
-/// If your app does not need any flags, you can pass in `()`.
 fn main() -> cosmic::iced::Result {
-    init_localizer();
+    // Get the system's preferred languages.
+    let requested_languages = i18n_embed::DesktopLanguageRequester::requested_languages();
 
-    let (settings, flags) = core::settings::init();
-    cosmic::app::run::<Oboete>(settings, flags)
-}
+    // Enable localizations to be applied.
+    i18n::init(&requested_languages);
 
-fn init_localizer() {
-    let localizer = localization::localizer();
-    let requested_languages = DesktopLanguageRequester::requested_languages();
+    // Settings for configuring the application window and iced runtime.
+    let settings = cosmic::app::Settings::default().size(cosmic::iced::Size::new(1200.0, 800.0));
 
-    if let Err(why) = localizer.select(&requested_languages) {
-        panic!("can't load localizations: {}", why);
-    }
+    // Init the icon cache
+    icons::ICON_CACHE.get_or_init(|| Mutex::new(icons::IconCache::new()));
+
+    // Starts the application's event loop with `()` as the application's flags.
+    cosmic::app::run::<app::Oboete>(settings, ())
 }

@@ -4,9 +4,9 @@ use cosmic::iced::keyboard::Key;
 use cosmic::widget::menu::key_bind::KeyBind;
 use cosmic::widget::menu::key_bind::Modifier;
 
-use crate::app::Action;
+use crate::app::MenuAction;
 
-pub fn key_binds() -> HashMap<KeyBind, Action> {
+pub fn key_binds() -> HashMap<KeyBind, MenuAction> {
     let mut key_binds = HashMap::new();
 
     macro_rules! bind {
@@ -16,14 +16,14 @@ pub fn key_binds() -> HashMap<KeyBind, Action> {
                     modifiers: vec![$(Modifier::$modifier),*],
                     key: $key,
                 },
-                Action::$action,
+                MenuAction::$action,
             );
         }};
     }
 
     bind!([Ctrl], Key::Character("n".into()), NewStudySet);
-    bind!([Ctrl, Shift], Key::Character("b".into()), Backup);
-    bind!([Ctrl, Shift], Key::Character("i".into()), Import);
+    //bind!([Ctrl, Shift], Key::Character("b".into()), Backup);
+    //bind!([Ctrl, Shift], Key::Character("i".into()), Import);
 
     bind!([Ctrl, Shift], Key::Character("r".into()), RenameStudySet);
     bind!([Ctrl, Shift], Key::Character("d".into()), DeleteStudySet);

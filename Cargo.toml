@@ -12,13 +12,17 @@ license = "GPL-3.0"
 path = "src/main.rs"
 name = "oboete"
 
+[build-dependencies]
+vergen = { version = "8", features = ["git", "gitcl"] }
+
 [dependencies]
 futures-util = "0.3.31"
-i18n-embed-fl = "0.9.3"
-open = "5.3.2"
+i18n-embed-fl = "0.9.2"
+open = "5.3.0"
 rust-embed = "8.5.0"
-tokio = { version = "1.43.0", features = ["full"] }
+tokio = { version = "1.41.0", features = ["full"] }
 
+# Added by me
 sqlx = { version = "0.8.3", features = [
     "sqlite",
     "runtime-tokio",
@@ -26,18 +30,11 @@ sqlx = { version = "0.8.3", features = [
 ] }
 futures = "0.3.31"
 dirs = "6.0.0"
-rand = "0.8.5"
-ashpd = { version = "0.10.2", features = ["wayland"] }
-percent-encoding = "2.1"
 serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.135"
-log = "0.4.25"
-tracing-subscriber = { version = "0.3.18", features = ["json"] }
-paste = "1.0"
-tracing = "0.1.40"
+rand = "0.8.5"
 
 [dependencies.i18n-embed]
-version = "0.15.3"
+version = "0.15"
 features = ["fluent-system", "desktop-requester"]
 
 [dependencies.libcosmic]
@@ -60,10 +57,7 @@ features = [
     "wayland",
     # GPU-accelerated rendering
     "wgpu",
-    # About Page
-    "about",
 ]
-
 
 # Uncomment to test a locally-cloned libcosmic
 # [patch.'https://github.com/pop-os/libcosmic']
