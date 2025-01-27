@@ -7,12 +7,13 @@ use std::{
 };
 
 use percent_encoding::percent_decode_str;
-use rand::{seq::SliceRandom, thread_rng};
+use rand::prelude::*;
+use rand::rng;
 
 use super::models::flashcard::Flashcard;
 
 pub fn select_random_flashcard(flashcards: &Vec<Flashcard>) -> Option<Flashcard> {
-    let mut rng = thread_rng();
+    let mut rng = rng();
     let mut weighted_flashcards = Vec::new();
 
     for flashcard in flashcards {
