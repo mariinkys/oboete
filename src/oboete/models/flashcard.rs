@@ -155,4 +155,17 @@ impl Flashcard {
 
         Ok(())
     }
+
+    pub async fn reset_single_status(
+        pool: Arc<Pool<Sqlite>>,
+        flashcard_id: i32,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE flashcards SET status = $1 WHERE id = $2")
+            .bind(0)
+            .bind(flashcard_id)
+            .execute(pool.as_ref())
+            .await?;
+
+        Ok(())
+    }
 }

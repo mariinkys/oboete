@@ -79,6 +79,7 @@ pub enum Message {
     OpenAddEditContextPage(Flashcard),
     AddEditFlashcardFrontInput(String),
     AddEditFlashcardBackInput(String),
+    RestartSingleFlashcardStatus(i32),
 
     // OPTIONS CONTEXT PAGE
     OpenFolderOptionsContextPage,
@@ -104,6 +105,7 @@ pub enum FolderContentTask {
 
     OpenAddEditContextPage,
     CloseContextPage,
+    RestartSingleFlashcardStatus(i32),
 
     OpenFolderOptionsContextPage,
     ImportContent(Vec<Flashcard>),
@@ -224,6 +226,13 @@ impl FolderContent {
             // Updates the value of the flashcard back in the add/edit contextpage
             Message::AddEditFlashcardBackInput(value) => {
                 self.add_edit_flashcard.back = value;
+            }
+
+            // Asks for a single flashcard status to be updated
+            Message::RestartSingleFlashcardStatus(flashcard_id) => {
+                tasks.push(FolderContentTask::RestartSingleFlashcardStatus(
+                    flashcard_id,
+                ));
             }
 
             // Asks to open the Folder Options Context Page
@@ -456,7 +465,7 @@ impl FolderContent {
                 .push(widget::button::text(add_edit_button_label).class(theme::Button::Suggested))
         };
 
-        let settings = widget::settings::view_column(vec![widget::settings::section()
+        let add_edit_section = widget::settings::view_column(vec![widget::settings::section()
             .title(fl!("flashcard-options"))
             .add(
                 widget::column::with_children(vec![
@@ -479,11 +488,34 @@ impl FolderContent {
             )
             .into()]);
 
-        widget::Column::new()
-            .push(settings)
-            .push(add_edit_button)
-            .spacing(spacing.space_xs)
-            .into()
+        let reset_flashcard_status_column =
+            widget::settings::view_column(vec![widget::settings::section()
+                .title(fl!("reset-flashcard-title"))
+                .into()]);
+
+        let reset_flashcard_status_button = widget::button::text(fl!("reset-flashcard-button"))
+            .on_press(Message::RestartSingleFlashcardStatus(
+                self.add_edit_flashcard.id.unwrap_or_default(),
+            ))
+            .class(theme::Button::Destructive);
+
+        match self.add_edit_flashcard.id.is_some() {
+            // We are editing, we can reset the status
+            true => widget::Column::new()
+                .push(add_edit_section)
+                .push(add_edit_button)
+                .push(reset_flashcard_status_column)
+                .push(reset_flashcard_status_button)
+                .spacing(spacing.space_xs)
+                .into(),
+
+            // We are creating a new flashcard
+            false => widget::Column::new()
+                .push(add_edit_section)
+                .push(add_edit_button)
+                .spacing(spacing.space_xs)
+                .into(),
+        }
     }
 
     /// The options context page for each folder
@@ -507,37 +539,38 @@ impl FolderContent {
                 .push(widget::button::text(fl!("import-button")).class(theme::Button::Suggested))
         };
 
-        let folder_import_col = widget::settings::view_column(vec![widget::settings::section()
-            .title(fl!("folder-import"))
-            .add(
-                widget::column::with_children(vec![
-                    widget::text::body(fl!("import-between-term-title")).into(),
-                    widget::text_input(
-                        fl!("import-between-term-placeholder"),
-                        &self.folder_options_state.between_terms,
-                    )
-                    .on_input(Message::FolderOptionsBetweenTermsInput)
-                    .into(),
-                    widget::text::body(fl!("import-between-cards-title")).into(),
-                    widget::text_input(
-                        fl!("import-between-cards-placeholder"),
-                        &self.folder_options_state.between_cards,
-                    )
-                    .on_input(Message::FolderOptionsBetweenCardsInput)
-                    .into(),
-                    widget::text::body(fl!("import-content-title")).into(),
-                    widget::text_input(
-                        fl!("import-content-placeholder"),
-                        &self.folder_options_state.import_content,
-                    )
-                    .on_input(Message::FolderOptionsImportContentInput)
-                    .into(),
-                ])
-                .spacing(spacing.space_xxs),
-            )
-            .into()]);
+        let folder_import_section =
+            widget::settings::view_column(vec![widget::settings::section()
+                .title(fl!("folder-import"))
+                .add(
+                    widget::column::with_children(vec![
+                        widget::text::body(fl!("import-between-term-title")).into(),
+                        widget::text_input(
+                            fl!("import-between-term-placeholder"),
+                            &self.folder_options_state.between_terms,
+                        )
+                        .on_input(Message::FolderOptionsBetweenTermsInput)
+                        .into(),
+                        widget::text::body(fl!("import-between-cards-title")).into(),
+                        widget::text_input(
+                            fl!("import-between-cards-placeholder"),
+                            &self.folder_options_state.between_cards,
+                        )
+                        .on_input(Message::FolderOptionsBetweenCardsInput)
+                        .into(),
+                        widget::text::body(fl!("import-content-title")).into(),
+                        widget::text_input(
+                            fl!("import-content-placeholder"),
+                            &self.folder_options_state.import_content,
+                        )
+                        .on_input(Message::FolderOptionsImportContentInput)
+                        .into(),
+                    ])
+                    .spacing(spacing.space_xxs),
+                )
+                .into()]);
 
-        let anki_import_col = widget::settings::view_column(vec![widget::settings::section()
+        let anki_import_section = widget::settings::view_column(vec![widget::settings::section()
             .title(fl!("import-anki-title"))
             .add(
                 widget::column::with_children(vec![widget::button::link(fl!(
@@ -559,7 +592,7 @@ impl FolderContent {
                     .class(theme::Button::Suggested),
             );
 
-        let reset_flashcards_status_column =
+        let reset_flashcards_status_section =
             widget::settings::view_column(vec![widget::settings::section()
                 .title(fl!("reset-folder-flashcards-title"))
                 .into()]);
@@ -574,11 +607,11 @@ impl FolderContent {
         };
 
         widget::Column::new()
-            .push(folder_import_col)
+            .push(folder_import_section)
             .push(folder_import_btn)
-            .push(anki_import_col)
+            .push(anki_import_section)
             .push(anki_import_button)
-            .push(reset_flashcards_status_column)
+            .push(reset_flashcards_status_section)
             .push(reset_flashcards_status_button)
             .spacing(spacing.space_xs)
             .into()

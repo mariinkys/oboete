@@ -666,6 +666,24 @@ impl Application for Oboete {
                             self.core.window.show_context = false;
                         }
 
+                        // Resets the status of a single flashcard and notifies the FolderContent Page
+                        folder_content::FolderContentTask::RestartSingleFlashcardStatus(
+                            flashcard_id,
+                        ) => {
+                            tasks.push(Task::perform(
+                                Flashcard::reset_single_status(
+                                    self.database.clone().unwrap(),
+                                    flashcard_id,
+                                ),
+                                |result| match result {
+                                    Ok(_) => cosmic::app::message::app(Message::FolderContent(
+                                        folder_content::Message::EditedFlashcard,
+                                    )),
+                                    Err(_) => cosmic::app::message::none(),
+                                },
+                            ));
+                        }
+
                         // Opens the FolderContentOptions ContextPage
                         folder_content::FolderContentTask::OpenFolderOptionsContextPage => {
                             self.context_page = ContextPage::FolderContentOptions;
