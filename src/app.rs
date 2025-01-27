@@ -240,6 +240,13 @@ impl Application for Oboete {
                 Message::ToggleContextPage(ContextPage::AddEditFlashcard),
             )
             .title(fl!("flashcard-options")),
+            ContextPage::FolderContentOptions => context_drawer::context_drawer(
+                self.folder_content
+                    .folder_options_contextpage()
+                    .map(Message::FolderContent),
+                Message::ToggleContextPage(ContextPage::FolderContentOptions),
+            )
+            .title(fl!("flashcard-options")),
         })
     }
 
@@ -658,6 +665,29 @@ impl Application for Oboete {
                             self.core.window.show_context = false;
                         }
 
+                        // Opens the FolderContentOptions ContextPage
+                        folder_content::FolderContentTask::OpenFolderOptionsContextPage => {
+                            self.context_page = ContextPage::FolderContentOptions;
+                            self.core.window.show_context = true;
+                        }
+
+                        // Gets a vec of flashcards to get put into the database, does that and notifies the folder_content page
+                        folder_content::FolderContentTask::ImportContent(content) => {
+                            tasks.push(Task::perform(
+                                Flashcard::add_bulk(
+                                    self.database.clone().unwrap(),
+                                    content,
+                                    self.folder_content.get_current_folder_id().unwrap(),
+                                ),
+                                |result| match result {
+                                    Ok(_) => cosmic::app::message::app(Message::FolderContent(
+                                        folder_content::Message::ContentImported,
+                                    )),
+                                    Err(_) => cosmic::app::message::none(),
+                                },
+                            ));
+                        }
+
                         // Retrieves the flashcard of a folder and gives it to the studypage
                         folder_content::FolderContentTask::StudyFolder(folder_id) => {
                             tasks.push(Task::perform(
@@ -926,6 +956,7 @@ pub enum ContextPage {
     Settings,
     EditFolder,
     AddEditFlashcard,
+    FolderContentOptions,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -10,15 +10,23 @@ use cosmic::{
     Apply, Element,
 };
 
-use crate::{fl, icons, oboete::models::flashcard::Flashcard};
+use crate::{
+    fl, icons,
+    oboete::{models::flashcard::Flashcard, utils::parse_import_content},
+};
 
 pub struct FolderContent {
     current_folder_id: Option<i32>,
+    // Flashcards inside the folder
     flashcards: Vec<Flashcard>,
+    // State of the add/edit flashcard contextpage
     add_edit_flashcard: AddEditFlashcardState,
+
+    // State of the folder options context page
+    folder_options_state: FolderOptionsContextPageState,
 }
 
-pub struct AddEditFlashcardState {
+struct AddEditFlashcardState {
     id: Option<i32>,
     front: String,
     back: String,
@@ -26,12 +34,28 @@ pub struct AddEditFlashcardState {
 }
 
 impl AddEditFlashcardState {
-    pub fn new() -> AddEditFlashcardState {
+    fn new() -> AddEditFlashcardState {
         AddEditFlashcardState {
             id: None,
             front: String::new(),
             back: String::new(),
             status: 0,
+        }
+    }
+}
+
+struct FolderOptionsContextPageState {
+    pub between_terms: String,
+    pub between_cards: String,
+    pub import_content: String,
+}
+
+impl FolderOptionsContextPageState {
+    fn new() -> FolderOptionsContextPageState {
+        FolderOptionsContextPageState {
+            between_terms: String::new(),
+            between_cards: String::new(),
+            import_content: String::new(),
         }
     }
 }
@@ -48,10 +72,20 @@ pub enum Message {
     DeletedFlashcard,
     AddedNewFlashcard,
 
+    // ADD/EDIT CONTEXT PAGE
     OpenAddEditContextPage(Flashcard),
     AddEditFlashcardFrontInput(String),
     AddEditFlashcardBackInput(String),
 
+    // OPTIONS CONTEXT PAGE
+    OpenFolderOptionsContextPage,
+    FolderOptionsBetweenTermsInput(String),
+    FolderOptionsBetweenCardsInput(String),
+    FolderOptionsImportContentInput(String),
+    ImportContent,
+    ContentImported,
+
+    // Change to Study Page
     StudyFolder(i32),
 }
 
@@ -64,6 +98,9 @@ pub enum FolderContentTask {
     OpenAddEditContextPage,
     CloseContextPage,
 
+    OpenFolderOptionsContextPage,
+    ImportContent(Vec<Flashcard>),
+
     StudyFolder(i32),
 }
 
@@ -73,6 +110,7 @@ impl FolderContent {
             current_folder_id: None,
             flashcards: Vec::new(),
             add_edit_flashcard: AddEditFlashcardState::new(),
+            folder_options_state: FolderOptionsContextPageState::new(),
         }
     }
 
@@ -165,10 +203,53 @@ impl FolderContent {
             }
 
             // Updates the value of the flashcard front in the add/edit contextpage
-            Message::AddEditFlashcardFrontInput(value) => self.add_edit_flashcard.front = value,
+            Message::AddEditFlashcardFrontInput(value) => {
+                self.add_edit_flashcard.front = value;
+            }
 
             // Updates the value of the flashcard back in the add/edit contextpage
-            Message::AddEditFlashcardBackInput(value) => self.add_edit_flashcard.back = value,
+            Message::AddEditFlashcardBackInput(value) => {
+                self.add_edit_flashcard.back = value;
+            }
+
+            // Asks to open the Folder Options Context Page
+            Message::OpenFolderOptionsContextPage => {
+                tasks.push(FolderContentTask::OpenFolderOptionsContextPage);
+            }
+
+            // Updates the value of the between_terms in the options contextpage
+            Message::FolderOptionsBetweenTermsInput(value) => {
+                self.folder_options_state.between_terms = value;
+            }
+
+            // Updates the value of the between_cards in the options contextpage
+            Message::FolderOptionsBetweenCardsInput(value) => {
+                self.folder_options_state.between_cards = value;
+            }
+
+            // Updates the value of the import content in the options contextpage
+            Message::FolderOptionsImportContentInput(value) => {
+                self.folder_options_state.import_content = value;
+            }
+
+            // Parses the content using the current state of the inputs and asks for it to be imported
+            Message::ImportContent => {
+                let content = parse_import_content(
+                    &self.folder_options_state.between_cards,
+                    &self.folder_options_state.between_terms,
+                    &self.folder_options_state.import_content,
+                );
+                tasks.push(FolderContentTask::ImportContent(content))
+            }
+
+            // Callback after content has been successfully imported
+            Message::ContentImported => {
+                self.folder_options_state = FolderOptionsContextPageState::new();
+                tasks.push(FolderContentTask::FetchFolderFlashcards(
+                    self.current_folder_id.unwrap(),
+                ));
+                tasks.push(FolderContentTask::CloseContextPage);
+            }
 
             // Asks for the study mode for a given folder (page change)
             Message::StudyFolder(folder_id) => {
@@ -276,11 +357,18 @@ impl FolderContent {
             widget::button::text("Study").class(theme::Button::Suggested)
         };
 
+        let folder_options_button =
+            widget::button::icon(icons::get_handle("emblem-system-symbolic", 18))
+                .class(theme::Button::Standard)
+                .on_press(Message::OpenFolderOptionsContextPage);
+
         widget::row::with_capacity(2)
             .align_y(cosmic::iced::Alignment::Center)
             .spacing(spacing.space_s)
             .padding([spacing.space_none, spacing.space_xxs])
-            .push(widget::text::title3(fl!("flashcards")).width(Length::Fill))
+            .push(widget::text::title3(fl!("flashcards")))
+            .push(folder_options_button)
+            .push(Space::new(Length::Fill, Length::Shrink))
             .push(study_button)
             .push(new_flashcard_button)
             .into()
@@ -290,6 +378,7 @@ impl FolderContent {
     pub fn add_edit_flashcard_contextpage(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
+        // If we want a new flashcard the id will be none, if we want to edit it will be some
         let add_edit_button_label = if self.add_edit_flashcard.id.is_some() {
             fl!("edit")
         } else {
@@ -299,6 +388,7 @@ impl FolderContent {
         let add_edit_button = if !self.add_edit_flashcard.front.is_empty()
             && !self.add_edit_flashcard.back.is_empty()
         {
+            // If we want a new flashcard the id will be none, if we want to edit it will be some
             let btn_on_press = if self.add_edit_flashcard.id.is_some() {
                 Message::EditFlashcard
             } else {
@@ -344,6 +434,64 @@ impl FolderContent {
         widget::Column::new()
             .push(settings)
             .push(add_edit_button)
+            .spacing(spacing.space_xs)
+            .into()
+    }
+
+    /// The options context page for each folder
+    pub fn folder_options_contextpage(&self) -> Element<Message> {
+        let spacing = theme::active().cosmic().spacing;
+
+        let folder_import_btn = if !self.folder_options_state.import_content.is_empty()
+            && !self.folder_options_state.between_cards.is_empty()
+            && !self.folder_options_state.between_terms.is_empty()
+        {
+            widget::Row::new()
+                .push(Space::new(Length::Fill, Length::Shrink))
+                .push(
+                    widget::button::text(fl!("import-button"))
+                        .on_press(Message::ImportContent)
+                        .class(theme::Button::Suggested),
+                )
+        } else {
+            widget::Row::new()
+                .push(Space::new(Length::Fill, Length::Shrink))
+                .push(widget::button::text(fl!("import-button")).class(theme::Button::Suggested))
+        };
+
+        let folder_import_col = widget::settings::view_column(vec![widget::settings::section()
+            .title(fl!("folder-import"))
+            .add(
+                widget::column::with_children(vec![
+                    widget::text::body(fl!("import-between-term-title")).into(),
+                    widget::text_input(
+                        fl!("import-between-term-placeholder"),
+                        &self.folder_options_state.between_terms,
+                    )
+                    .on_input(Message::FolderOptionsBetweenTermsInput)
+                    .into(),
+                    widget::text::body(fl!("import-between-cards-title")).into(),
+                    widget::text_input(
+                        fl!("import-between-cards-placeholder"),
+                        &self.folder_options_state.between_cards,
+                    )
+                    .on_input(Message::FolderOptionsBetweenCardsInput)
+                    .into(),
+                    widget::text::body(fl!("import-content-title")).into(),
+                    widget::text_input(
+                        fl!("import-content-placeholder"),
+                        &self.folder_options_state.import_content,
+                    )
+                    .on_input(Message::FolderOptionsImportContentInput)
+                    .into(),
+                ])
+                .spacing(spacing.space_xxs),
+            )
+            .into()]);
+
+        widget::Column::new()
+            .push(folder_import_col)
+            .push(folder_import_btn)
             .spacing(spacing.space_xs)
             .into()
     }

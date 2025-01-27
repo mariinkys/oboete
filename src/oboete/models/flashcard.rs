@@ -128,4 +128,18 @@ impl Flashcard {
 
         Ok(result)
     }
+
+    pub async fn add_bulk(
+        pool: Arc<Pool<Sqlite>>,
+        flashcards: Vec<Flashcard>,
+        folder_id: i32,
+    ) -> Result<(), sqlx::Error> {
+        for flashcard in flashcards {
+            #[allow(clippy::question_mark)]
+            if let Err(err) = Self::add(pool.clone(), flashcard, folder_id).await {
+                return Err(err);
+            }
+        }
+        Ok(())
+    }
 }

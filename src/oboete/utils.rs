@@ -24,3 +24,26 @@ pub fn select_random_flashcard(flashcards: &Vec<Flashcard>) -> Option<Flashcard>
     // Select a random flashcard from the weighted list
     weighted_flashcards.choose(&mut rng).copied().cloned()
 }
+
+pub fn parse_import_content(
+    line_delimiter: &String,
+    term_delimiter: &String,
+    content: &str,
+) -> Vec<Flashcard> {
+    content
+        .split(line_delimiter)
+        .filter_map(|line| {
+            let mut terms = line.split(term_delimiter);
+            if let (Some(front), Some(back)) = (terms.next(), terms.next()) {
+                Some(Flashcard {
+                    id: None,
+                    front: front.to_string(),
+                    back: back.to_string(),
+                    status: 0,
+                })
+            } else {
+                None
+            }
+        })
+        .collect()
+}
