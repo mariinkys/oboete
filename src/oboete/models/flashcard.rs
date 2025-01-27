@@ -142,4 +142,17 @@ impl Flashcard {
         }
         Ok(())
     }
+
+    pub async fn reset_all_status(
+        pool: Arc<Pool<Sqlite>>,
+        folder_id: i32,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE flashcards SET status = $1 WHERE folder_id = $2")
+            .bind(0)
+            .bind(folder_id)
+            .execute(pool.as_ref())
+            .await?;
+
+        Ok(())
+    }
 }

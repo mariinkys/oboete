@@ -65,7 +65,7 @@ impl FolderOptionsContextPageState {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    // FetchFolderFlashcards,
+    //FetchFolderFlashcards,
     EditFlashcard,
     AddFlashcard,
     DeleteFlashcard(Option<i32>),
@@ -90,6 +90,7 @@ pub enum Message {
     OpenAnkiFileSelection,
     OpenAnkiFileResult(Vec<String>),
     LaunchUrl(String),
+    RestartFolderFlashcardsStatus,
 
     // Change to Study Page
     StudyFolder(i32),
@@ -107,6 +108,7 @@ pub enum FolderContentTask {
     OpenFolderOptionsContextPage,
     ImportContent(Vec<Flashcard>),
     OpenAnkiFileSelection,
+    RestartFolderFlashcardsStatus(i32), // We pass the folder_id
 
     StudyFolder(i32),
 }
@@ -140,7 +142,7 @@ impl FolderContent {
         let mut tasks = Vec::new();
 
         match message {
-            // Asks to update the flashcard list of the current selected folder
+            //Asks to update the flashcard list of the current selected folder
             // Message::FetchFolderFlashcards => {
             //     if let Some(folder_id) = self.current_folder_id {
             //         tasks.push(FolderContentTask::FetchFolderFlashcards(folder_id));
@@ -290,6 +292,13 @@ impl FolderContent {
                     eprintln!("failed to open {url:?}: {err}");
                 }
             },
+
+            // Asks for the current folder flashcard statuses to be restarted
+            Message::RestartFolderFlashcardsStatus => {
+                tasks.push(FolderContentTask::RestartFolderFlashcardsStatus(
+                    self.current_folder_id.unwrap(),
+                ));
+            }
 
             // Asks for the study mode for a given folder (page change)
             Message::StudyFolder(folder_id) => {
@@ -550,11 +559,27 @@ impl FolderContent {
                     .class(theme::Button::Suggested),
             );
 
+        let reset_flashcards_status_column =
+            widget::settings::view_column(vec![widget::settings::section()
+                .title(fl!("reset-folder-flashcards-title"))
+                .into()]);
+
+        let reset_flashcards_status_button = if !self.flashcards.is_empty() {
+            widget::button::text(fl!("reset-folder-flashcards-button"))
+                .on_press(Message::RestartFolderFlashcardsStatus)
+                .class(theme::Button::Destructive)
+        } else {
+            widget::button::text(fl!("reset-folder-flashcards-button"))
+                .class(theme::Button::Destructive)
+        };
+
         widget::Column::new()
             .push(folder_import_col)
             .push(folder_import_btn)
             .push(anki_import_col)
             .push(anki_import_button)
+            .push(reset_flashcards_status_column)
+            .push(reset_flashcards_status_button)
             .spacing(spacing.space_xs)
             .into()
     }

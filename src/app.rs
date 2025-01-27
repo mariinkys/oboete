@@ -722,6 +722,24 @@ impl Application for Oboete {
                             ));
                         }
 
+                        // Resets the status of all flashcards of a given folder and asks to refresh the flashcard vec
+                        folder_content::FolderContentTask::RestartFolderFlashcardsStatus(
+                            folder_id,
+                        ) => {
+                            tasks.push(Task::perform(
+                                Flashcard::reset_all_status(
+                                    self.database.clone().unwrap(),
+                                    folder_id,
+                                ),
+                                |result| match result {
+                                    Ok(_) => cosmic::app::message::app(Message::FolderContent(
+                                        folder_content::Message::EditedFlashcard,
+                                    )),
+                                    Err(_) => cosmic::app::message::none(),
+                                },
+                            ));
+                        }
+
                         // Retrieves the flashcard of a folder and gives it to the studypage
                         folder_content::FolderContentTask::StudyFolder(folder_id) => {
                             tasks.push(Task::perform(
