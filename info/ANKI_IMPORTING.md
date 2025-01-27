@@ -9,7 +9,8 @@ The file once exported should be a TXT file that looks similar to this:
 ```
 #separator:tab
 #html:false
-Front Content Sample	Back Content Sample
+
+Front Content Sample    Back Content Sample
 Cat Gato
 Dog Perro
 ```

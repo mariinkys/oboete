@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::{
+    fs::File,
+    io::{self, BufRead},
+    path::Path,
+};
+
+use percent_encoding::percent_decode_str;
 use rand::{seq::SliceRandom, thread_rng};
 
 use super::models::flashcard::Flashcard;
@@ -46,4 +53,34 @@ pub fn parse_import_content(
             }
         })
         .collect()
+}
+
+pub fn parse_ankifile(file_path: &str) -> Result<Vec<Flashcard>, io::Error> {
+    let decoded_path = percent_decode_str(file_path)
+        .decode_utf8_lossy()
+        .to_string();
+    let path = Path::new(&decoded_path);
+    let file = File::open(path)?;
+    let reader = io::BufReader::new(file);
+
+    let mut flashcards = Vec::new();
+
+    for (index, line) in reader.lines().enumerate() {
+        let line = line?;
+        // Skip the first three lines which are metadata
+        if index < 3 {
+            continue;
+        }
+        let parts: Vec<&str> = line.split('\t').collect();
+        if parts.len() == 2 {
+            flashcards.push(Flashcard {
+                id: None,
+                front: parts[0].to_string(),
+                back: parts[1].to_string(),
+                status: 0,
+            });
+        }
+    }
+
+    Ok(flashcards)
 }

@@ -31,7 +31,9 @@ sqlx = { version = "0.8.3", features = [
 futures = "0.3.31"
 dirs = "6.0.0"
 serde = { version = "1.0.217", features = ["derive"] }
-rand = "0.8.5"
+rand = "0.8.5" #needed for flashcard selection
+ashpd = { version = "0.10.2", features = ["wayland"] } #needed for file dialogs
+percent-encoding = "2.3.1" #needed for correct anki file importing
 
 [dependencies.i18n-embed]
 version = "0.15"

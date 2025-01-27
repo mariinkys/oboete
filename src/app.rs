@@ -10,6 +10,7 @@ use crate::oboete::pages::folder_content::{self, FolderContent};
 use crate::oboete::pages::homepage::{self, HomePage};
 use crate::oboete::pages::study_page::{self, StudyPage};
 use crate::{fl, icons};
+use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::app::{context_drawer, Core, Task};
 use cosmic::cosmic_config::{self, CosmicConfigEntry};
 use cosmic::iced::{Alignment, Event, Length, Subscription};
@@ -684,6 +685,39 @@ impl Application for Oboete {
                                         folder_content::Message::ContentImported,
                                     )),
                                     Err(_) => cosmic::app::message::none(),
+                                },
+                            ));
+                        }
+
+                        // Opens the file selection dialog for anki importing and executes a callback with the result
+                        folder_content::FolderContentTask::OpenAnkiFileSelection => {
+                            tasks.push(Task::perform(
+                                async move {
+                                    let result = SelectedFiles::open_file()
+                                        .title("Open Anki File")
+                                        .accept_label("Open")
+                                        .modal(true)
+                                        .multiple(false)
+                                        .filter(FileFilter::new("TXT File").glob("*.txt"))
+                                        .send()
+                                        .await
+                                        .unwrap()
+                                        .response();
+
+                                    if let Ok(result) = result {
+                                        result
+                                            .uris()
+                                            .iter()
+                                            .map(|file| file.path().to_string())
+                                            .collect::<Vec<String>>()
+                                    } else {
+                                        Vec::new()
+                                    }
+                                },
+                                |files| {
+                                    cosmic::app::message::app(Message::FolderContent(
+                                        folder_content::Message::OpenAnkiFileResult(files),
+                                    ))
                                 },
                             ));
                         }

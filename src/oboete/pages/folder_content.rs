@@ -12,7 +12,10 @@ use cosmic::{
 
 use crate::{
     fl, icons,
-    oboete::{models::flashcard::Flashcard, utils::parse_import_content},
+    oboete::{
+        models::flashcard::Flashcard,
+        utils::{parse_ankifile, parse_import_content},
+    },
 };
 
 pub struct FolderContent {
@@ -84,6 +87,9 @@ pub enum Message {
     FolderOptionsImportContentInput(String),
     ImportContent,
     ContentImported,
+    OpenAnkiFileSelection,
+    OpenAnkiFileResult(Vec<String>),
+    LaunchUrl(String),
 
     // Change to Study Page
     StudyFolder(i32),
@@ -100,6 +106,7 @@ pub enum FolderContentTask {
 
     OpenFolderOptionsContextPage,
     ImportContent(Vec<Flashcard>),
+    OpenAnkiFileSelection,
 
     StudyFolder(i32),
 }
@@ -255,6 +262,34 @@ impl FolderContent {
                 ));
                 tasks.push(FolderContentTask::CloseContextPage);
             }
+
+            // Asks for the app selection dialog to be opened
+            Message::OpenAnkiFileSelection => {
+                tasks.push(FolderContentTask::OpenAnkiFileSelection);
+            }
+
+            // Callback after anki file import dialog, tries to parse the content and asks to import it
+            Message::OpenAnkiFileResult(result) => {
+                if !result.is_empty() {
+                    for path in result {
+                        let flashcards = parse_ankifile(&path);
+                        match flashcards {
+                            Ok(flashcards) => {
+                                tasks.push(FolderContentTask::ImportContent(flashcards))
+                            }
+                            Err(err) => eprintln!("{:?}", err),
+                        }
+                    }
+                }
+            }
+
+            // Opens the given URL
+            Message::LaunchUrl(url) => match open::that_detached(&url) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("failed to open {url:?}: {err}");
+                }
+            },
 
             // Asks for the study mode for a given folder (page change)
             Message::StudyFolder(folder_id) => {
@@ -493,9 +528,33 @@ impl FolderContent {
             )
             .into()]);
 
+        let anki_import_col = widget::settings::view_column(vec![widget::settings::section()
+            .title(fl!("import-anki-title"))
+            .add(
+                widget::column::with_children(vec![widget::button::link(fl!(
+                    "about-anki-importing"
+                ))
+                .on_press(Message::LaunchUrl(String::from(
+                    "https://github.com/mariinkys/oboete/blob/main/info/ANKI_IMPORTING.md",
+                )))
+                .into()])
+                .spacing(spacing.space_xxs),
+            )
+            .into()]);
+
+        let anki_import_button = widget::Row::new()
+            .push(Space::new(Length::Fill, Length::Shrink))
+            .push(
+                widget::button::text(fl!("import-button"))
+                    .on_press(Message::OpenAnkiFileSelection)
+                    .class(theme::Button::Suggested),
+            );
+
         widget::Column::new()
             .push(folder_import_col)
             .push(folder_import_btn)
+            .push(anki_import_col)
+            .push(anki_import_button)
             .spacing(spacing.space_xs)
             .into()
     }
