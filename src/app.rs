@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use crate::config::{AppTheme, Config};
-use crate::fl;
 use crate::key_binds::key_binds;
 use crate::oboete::database::init_database;
 use crate::oboete::models::flashcard::Flashcard;
@@ -10,6 +9,7 @@ use crate::oboete::models::studyset::StudySet;
 use crate::oboete::pages::folder_content::{self, FolderContent};
 use crate::oboete::pages::homepage::{self, HomePage};
 use crate::oboete::pages::study_page::{self, StudyPage};
+use crate::{fl, icons};
 use cosmic::app::{context_drawer, Core, Task};
 use cosmic::cosmic_config::{self, CosmicConfigEntry};
 use cosmic::iced::{Alignment, Event, Length, Subscription};
@@ -863,6 +863,8 @@ impl Application for Oboete {
         if let Some(set_id) = location_opt {
             self.current_page = Page::HomePage;
             self.homepage.set_current_studyset_id(Some(*set_id));
+            self.folder_content.set_current_folder_id(None);
+            self.folder_content.clean_flashcards_vec();
 
             // If a studyset is clicked ask for the folders of the studyset to be fetched
             let message = Message::HomePage(homepage::Message::FetchSetFolders);
@@ -937,6 +939,7 @@ impl Oboete {
             .insert()
             .text(studyset.name)
             .data(studyset.id.unwrap())
+            .icon(icons::get_icon("x-office-document-symbolic", 18))
     }
 }
 

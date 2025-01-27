@@ -124,6 +124,11 @@ impl FolderContent {
         self.current_folder_id
     }
 
+    /// Cleans the flashcards vec from the state
+    pub fn clean_flashcards_vec(&mut self) {
+        self.flashcards = Vec::new();
+    }
+
     pub fn update(&mut self, message: Message) -> Vec<FolderContentTask> {
         let mut tasks = Vec::new();
 
@@ -262,9 +267,8 @@ impl FolderContent {
 
     pub fn view(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
-        assert!(self.current_folder_id.is_some());
 
-        if !self.flashcards.is_empty() {
+        if !self.flashcards.is_empty() && self.current_folder_id.is_some() {
             // folder is selected and has flashcards
             let mut flashcards = widget::list::list_column().style(theme::Container::Card);
 

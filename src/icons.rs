@@ -45,20 +45,20 @@ impl IconCache {
         Self { cache }
     }
 
-    // fn get_icon(&mut self, name: &'static str, size: u16) -> icon::Icon {
-    //     let handle = self
-    //         .cache
-    //         .entry(IconCacheKey { name, size })
-    //         .or_insert_with(|| icon::from_name(name).size(size).handle())
-    //         .clone();
-    //     icon::icon(handle).size(size)
-    // }
+    fn get_icon(&mut self, name: &'static str, size: u16) -> icon::Icon {
+        let handle = self
+            .cache
+            .entry(IconCacheKey { name, size })
+            .or_insert_with(|| icon::from_name(name).size(size).handle())
+            .clone();
+        icon::icon(handle).size(size)
+    }
 }
 
-// pub fn get_icon(name: &'static str, size: u16) -> icon::Icon {
-//     let mut icon_cache = ICON_CACHE.get().unwrap().lock().unwrap();
-//     icon_cache.get_icon(name, size)
-// }
+pub fn get_icon(name: &'static str, size: u16) -> icon::Icon {
+    let mut icon_cache = ICON_CACHE.get().unwrap().lock().unwrap();
+    icon_cache.get_icon(name, size)
+}
 
 pub fn get_handle(name: &'static str, size: u16) -> icon::Handle {
     let mut icon_cache = ICON_CACHE.get().unwrap().lock().unwrap();
