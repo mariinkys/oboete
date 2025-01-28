@@ -12,9 +12,6 @@ license = "GPL-3.0"
 path = "src/main.rs"
 name = "oboete"
 
-[build-dependencies]
-vergen = { version = "8", features = ["git", "gitcl"] }
-
 [dependencies]
 futures-util = "0.3.31"
 i18n-embed-fl = "0.9.3"
