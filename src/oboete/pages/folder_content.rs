@@ -606,13 +606,18 @@ impl FolderContent {
                 .class(theme::Button::Destructive)
         };
 
+        let reset_column = widget::Column::new()
+            .push(reset_flashcards_status_section)
+            .push(reset_flashcards_status_button)
+            .spacing(spacing.space_xxxs);
+
         widget::Column::new()
             .push(folder_import_section)
             .push(folder_import_btn)
             .push(anki_import_section)
             .push(anki_import_button)
-            .push(reset_flashcards_status_section)
-            .push(reset_flashcards_status_button)
+            .push(reset_column)
+            //.push()
             .spacing(spacing.space_xs)
             .into()
     }
