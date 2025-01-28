@@ -758,6 +758,39 @@ impl Application for Oboete {
                             ));
                         }
 
+                        // Opens the export selection dialog for folder exporting and executes a callback with the result
+                        folder_content::FolderContentTask::OpenFolderExport(options) => {
+                            tasks.push(Task::perform(
+                                async move {
+                                    let result = SelectedFiles::save_file()
+                                        .title("Save Export")
+                                        .accept_label("Save")
+                                        .modal(true)
+                                        .filter(FileFilter::new("TXT File").glob("*.txt"))
+                                        .send()
+                                        .await
+                                        .unwrap()
+                                        .response();
+                                    if let Ok(result) = result {
+                                        result
+                                            .uris()
+                                            .iter()
+                                            .map(|file| file.path().to_string())
+                                            .collect::<Vec<String>>()
+                                    } else {
+                                        Vec::new()
+                                    }
+                                },
+                                move |files| {
+                                    cosmic::app::message::app(Message::FolderContent(
+                                        folder_content::Message::OpenFolderExportResult(
+                                            files, options,
+                                        ),
+                                    ))
+                                },
+                            ));
+                        }
+
                         // Retrieves the flashcard of a folder and gives it to the studypage
                         folder_content::FolderContentTask::StudyFolder(folder_id) => {
                             tasks.push(Task::perform(

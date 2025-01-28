@@ -2,7 +2,7 @@
 
 use std::{
     fs::File,
-    io::{self, BufRead},
+    io::{self, BufRead, Write},
     path::Path,
 };
 
@@ -12,6 +12,7 @@ use rand::rng;
 
 use super::models::flashcard::Flashcard;
 
+/// Selects a random flashcard from the vec, keeping in mind the flashcard status
 pub fn select_random_flashcard(flashcards: &Vec<Flashcard>) -> Option<Flashcard> {
     let mut rng = rng();
     let mut weighted_flashcards = Vec::new();
@@ -33,6 +34,7 @@ pub fn select_random_flashcard(flashcards: &Vec<Flashcard>) -> Option<Flashcard>
     weighted_flashcards.choose(&mut rng).copied().cloned()
 }
 
+/// Custom Import into Oboete Flashcards
 pub fn parse_import_content(
     line_delimiter: &String,
     term_delimiter: &String,
@@ -56,6 +58,7 @@ pub fn parse_import_content(
         .collect()
 }
 
+/// Given a path to an anki export file parses it to Flashcards in Oboete
 pub fn parse_ankifile(file_path: &str) -> Result<Vec<Flashcard>, io::Error> {
     let decoded_path = percent_decode_str(file_path)
         .decode_utf8_lossy()
@@ -84,4 +87,35 @@ pub fn parse_ankifile(file_path: &str) -> Result<Vec<Flashcard>, io::Error> {
     }
 
     Ok(flashcards)
+}
+
+/// Given a path to save the file and a Vec<Flashcard> creates a file with the flashcards data
+pub fn export_flashcards(file_path: &str, flashcards: &Vec<Flashcard>) -> Result<(), io::Error> {
+    let mut file = File::create(file_path)?;
+
+    for flashcard in flashcards {
+        writeln!(file, "{}\\#*#\\{}", flashcard.front, flashcard.back)?;
+        writeln!(file, "/#")?;
+    }
+
+    Ok(())
+}
+
+/// Given a path to save the file and a Vec<Flashcard> creates a file compatible with Anki to import the flashcards
+pub fn export_flashcards_anki(
+    file_path: &str,
+    flashcards: &Vec<Flashcard>,
+) -> Result<(), io::Error> {
+    let correct_file_path = format!("{}.txt", file_path);
+    let mut file = File::create(correct_file_path)?;
+
+    writeln!(file, "#separator:tab")?;
+    writeln!(file, "#html:false")?;
+    writeln!(file)?; //adds a \n before the flashcards
+
+    for flashcard in flashcards {
+        writeln!(file, "{}\t{}", flashcard.front, flashcard.back)?;
+    }
+
+    Ok(())
 }

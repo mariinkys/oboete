@@ -14,7 +14,7 @@ use crate::{
     fl, icons,
     oboete::{
         models::flashcard::Flashcard,
-        utils::{parse_ankifile, parse_import_content},
+        utils::{export_flashcards, export_flashcards_anki, parse_ankifile, parse_import_content},
     },
 };
 
@@ -63,6 +63,12 @@ impl FolderOptionsContextPageState {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum ExportOptions {
+    Normal,
+    Anki,
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     //FetchFolderFlashcards,
@@ -92,6 +98,8 @@ pub enum Message {
     OpenAnkiFileResult(Vec<String>),
     LaunchUrl(String),
     RestartFolderFlashcardsStatus,
+    OpenFolderExport(ExportOptions),
+    OpenFolderExportResult(Vec<String>, ExportOptions),
 
     // Change to Study Page
     StudyFolder(i32),
@@ -111,6 +119,7 @@ pub enum FolderContentTask {
     ImportContent(Vec<Flashcard>),
     OpenAnkiFileSelection,
     RestartFolderFlashcardsStatus(i32), // We pass the folder_id
+    OpenFolderExport(ExportOptions),
 
     StudyFolder(i32),
 }
@@ -307,6 +316,29 @@ impl FolderContent {
                 tasks.push(FolderContentTask::RestartFolderFlashcardsStatus(
                     self.current_folder_id.unwrap(),
                 ));
+            }
+
+            // Asks to open the dialog to select the file export path
+            Message::OpenFolderExport(options) => {
+                if !self.flashcards.is_empty() {
+                    tasks.push(FolderContentTask::OpenFolderExport(options));
+                }
+            }
+
+            // Callback after the file export dialog, creates the correct file for the selected export
+            Message::OpenFolderExportResult(save_result, options) => {
+                match options {
+                    ExportOptions::Normal => {
+                        for path in save_result {
+                            let _ = export_flashcards(&path, &self.flashcards);
+                        }
+                    }
+                    ExportOptions::Anki => {
+                        for path in save_result {
+                            let _ = export_flashcards_anki(&path, &self.flashcards);
+                        }
+                    }
+                };
             }
 
             // Asks for the study mode for a given folder (page change)
@@ -522,6 +554,7 @@ impl FolderContent {
     pub fn folder_options_contextpage(&self) -> Element<Message> {
         let spacing = theme::active().cosmic().spacing;
 
+        //  CUSTOM IMPORT
         let folder_import_btn = if !self.folder_options_state.import_content.is_empty()
             && !self.folder_options_state.between_cards.is_empty()
             && !self.folder_options_state.between_terms.is_empty()
@@ -570,6 +603,7 @@ impl FolderContent {
                 )
                 .into()]);
 
+        // ANKI IMPORT
         let anki_import_section = widget::settings::view_column(vec![widget::settings::section()
             .title(fl!("import-anki-title"))
             .add(
@@ -592,6 +626,7 @@ impl FolderContent {
                     .class(theme::Button::Suggested),
             );
 
+        // RESET
         let reset_flashcards_status_section =
             widget::settings::view_column(vec![widget::settings::section()
                 .title(fl!("reset-folder-flashcards-title"))
@@ -611,13 +646,43 @@ impl FolderContent {
             .push(reset_flashcards_status_button)
             .spacing(spacing.space_xxxs);
 
+        // EXPORT
+        let export_flashcards_section =
+            widget::settings::view_column(vec![widget::settings::section()
+                .title(fl!("export-folder-flashcards-title"))
+                .into()]);
+
+        let export_flashcards_button = if !self.flashcards.is_empty() {
+            widget::button::text(fl!("export-folder-flashcards-button"))
+                .on_press(Message::OpenFolderExport(ExportOptions::Normal))
+                .class(theme::Button::Suggested)
+        } else {
+            widget::button::text(fl!("export-folder-flashcards-button"))
+                .class(theme::Button::Suggested)
+        };
+
+        let export_flashcards_anki_button = if !self.flashcards.is_empty() {
+            widget::button::text(fl!("export-folder-flashcards-anki-button"))
+                .on_press(Message::OpenFolderExport(ExportOptions::Anki))
+                .class(theme::Button::Suggested)
+        } else {
+            widget::button::text(fl!("export-folder-flashcards-anki-button"))
+                .class(theme::Button::Suggested)
+        };
+
+        let export_column = widget::Column::new()
+            .push(export_flashcards_section)
+            .push(export_flashcards_button)
+            .push(export_flashcards_anki_button)
+            .spacing(spacing.space_xxs);
+
         widget::Column::new()
             .push(folder_import_section)
             .push(folder_import_btn)
             .push(anki_import_section)
             .push(anki_import_button)
             .push(reset_column)
-            //.push()
+            .push(export_column)
             .spacing(spacing.space_xs)
             .into()
     }
