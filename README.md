@@ -24,8 +24,6 @@
 
 # Notes
 
-This application has been made thanks to the [libcosmic Documentation](https://pop-os.github.io/libcosmic/cosmic/) and [edfloreshz](https://github.com/edfloreshz) application template and examples.
-
 This project is related to my [other flashcard project](https://github.com/mariinkys/delphinus_flashcards), if you want Chinese or Japanese flashcards you can [check it out](https://github.com/mariinkys/delphinus_flashcards)!
 
 > [!WARNING]
