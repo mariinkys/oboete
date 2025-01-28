@@ -14,25 +14,28 @@ use crate::{fl, icons};
 use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::app::{context_drawer, Core, Task};
 use cosmic::cosmic_config::{self, CosmicConfigEntry};
-use cosmic::iced::{Alignment, Event, Length, Subscription};
+use cosmic::iced::{Event, Length, Subscription};
 use cosmic::iced_core::keyboard::{Key, Modifiers};
+use cosmic::widget::about::About;
 use cosmic::widget::menu::Action;
 use cosmic::widget::segmented_button::{self, EntityMut, SingleSelect};
 use cosmic::widget::{self, menu, nav_bar};
-use cosmic::{cosmic_theme, theme, Application, ApplicationExt, Element};
+use cosmic::{theme, Application, ApplicationExt, Element};
 use sqlx::{Pool, Sqlite};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
 const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
-const APP_ICON: &[u8] =
-    include_bytes!("../res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg");
+// const APP_ICON: &[u8] =
+//     include_bytes!("../res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg");
 
 /// The application model stores app-specific state used to describe its interface and
 /// drive its logic.
 pub struct Oboete {
     /// Application state which is managed by the COSMIC runtime.
     core: Core,
+    /// Application about page
+    about: About,
     /// Display a context drawer with the designated page if defined.
     context_page: ContextPage,
     /// Dialog Pages of the Application
@@ -66,7 +69,6 @@ pub struct Oboete {
 /// Messages emitted by the application and its widgets.
 #[derive(Debug, Clone)]
 pub enum Message {
-    OpenRepositoryUrl,
     ToggleContextPage(ContextPage),
     UpdateConfig(Config),
     UpdateTheme(usize),
@@ -126,9 +128,24 @@ impl Application for Oboete {
 
     /// Initializes the application with any given flags and startup commands.
     fn init(core: Core, _flags: Self::Flags) -> (Self, Task<Self::Message>) {
+        // Application about page
+        let about = About::default()
+            .name(fl!("app-title"))
+            .icon(Self::APP_ID)
+            .version(env!("CARGO_PKG_VERSION"))
+            .author("mariinkys")
+            .license("GPL-3.0-only")
+            .links([
+                (fl!("repository"), REPOSITORY),
+                (fl!("support"), "https://github.com/mariinkys/oboete/issues"),
+            ])
+            .developers([("mariinkys", "kysdev.owjga@aleeas.com")])
+            .comments("\"Pop Icons\" by System76 is licensed under CC-SA-4.0");
+
         // Construct the app model with the runtime's core.
         let mut app = Oboete {
             core,
+            about,
             context_page: ContextPage::default(),
             dialog_pages: VecDeque::new(),
             dialog_state: DialogState::default(),
@@ -229,8 +246,9 @@ impl Application for Oboete {
         }
 
         Some(match self.context_page {
-            ContextPage::About => context_drawer::context_drawer(
-                self.about(),
+            ContextPage::About => context_drawer::about(
+                &self.about,
+                Message::LaunchUrl,
                 Message::ToggleContextPage(ContextPage::About),
             )
             .title(fl!("about")),
@@ -422,10 +440,6 @@ impl Application for Oboete {
         let mut tasks = vec![];
 
         match message {
-            Message::OpenRepositoryUrl => {
-                _ = open::that_detached(REPOSITORY);
-            }
-
             Message::ToggleContextPage(context_page) => {
                 if self.context_page == context_page {
                     // Close the context drawer if the toggled context page is the same.
@@ -1099,27 +1113,6 @@ impl Application for Oboete {
 }
 
 impl Oboete {
-    /// The about page for this app.
-    pub fn about(&self) -> Element<Message> {
-        let cosmic_theme::Spacing { space_xxs, .. } = theme::active().cosmic().spacing;
-
-        let icon = widget::svg(widget::svg::Handle::from_memory(APP_ICON));
-
-        let title = widget::text::title3(fl!("app-title"));
-
-        let link = widget::button::link(REPOSITORY)
-            .on_press(Message::OpenRepositoryUrl)
-            .padding(0);
-
-        widget::column()
-            .push(icon)
-            .push(title)
-            .push(link)
-            .align_x(Alignment::Center)
-            .spacing(space_xxs)
-            .into()
-    }
-
     /// Updates the header and window titles.
     pub fn update_title(&mut self) -> Task<Message> {
         let mut window_title = fl!("app-title");

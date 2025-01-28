@@ -1,6 +1,6 @@
 [package]
 name = "oboete"
-version = "0.1.7"
+version = "0.1.8"
 authors = ["mariinkys (Alex Marín)"]
 edition = "2021"
 description = "A simple flashcards application for the COSMIC™ desktop"
@@ -60,6 +60,8 @@ features = [
     "wayland",
     # GPU-accelerated rendering
     "wgpu",
+    # COSMIC About Page Support
+    "about",
 ]
 
 # Uncomment to test a locally-cloned libcosmic
