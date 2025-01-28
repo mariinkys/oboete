@@ -1,29 +1,20 @@
-use std::fs::File;
-use std::io::{self, BufRead, Write};
-use std::path::Path;
+// SPDX-License-Identifier: GPL-3.0-only
 
-use crate::models::Flashcard;
+use std::{
+    fs::File,
+    io::{self, BufRead, Write},
+    path::Path,
+};
+
 use percent_encoding::percent_decode_str;
 use rand::prelude::*;
-use rand::seq::SliceRandom;
+use rand::rng;
 
-#[derive(Debug, Clone)]
-pub struct OboeteError {
-    //TODO: Improve Error Handling implies removing this allow(dead_code)
-    #[allow(dead_code)]
-    pub message: String,
-}
+use super::models::{flashcard::Flashcard, studyset::StudySet};
 
-impl From<sqlx::Error> for OboeteError {
-    fn from(err: sqlx::Error) -> Self {
-        OboeteError {
-            message: err.to_string(),
-        }
-    }
-}
-
+/// Selects a random flashcard from the vec, keeping in mind the flashcard status
 pub fn select_random_flashcard(flashcards: &Vec<Flashcard>) -> Option<Flashcard> {
-    let mut rng = thread_rng();
+    let mut rng = rng();
     let mut weighted_flashcards = Vec::new();
 
     for flashcard in flashcards {
@@ -43,6 +34,7 @@ pub fn select_random_flashcard(flashcards: &Vec<Flashcard>) -> Option<Flashcard>
     weighted_flashcards.choose(&mut rng).copied().cloned()
 }
 
+/// Custom Import into Oboete Flashcards
 pub fn parse_import_content(
     line_delimiter: &String,
     term_delimiter: &String,
@@ -66,6 +58,7 @@ pub fn parse_import_content(
         .collect()
 }
 
+/// Given a path to an anki export file parses it to Flashcards in Oboete
 pub fn parse_ankifile(file_path: &str) -> Result<Vec<Flashcard>, io::Error> {
     let decoded_path = percent_decode_str(file_path)
         .decode_utf8_lossy()
@@ -96,6 +89,7 @@ pub fn parse_ankifile(file_path: &str) -> Result<Vec<Flashcard>, io::Error> {
     Ok(flashcards)
 }
 
+/// Given a path to save the file and a Vec<Flashcard> creates a file with the flashcards data
 pub fn export_flashcards(file_path: &str, flashcards: &Vec<Flashcard>) -> Result<(), io::Error> {
     let mut file = File::create(file_path)?;
 
@@ -107,6 +101,7 @@ pub fn export_flashcards(file_path: &str, flashcards: &Vec<Flashcard>) -> Result
     Ok(())
 }
 
+/// Given a path to save the file and a Vec<Flashcard> creates a file compatible with Anki to import the flashcards
 pub fn export_flashcards_anki(
     file_path: &str,
     flashcards: &Vec<Flashcard>,
@@ -116,6 +111,7 @@ pub fn export_flashcards_anki(
 
     writeln!(file, "#separator:tab")?;
     writeln!(file, "#html:false")?;
+    writeln!(file)?; //adds a \n before the flashcards
 
     for flashcard in flashcards {
         writeln!(file, "{}\t{}", flashcard.front, flashcard.back)?;
@@ -124,10 +120,7 @@ pub fn export_flashcards_anki(
     Ok(())
 }
 
-pub fn export_flashcards_json(
-    file_path: &str,
-    studysets: Vec<crate::models::StudySet>,
-) -> Result<(), io::Error> {
+pub fn export_flashcards_json(file_path: &str, studysets: &Vec<StudySet>) -> Result<(), io::Error> {
     let correct_file_path = format!("{}.json", file_path);
     let path = Path::new(&correct_file_path);
     let mut file = File::create(path)?;
@@ -135,25 +128,23 @@ pub fn export_flashcards_json(
     let json_data = serde_json::to_string_pretty(&studysets)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Serialization error: {}", e)))?;
 
-    // Write the JSON data to the file
     file.write_all(json_data.as_bytes())?;
 
     Ok(())
 }
 
-pub fn import_flashcards_json(file_path: &str) -> Result<Vec<crate::models::StudySet>, io::Error> {
+pub fn import_flashcards_json(file_path: &str) -> Result<Vec<StudySet>, io::Error> {
     let mut file = File::open(file_path)?;
 
     let mut json_data = String::new();
     io::Read::read_to_string(&mut file, &mut json_data)?;
 
-    let studysets: Vec<crate::models::StudySet> =
-        serde_json::from_str(&json_data).map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                format!("Deserialization error: {}", e),
-            )
-        })?;
+    let studysets: Vec<StudySet> = serde_json::from_str(&json_data).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Deserialization error: {}", e),
+        )
+    })?;
 
     Ok(studysets)
 }

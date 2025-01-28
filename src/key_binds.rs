@@ -1,12 +1,14 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use std::collections::HashMap;
 
 use cosmic::iced::keyboard::Key;
 use cosmic::widget::menu::key_bind::KeyBind;
 use cosmic::widget::menu::key_bind::Modifier;
 
-use crate::app::Action;
+use crate::app::MenuAction;
 
-pub fn key_binds() -> HashMap<KeyBind, Action> {
+pub fn key_binds() -> HashMap<KeyBind, MenuAction> {
     let mut key_binds = HashMap::new();
 
     macro_rules! bind {
@@ -16,7 +18,7 @@ pub fn key_binds() -> HashMap<KeyBind, Action> {
                     modifiers: vec![$(Modifier::$modifier),*],
                     key: $key,
                 },
-                Action::$action,
+                MenuAction::$action,
             );
         }};
     }

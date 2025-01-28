@@ -1,6 +1,6 @@
 [package]
 name = "oboete"
-version = "0.1.7"
+version = "0.1.8"
 authors = ["mariinkys (Alex Marín)"]
 edition = "2021"
 description = "A simple flashcards application for the COSMIC™ desktop"
@@ -19,6 +19,7 @@ open = "5.3.2"
 rust-embed = "8.5.0"
 tokio = { version = "1.43.0", features = ["full"] }
 
+# Added by me
 sqlx = { version = "0.8.3", features = [
     "sqlite",
     "runtime-tokio",
@@ -26,15 +27,11 @@ sqlx = { version = "0.8.3", features = [
 ] }
 futures = "0.3.31"
 dirs = "6.0.0"
-rand = "0.8.5"
-ashpd = { version = "0.10.2", features = ["wayland"] }
-percent-encoding = "2.1"
 serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.135"
-log = "0.4.25"
-tracing-subscriber = { version = "0.3.18", features = ["json"] }
-paste = "1.0"
-tracing = "0.1.40"
+rand = "0.9.0" #needed for flashcard selection
+ashpd = { version = "0.10.2", features = ["wayland"] } #needed for file dialogs
+percent-encoding = "2.3.1" #needed for correct anki file importing
+serde_json = "1.0.137" #needed for file exporting and importing
 
 [dependencies.i18n-embed]
 version = "0.15.3"
@@ -60,10 +57,9 @@ features = [
     "wayland",
     # GPU-accelerated rendering
     "wgpu",
-    # About Page
+    # COSMIC About Page Support
     "about",
 ]
-
 
 # Uncomment to test a locally-cloned libcosmic
 # [patch.'https://github.com/pop-os/libcosmic']

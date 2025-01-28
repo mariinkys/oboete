@@ -24,7 +24,7 @@ impl IconCache {
         macro_rules! bundle {
             ($name:expr, $size:expr) => {
                 let data: &'static [u8] =
-                    include_bytes!(concat!("../../res/icons/bundled/", $name, ".svg"));
+                    include_bytes!(concat!("../res/icons/bundled/", $name, ".svg"));
                 cache.insert(
                     IconCacheKey {
                         name: $name,
@@ -35,12 +35,13 @@ impl IconCache {
             };
         }
 
-        bundle!("edit-button-symbolic", 18);
-        bundle!("menu-vertical-symbolic", 18);
-        bundle!("add-symbolic", 18);
+        bundle!("edit-symbolic", 18);
+        bundle!("emblem-system-symbolic", 18);
         bundle!("folder-open-symbolic", 18);
-        bundle!("share-symbolic", 18);
+        bundle!("folder-symbolic", 18);
+        bundle!("list-add-symbolic", 18);
         bundle!("user-trash-full-symbolic", 18);
+        bundle!("x-office-document-symbolic", 18);
         Self { cache }
     }
 
@@ -52,9 +53,18 @@ impl IconCache {
             .clone();
         icon::icon(handle).size(size)
     }
+}
 
-    pub fn get(name: &'static str, size: u16) -> icon::Icon {
-        let mut icon_cache = ICON_CACHE.get().unwrap().lock().unwrap();
-        icon_cache.get_icon(name, size)
-    }
+pub fn get_icon(name: &'static str, size: u16) -> icon::Icon {
+    let mut icon_cache = ICON_CACHE.get().unwrap().lock().unwrap();
+    icon_cache.get_icon(name, size)
+}
+
+pub fn get_handle(name: &'static str, size: u16) -> icon::Handle {
+    let mut icon_cache = ICON_CACHE.get().unwrap().lock().unwrap();
+    icon_cache
+        .cache
+        .entry(IconCacheKey { name, size })
+        .or_insert_with(|| icon::from_name(name).size(size).handle())
+        .clone()
 }
