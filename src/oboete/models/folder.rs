@@ -9,11 +9,16 @@ use std::sync::Arc;
 pub struct Folder {
     pub id: Option<i32>,
     pub name: String,
+    pub flashcards: Vec<super::flashcard::Flashcard>,
 }
 
 impl Folder {
     pub fn new(name: String) -> Folder {
-        Folder { id: None, name }
+        Folder {
+            id: None,
+            name,
+            flashcards: Vec::new(),
+        }
     }
 
     pub async fn get_all(pool: Arc<Pool<Sqlite>>, set_id: i32) -> Result<Vec<Folder>, sqlx::Error> {
@@ -28,7 +33,11 @@ impl Folder {
             let id: i32 = row.try_get("id")?;
             let name: String = row.try_get("name")?;
 
-            let folder = Folder { id: Some(id), name };
+            let folder = Folder {
+                id: Some(id),
+                name,
+                flashcards: Vec::new(),
+            };
 
             result.push(folder);
         }

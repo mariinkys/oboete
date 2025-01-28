@@ -24,8 +24,8 @@ pub fn key_binds() -> HashMap<KeyBind, MenuAction> {
     }
 
     bind!([Ctrl], Key::Character("n".into()), NewStudySet);
-    //bind!([Ctrl, Shift], Key::Character("b".into()), Backup);
-    //bind!([Ctrl, Shift], Key::Character("i".into()), Import);
+    bind!([Ctrl, Shift], Key::Character("b".into()), Backup);
+    bind!([Ctrl, Shift], Key::Character("i".into()), Import);
 
     bind!([Ctrl, Shift], Key::Character("r".into()), RenameStudySet);
     bind!([Ctrl, Shift], Key::Character("d".into()), DeleteStudySet);

@@ -99,6 +99,7 @@ impl HomePage {
                 tasks.push(HomePageTask::EditFolder(Folder {
                     id: self.edit_folder.id,
                     name: self.edit_folder.name.to_string(),
+                    flashcards: Vec::new(),
                 }));
             }
 

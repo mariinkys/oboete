@@ -9,6 +9,7 @@ use crate::oboete::models::studyset::StudySet;
 use crate::oboete::pages::folder_content::{self, FolderContent};
 use crate::oboete::pages::homepage::{self, HomePage};
 use crate::oboete::pages::study_page::{self, StudyPage};
+use crate::oboete::utils::{export_flashcards_json, import_flashcards_json};
 use crate::{fl, icons};
 use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::app::{context_drawer, Core, Task};
@@ -58,6 +59,8 @@ pub struct Oboete {
     folder_content: FolderContent,
     /// Application StudyPage
     study_page: StudyPage,
+    /// Contains the data to backup in case a backup is requested
+    backup_data: Option<Vec<StudySet>>,
 }
 
 /// Messages emitted by the application and its widgets.
@@ -89,6 +92,14 @@ pub enum Message {
     DialogComplete,
     DialogCancel,
     DialogUpdate(DialogPage),
+
+    GetBackupData,
+    SetBackupData(Vec<StudySet>),
+    OpenSaveBackupFileDialog,
+    SaveBackupFile(Vec<String>),
+
+    Import,
+    ImportFileResult(Vec<String>),
 }
 
 /// Create a COSMIC application from the app model
@@ -143,6 +154,7 @@ impl Application for Oboete {
             homepage: HomePage::init(),
             folder_content: FolderContent::init(),
             study_page: StudyPage::init(),
+            backup_data: None,
         };
 
         let tasks = vec![
@@ -164,8 +176,8 @@ impl Application for Oboete {
                     &self.key_binds,
                     vec![
                         menu::Item::Button(fl!("new-studyset"), None, MenuAction::NewStudySet),
-                        //menu::Item::Button(fl!("backup"), None, MenuAction::Backup),
-                        //menu::Item::Button(fl!("import"), None, MenuAction::Import),
+                        menu::Item::Button(fl!("backup"), None, MenuAction::Backup),
+                        menu::Item::Button(fl!("import"), None, MenuAction::Import),
                     ],
                 ),
             ),
@@ -889,6 +901,7 @@ impl Application for Oboete {
                                             StudySet {
                                                 id: Some(*set_id),
                                                 name: studyset_name.clone(),
+                                                folders: Vec::new(),
                                             },
                                         ),
                                         move |result| match result {
@@ -949,6 +962,112 @@ impl Application for Oboete {
             // Updates the current dialog page
             Message::DialogUpdate(dialog_page) => {
                 self.dialog_pages[0] = dialog_page;
+            }
+
+            // Asks the DB for the data to backup and executes a callback
+            Message::GetBackupData => {
+                if self.backup_data.is_none() {
+                    tasks.push(Task::perform(
+                        StudySet::get_all_data(self.database.clone().unwrap()),
+                        |result| match result {
+                            Ok(data) => cosmic::app::message::app(Message::SetBackupData(data)),
+                            Err(_) => cosmic::app::message::none(),
+                        },
+                    ));
+                }
+            }
+
+            Message::SetBackupData(data) => {
+                self.backup_data = Some(data);
+                tasks.push(self.update(Message::OpenSaveBackupFileDialog));
+            }
+
+            Message::OpenSaveBackupFileDialog => {
+                tasks.push(Task::perform(
+                    async move {
+                        let result = SelectedFiles::save_file()
+                            .title("Save Backup")
+                            .accept_label("Save")
+                            .modal(true)
+                            .filter(FileFilter::new("JSON File").glob("*.json"))
+                            .send()
+                            .await
+                            .unwrap()
+                            .response();
+
+                        if let Ok(result) = result {
+                            result
+                                .uris()
+                                .iter()
+                                .map(|file| file.path().to_string())
+                                .collect::<Vec<String>>()
+                        } else {
+                            Vec::new()
+                        }
+                    },
+                    |files| cosmic::app::message::app(Message::SaveBackupFile(files)),
+                ));
+            }
+
+            Message::SaveBackupFile(open_result) => {
+                for path in open_result {
+                    if let Some(backup_data) = &self.backup_data {
+                        let result = export_flashcards_json(&path, backup_data);
+                        match result {
+                            Ok(_) => println!("export saved correctly"),
+                            Err(err) => eprintln!("{err}"),
+                        }
+                    }
+                }
+                self.backup_data = None;
+            }
+
+            Message::Import => {
+                tasks.push(Task::perform(
+                    async move {
+                        let result = SelectedFiles::open_file()
+                            .title("Open Backup File")
+                            .accept_label("Open")
+                            .modal(true)
+                            .multiple(false)
+                            .filter(FileFilter::new("JSON File").glob("*.json"))
+                            .send()
+                            .await
+                            .unwrap()
+                            .response();
+
+                        if let Ok(result) = result {
+                            result
+                                .uris()
+                                .iter()
+                                .map(|file| file.path().to_string())
+                                .collect::<Vec<String>>()
+                        } else {
+                            Vec::new()
+                        }
+                    },
+                    |files| cosmic::app::message::app(Message::ImportFileResult(files)),
+                ));
+            }
+
+            Message::ImportFileResult(open_result) => {
+                for path in open_result {
+                    let result = import_flashcards_json(&path);
+                    match result {
+                        Ok(studysets) => {
+                            let command = Task::perform(
+                                StudySet::import(self.database.clone().unwrap(), studysets),
+                                |result| match result {
+                                    Ok(_) => cosmic::app::message::app(Message::FetchStudySets),
+                                    Err(_) => cosmic::app::message::app(Message::FetchStudySets),
+                                },
+                            );
+
+                            tasks.push(command);
+                        }
+                        Err(err) => eprintln!("{err}"),
+                    }
+                }
             }
         }
 
@@ -1068,8 +1187,8 @@ pub enum ContextPage {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MenuAction {
     NewStudySet,
-    //Backup,
-    //Import,
+    Backup,
+    Import,
     RenameStudySet,
     DeleteStudySet,
     About,
@@ -1082,6 +1201,8 @@ impl menu::action::MenuAction for MenuAction {
     fn message(&self) -> Self::Message {
         match self {
             MenuAction::NewStudySet => Message::OpenNewStudySetDialog,
+            MenuAction::Backup => Message::GetBackupData,
+            MenuAction::Import => Message::Import,
             MenuAction::RenameStudySet => Message::OpenRenameStudySetDialog,
             MenuAction::DeleteStudySet => Message::OpenDeleteStudySetDialog,
             MenuAction::About => Message::ToggleContextPage(ContextPage::About),

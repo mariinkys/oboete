@@ -34,6 +34,7 @@ serde = { version = "1.0.217", features = ["derive"] }
 rand = "0.9.0" #needed for flashcard selection
 ashpd = { version = "0.10.2", features = ["wayland"] } #needed for file dialogs
 percent-encoding = "2.3.1" #needed for correct anki file importing
+serde_json = "1.0.137" #needed for file exporting and importing
 
 [dependencies.i18n-embed]
 version = "0.15.3"
