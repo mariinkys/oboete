@@ -5,7 +5,9 @@ empty-page = Vuoto
 empty-page-noset = Prova a creare un set di studio
 about-anki-importing = INFORMAZIONI SULL'IMPORTAZIONE DI ANKI
 backup = Backup
-import = Ripristinare il backup
+import = Importa backup
+repository = Repository
+support = Supporto
 
 <#-- Appearance -->
 appearance = Aspetto
