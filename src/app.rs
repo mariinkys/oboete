@@ -283,10 +283,7 @@ impl Application for Oboete {
 
     /// Display a dialog if requested.
     fn dialog(&self) -> Option<Element<Message>> {
-        let dialog_page = match self.dialog_pages.front() {
-            Some(some) => some,
-            None => return None,
-        };
+        let dialog_page = self.dialog_pages.front()?;
 
         let spacing = theme::active().cosmic().spacing;
 
