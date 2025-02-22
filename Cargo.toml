@@ -2,7 +2,7 @@
 name = "oboete"
 version = "0.1.8"
 authors = ["mariinkys (Alex Marín)"]
-edition = "2021"
+edition = "2024"
 description = "A simple flashcards application for the COSMIC™ desktop"
 readme = "https://github.com/mariinkys/oboete/blob/main/README.md"
 repository = "https://github.com/mariinkys/oboete"
