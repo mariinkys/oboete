@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+use cosmic::prelude::*;
 use cosmic::{
     iced::{
-        alignment::{Horizontal, Vertical},
         Alignment, Length,
+        alignment::{Horizontal, Vertical},
     },
     theme,
     widget::{self, Space},
-    Apply, Element,
 };
 
 use crate::{fl, icons, oboete::models::folder::Folder};
@@ -291,18 +291,20 @@ impl HomePage {
                 .push(widget::button::text(fl!("edit")).class(theme::Button::Suggested))
         };
 
-        let settings = widget::settings::view_column(vec![widget::settings::section()
-            .title(fl!("folder-details"))
-            .add(
-                widget::column::with_children(vec![
-                    widget::text::body(fl!("folder-name")).into(),
-                    widget::text_input(fl!("folder-name"), &self.edit_folder.name)
-                        .on_input(Message::EditFolderNameInput)
-                        .into(),
-                ])
-                .spacing(spacing.space_xxs),
-            )
-            .into()]);
+        let settings = widget::settings::view_column(vec![
+            widget::settings::section()
+                .title(fl!("folder-details"))
+                .add(
+                    widget::column::with_children(vec![
+                        widget::text::body(fl!("folder-name")).into(),
+                        widget::text_input(fl!("folder-name"), &self.edit_folder.name)
+                            .on_input(Message::EditFolderNameInput)
+                            .into(),
+                    ])
+                    .spacing(spacing.space_xxs),
+                )
+                .into(),
+        ]);
 
         widget::Column::new()
             .push(settings)

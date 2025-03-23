@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+use cosmic::prelude::*;
 use cosmic::{
     iced::{
-        alignment::{Horizontal, Vertical},
         Color, Length,
+        alignment::{Horizontal, Vertical},
     },
     theme,
     widget::{self},
-    Element,
 };
 
 use crate::{

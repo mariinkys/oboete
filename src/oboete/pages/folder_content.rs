@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+use cosmic::prelude::*;
 use cosmic::{
     iced::{
-        alignment::{Horizontal, Vertical},
         Alignment, Length,
+        alignment::{Horizontal, Vertical},
     },
     theme,
     widget::{self, Space},
-    Apply, Element,
 };
 
 use crate::{
@@ -497,33 +497,36 @@ impl FolderContent {
                 .push(widget::button::text(add_edit_button_label).class(theme::Button::Suggested))
         };
 
-        let add_edit_section = widget::settings::view_column(vec![widget::settings::section()
-            .title(fl!("flashcard-options"))
-            .add(
-                widget::column::with_children(vec![
-                    widget::text::body(fl!("flashcard-front-title")).into(),
-                    widget::text_input(
-                        fl!("flashcard-front-placeholder"),
-                        &self.add_edit_flashcard.front,
-                    )
-                    .on_input(Message::AddEditFlashcardFrontInput)
-                    .into(),
-                    widget::text::body(fl!("flashcard-back-title")).into(),
-                    widget::text_input(
-                        fl!("flashcard-back-placeholder"),
-                        &self.add_edit_flashcard.back,
-                    )
-                    .on_input(Message::AddEditFlashcardBackInput)
-                    .into(),
-                ])
-                .spacing(spacing.space_xxs),
-            )
-            .into()]);
+        let add_edit_section = widget::settings::view_column(vec![
+            widget::settings::section()
+                .title(fl!("flashcard-options"))
+                .add(
+                    widget::column::with_children(vec![
+                        widget::text::body(fl!("flashcard-front-title")).into(),
+                        widget::text_input(
+                            fl!("flashcard-front-placeholder"),
+                            &self.add_edit_flashcard.front,
+                        )
+                        .on_input(Message::AddEditFlashcardFrontInput)
+                        .into(),
+                        widget::text::body(fl!("flashcard-back-title")).into(),
+                        widget::text_input(
+                            fl!("flashcard-back-placeholder"),
+                            &self.add_edit_flashcard.back,
+                        )
+                        .on_input(Message::AddEditFlashcardBackInput)
+                        .into(),
+                    ])
+                    .spacing(spacing.space_xxs),
+                )
+                .into(),
+        ]);
 
-        let reset_flashcard_status_column =
-            widget::settings::view_column(vec![widget::settings::section()
+        let reset_flashcard_status_column = widget::settings::view_column(vec![
+            widget::settings::section()
                 .title(fl!("reset-flashcard-title"))
-                .into()]);
+                .into(),
+        ]);
 
         let reset_flashcard_status_button = widget::button::text(fl!("reset-flashcard-button"))
             .on_press(Message::RestartSingleFlashcardStatus(
@@ -572,8 +575,8 @@ impl FolderContent {
                 .push(widget::button::text(fl!("import-button")).class(theme::Button::Suggested))
         };
 
-        let folder_import_section =
-            widget::settings::view_column(vec![widget::settings::section()
+        let folder_import_section = widget::settings::view_column(vec![
+            widget::settings::section()
                 .title(fl!("folder-import"))
                 .add(
                     widget::column::with_children(vec![
@@ -601,22 +604,25 @@ impl FolderContent {
                     ])
                     .spacing(spacing.space_xxs),
                 )
-                .into()]);
+                .into(),
+        ]);
 
         // ANKI IMPORT
-        let anki_import_section = widget::settings::view_column(vec![widget::settings::section()
-            .title(fl!("import-anki-title"))
-            .add(
-                widget::column::with_children(vec![widget::button::link(fl!(
+        let anki_import_section = widget::settings::view_column(vec![
+            widget::settings::section()
+                .title(fl!("import-anki-title"))
+                .add(
+                    widget::column::with_children(vec![widget::button::link(fl!(
                     "about-anki-importing"
                 ))
                 .on_press(Message::LaunchUrl(String::from(
                     "https://github.com/mariinkys/oboete/blob/main/info/ANKI_IMPORTING.md",
                 )))
                 .into()])
-                .spacing(spacing.space_xxs),
-            )
-            .into()]);
+                    .spacing(spacing.space_xxs),
+                )
+                .into(),
+        ]);
 
         let anki_import_button = widget::Row::new()
             .push(Space::new(Length::Fill, Length::Shrink))
@@ -627,10 +633,11 @@ impl FolderContent {
             );
 
         // RESET
-        let reset_flashcards_status_section =
-            widget::settings::view_column(vec![widget::settings::section()
+        let reset_flashcards_status_section = widget::settings::view_column(vec![
+            widget::settings::section()
                 .title(fl!("reset-folder-flashcards-title"))
-                .into()]);
+                .into(),
+        ]);
 
         let reset_flashcards_status_button = if !self.flashcards.is_empty() {
             widget::button::text(fl!("reset-folder-flashcards-button"))
@@ -647,10 +654,11 @@ impl FolderContent {
             .spacing(spacing.space_xxxs);
 
         // EXPORT
-        let export_flashcards_section =
-            widget::settings::view_column(vec![widget::settings::section()
+        let export_flashcards_section = widget::settings::view_column(vec![
+            widget::settings::section()
                 .title(fl!("export-folder-flashcards-title"))
-                .into()]);
+                .into(),
+        ]);
 
         let export_flashcards_button = if !self.flashcards.is_empty() {
             widget::button::text(fl!("export-folder-flashcards-button"))

@@ -12,15 +12,16 @@ use crate::oboete::pages::study_page::{self, StudyPage};
 use crate::oboete::utils::{export_flashcards_json, import_flashcards_json};
 use crate::{fl, icons};
 use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
-use cosmic::app::{context_drawer, Core, Task};
+use cosmic::app::context_drawer;
 use cosmic::cosmic_config::{self, CosmicConfigEntry};
 use cosmic::iced::{Event, Length, Subscription};
 use cosmic::iced_core::keyboard::{Key, Modifiers};
+use cosmic::prelude::*;
+use cosmic::theme;
 use cosmic::widget::about::About;
 use cosmic::widget::menu::Action;
 use cosmic::widget::segmented_button::{self, EntityMut, SingleSelect};
 use cosmic::widget::{self, menu, nav_bar};
-use cosmic::{theme, Application, ApplicationExt, Element};
 use sqlx::{Pool, Sqlite};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -33,7 +34,7 @@ const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 /// drive its logic.
 pub struct Oboete {
     /// Application state which is managed by the COSMIC runtime.
-    core: Core,
+    core: cosmic::Core,
     /// Application about page
     about: About,
     /// Display a context drawer with the designated page if defined.
@@ -105,7 +106,7 @@ pub enum Message {
 }
 
 /// Create a COSMIC application from the app model
-impl Application for Oboete {
+impl cosmic::Application for Oboete {
     /// The async executor that will be used to run your application's commands.
     type Executor = cosmic::executor::Default;
 
@@ -118,16 +119,19 @@ impl Application for Oboete {
     /// Unique identifier in RDNN (reverse domain name notation) format.
     const APP_ID: &'static str = "dev.mariinkys.Oboete";
 
-    fn core(&self) -> &Core {
+    fn core(&self) -> &cosmic::Core {
         &self.core
     }
 
-    fn core_mut(&mut self) -> &mut Core {
+    fn core_mut(&mut self) -> &mut cosmic::Core {
         &mut self.core
     }
 
     /// Initializes the application with any given flags and startup commands.
-    fn init(core: Core, _flags: Self::Flags) -> (Self, Task<Self::Message>) {
+    fn init(
+        core: cosmic::Core,
+        _flags: Self::Flags,
+    ) -> (Self, Task<cosmic::Action<Self::Message>>) {
         // Application about page
         let about = About::default()
             .name(fl!("app-title"))
@@ -177,7 +181,7 @@ impl Application for Oboete {
         let tasks = vec![
             app.update_title(),
             Task::perform(init_database(Self::APP_ID), |database| {
-                cosmic::app::message::app(Message::DatabaseConnected(database))
+                cosmic::action::app(Message::DatabaseConnected(database))
             }),
         ];
 
@@ -293,8 +297,7 @@ impl Application for Oboete {
             DialogPage::NewStudySet(studyset_name) => widget::dialog()
                 .title(fl!("create-studyset"))
                 .primary_action(
-                    widget::button::suggested(fl!("save"))
-                        .on_press_maybe(Some(Message::DialogComplete)),
+                    widget::button::suggested(fl!("save")).on_press(Message::DialogComplete),
                 )
                 .secondary_action(
                     widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
@@ -307,7 +310,7 @@ impl Application for Oboete {
                             .on_input(move |name| {
                                 Message::DialogUpdate(DialogPage::NewStudySet(name))
                             })
-                            .on_submit(Message::DialogComplete)
+                            .on_submit(|_x| Message::DialogComplete)
                             .into(),
                     ])
                     .spacing(spacing.space_xxs),
@@ -331,7 +334,7 @@ impl Application for Oboete {
                             .on_input(move |name| {
                                 Message::DialogUpdate(DialogPage::RenameStudySet { to: name })
                             })
-                            .on_submit(Message::DialogComplete)
+                            .on_submit(|_x| Message::DialogComplete)
                             .into(),
                     ])
                     .spacing(spacing.space_xxs),
@@ -367,7 +370,7 @@ impl Application for Oboete {
                             .on_input(move |name| {
                                 Message::DialogUpdate(DialogPage::NewFolder(name))
                             })
-                            .on_submit(Message::DialogComplete)
+                            .on_submit(|_x| Message::DialogComplete)
                             .into(),
                     ])
                     .spacing(spacing.space_xxs),
@@ -433,7 +436,7 @@ impl Application for Oboete {
     ///
     /// Tasks may be returned for asynchronous execution of code in the background
     /// on the application's async runtime.
-    fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
+    fn update(&mut self, message: Self::Message) -> Task<cosmic::Action<Self::Message>> {
         let mut tasks = vec![];
 
         match message {
@@ -460,7 +463,7 @@ impl Application for Oboete {
                 };
 
                 self.config = Config { app_theme };
-                return cosmic::app::command::set_theme(self.config.app_theme.theme());
+                return cosmic::command::set_theme(self.config.app_theme.theme());
             }
 
             Message::LaunchUrl(url) => match open::that_detached(&url) {
@@ -494,8 +497,8 @@ impl Application for Oboete {
                 tasks.push(Task::perform(
                     StudySet::get_all(self.database.clone().unwrap()),
                     |result| match result {
-                        Ok(sets) => cosmic::app::message::app(Message::PopulateStudySets(sets)),
-                        Err(_) => cosmic::app::message::none(),
+                        Ok(sets) => cosmic::action::app(Message::PopulateStudySets(sets)),
+                        Err(_) => cosmic::action::none(),
                     },
                 ));
             }
@@ -539,10 +542,10 @@ impl Application for Oboete {
                             tasks.push(Task::perform(
                                 Folder::get_all(self.database.clone().unwrap(), set_id),
                                 |result| match result {
-                                    Ok(folders) => cosmic::app::message::app(Message::HomePage(
+                                    Ok(folders) => cosmic::action::app(Message::HomePage(
                                         homepage::Message::SetFolders(folders),
                                     )),
-                                    Err(_) => cosmic::app::message::none(),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -552,10 +555,10 @@ impl Application for Oboete {
                             tasks.push(Task::perform(
                                 Folder::edit(self.database.clone().unwrap(), folder),
                                 |result| match result {
-                                    Ok(_) => cosmic::app::message::app(Message::HomePage(
+                                    Ok(_) => cosmic::action::app(Message::HomePage(
                                         homepage::Message::EditedFolder,
                                     )),
-                                    Err(_) => cosmic::app::message::none(),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -565,10 +568,10 @@ impl Application for Oboete {
                             tasks.push(Task::perform(
                                 Folder::delete(self.database.clone().unwrap(), folder_id),
                                 |result| match result {
-                                    Ok(_) => cosmic::app::message::app(Message::HomePage(
+                                    Ok(_) => cosmic::action::app(Message::HomePage(
                                         homepage::Message::DeletedFolder,
                                     )),
-                                    Err(_) => cosmic::app::message::none(),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -599,12 +602,10 @@ impl Application for Oboete {
                             tasks.push(Task::perform(
                                 Flashcard::get_all(self.database.clone().unwrap(), folder_id),
                                 |result| match result {
-                                    Ok(flashcards) => {
-                                        cosmic::app::message::app(Message::FolderContent(
-                                            folder_content::Message::SetFlashcards(flashcards),
-                                        ))
-                                    }
-                                    Err(_) => cosmic::app::message::none(),
+                                    Ok(flashcards) => cosmic::action::app(Message::FolderContent(
+                                        folder_content::Message::SetFlashcards(flashcards),
+                                    )),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                             self.current_page = Page::FolderContent;
@@ -624,12 +625,10 @@ impl Application for Oboete {
                             tasks.push(Task::perform(
                                 Flashcard::get_all(self.database.clone().unwrap(), folder_id),
                                 |result| match result {
-                                    Ok(flashcards) => {
-                                        cosmic::app::message::app(Message::FolderContent(
-                                            folder_content::Message::SetFlashcards(flashcards),
-                                        ))
-                                    }
-                                    Err(_) => cosmic::app::message::none(),
+                                    Ok(flashcards) => cosmic::action::app(Message::FolderContent(
+                                        folder_content::Message::SetFlashcards(flashcards),
+                                    )),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -639,10 +638,10 @@ impl Application for Oboete {
                             tasks.push(Task::perform(
                                 Flashcard::edit(self.database.clone().unwrap(), flashcard),
                                 |result| match result {
-                                    Ok(_) => cosmic::app::message::app(Message::FolderContent(
+                                    Ok(_) => cosmic::action::app(Message::FolderContent(
                                         folder_content::Message::EditedFlashcard,
                                     )),
-                                    Err(_) => cosmic::app::message::none(),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -656,10 +655,10 @@ impl Application for Oboete {
                                     self.folder_content.get_current_folder_id().unwrap(),
                                 ),
                                 |result| match result {
-                                    Ok(_) => cosmic::app::message::app(Message::FolderContent(
+                                    Ok(_) => cosmic::action::app(Message::FolderContent(
                                         folder_content::Message::AddedNewFlashcard,
                                     )),
-                                    Err(_) => cosmic::app::message::none(),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -669,10 +668,10 @@ impl Application for Oboete {
                             tasks.push(Task::perform(
                                 Flashcard::delete(self.database.clone().unwrap(), flashcard_id),
                                 |result| match result {
-                                    Ok(_) => cosmic::app::message::app(Message::FolderContent(
+                                    Ok(_) => cosmic::action::app(Message::FolderContent(
                                         folder_content::Message::DeletedFlashcard,
                                     )),
-                                    Err(_) => cosmic::app::message::none(),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -699,10 +698,10 @@ impl Application for Oboete {
                                     flashcard_id,
                                 ),
                                 |result| match result {
-                                    Ok(_) => cosmic::app::message::app(Message::FolderContent(
+                                    Ok(_) => cosmic::action::app(Message::FolderContent(
                                         folder_content::Message::EditedFlashcard,
                                     )),
-                                    Err(_) => cosmic::app::message::none(),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -722,10 +721,10 @@ impl Application for Oboete {
                                     self.folder_content.get_current_folder_id().unwrap(),
                                 ),
                                 |result| match result {
-                                    Ok(_) => cosmic::app::message::app(Message::FolderContent(
+                                    Ok(_) => cosmic::action::app(Message::FolderContent(
                                         folder_content::Message::ContentImported,
                                     )),
-                                    Err(_) => cosmic::app::message::none(),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -756,7 +755,7 @@ impl Application for Oboete {
                                     }
                                 },
                                 |files| {
-                                    cosmic::app::message::app(Message::FolderContent(
+                                    cosmic::action::app(Message::FolderContent(
                                         folder_content::Message::OpenAnkiFileResult(files),
                                     ))
                                 },
@@ -773,10 +772,10 @@ impl Application for Oboete {
                                     folder_id,
                                 ),
                                 |result| match result {
-                                    Ok(_) => cosmic::app::message::app(Message::FolderContent(
+                                    Ok(_) => cosmic::action::app(Message::FolderContent(
                                         folder_content::Message::EditedFlashcard,
                                     )),
-                                    Err(_) => cosmic::app::message::none(),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -805,7 +804,7 @@ impl Application for Oboete {
                                     }
                                 },
                                 move |files| {
-                                    cosmic::app::message::app(Message::FolderContent(
+                                    cosmic::action::app(Message::FolderContent(
                                         folder_content::Message::OpenFolderExportResult(
                                             files, options,
                                         ),
@@ -819,12 +818,10 @@ impl Application for Oboete {
                             tasks.push(Task::perform(
                                 Flashcard::get_all(self.database.clone().unwrap(), folder_id),
                                 |result| match result {
-                                    Ok(flashcards) => {
-                                        cosmic::app::message::app(Message::StudyPage(
-                                            study_page::Message::SetFlashcards(flashcards),
-                                        ))
-                                    }
-                                    Err(_) => cosmic::app::message::none(),
+                                    Ok(flashcards) => cosmic::action::app(Message::StudyPage(
+                                        study_page::Message::SetFlashcards(flashcards),
+                                    )),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                             self.current_page = Page::StudyPage;
@@ -847,12 +844,10 @@ impl Application for Oboete {
                                     self.folder_content.get_current_folder_id().unwrap(),
                                 ),
                                 |result| match result {
-                                    Ok(flashcards) => {
-                                        cosmic::app::message::app(Message::StudyPage(
-                                            study_page::Message::UpdatedFlashcardStatus(flashcards),
-                                        ))
-                                    }
-                                    Err(_) => cosmic::app::message::none(),
+                                    Ok(flashcards) => cosmic::action::app(Message::StudyPage(
+                                        study_page::Message::UpdatedFlashcardStatus(flashcards),
+                                    )),
+                                    Err(_) => cosmic::action::none(),
                                 },
                             ));
                         }
@@ -895,8 +890,8 @@ impl Application for Oboete {
                                 tasks.push(Task::perform(
                                     StudySet::add(self.database.clone().unwrap(), set),
                                     |result| match result {
-                                        Ok(_) => cosmic::app::message::app(Message::FetchStudySets),
-                                        Err(_) => cosmic::app::message::none(),
+                                        Ok(_) => cosmic::action::app(Message::FetchStudySets),
+                                        Err(_) => cosmic::action::none(),
                                     },
                                 ));
                             }
@@ -916,10 +911,10 @@ impl Application for Oboete {
                                             },
                                         ),
                                         move |result| match result {
-                                            Ok(_) => cosmic::app::message::app(
-                                                Message::UpdatedStudySet(studyset_name.clone()),
-                                            ),
-                                            Err(_) => cosmic::app::message::none(),
+                                            Ok(_) => cosmic::action::app(Message::UpdatedStudySet(
+                                                studyset_name.clone(),
+                                            )),
+                                            Err(_) => cosmic::action::none(),
                                         },
                                     );
                                     tasks.push(command);
@@ -933,10 +928,8 @@ impl Application for Oboete {
                                 tasks.push(Task::perform(
                                     StudySet::delete(self.database.clone().unwrap(), *set_id),
                                     |result| match result {
-                                        Ok(_) => {
-                                            cosmic::app::message::app(Message::DeletedStudySet)
-                                        }
-                                        Err(_) => cosmic::app::message::none(),
+                                        Ok(_) => cosmic::action::app(Message::DeletedStudySet),
+                                        Err(_) => cosmic::action::none(),
                                     },
                                 ));
                             }
@@ -953,10 +946,10 @@ impl Application for Oboete {
                                         self.homepage.get_current_studyset_id().unwrap(),
                                     ),
                                     |result| match result {
-                                        Ok(_folder_id) => cosmic::app::message::app(
-                                            Message::HomePage(homepage::Message::AddedNewFolder),
-                                        ),
-                                        Err(_) => cosmic::app::message::none(),
+                                        Ok(_folder_id) => cosmic::action::app(Message::HomePage(
+                                            homepage::Message::AddedNewFolder,
+                                        )),
+                                        Err(_) => cosmic::action::none(),
                                     },
                                 ));
                             }
@@ -981,8 +974,8 @@ impl Application for Oboete {
                     tasks.push(Task::perform(
                         StudySet::get_all_data(self.database.clone().unwrap()),
                         |result| match result {
-                            Ok(data) => cosmic::app::message::app(Message::SetBackupData(data)),
-                            Err(_) => cosmic::app::message::none(),
+                            Ok(data) => cosmic::action::app(Message::SetBackupData(data)),
+                            Err(_) => cosmic::action::none(),
                         },
                     ));
                 }
@@ -1016,7 +1009,7 @@ impl Application for Oboete {
                             Vec::new()
                         }
                     },
-                    |files| cosmic::app::message::app(Message::SaveBackupFile(files)),
+                    |files| cosmic::action::app(Message::SaveBackupFile(files)),
                 ));
             }
 
@@ -1057,7 +1050,7 @@ impl Application for Oboete {
                             Vec::new()
                         }
                     },
-                    |files| cosmic::app::message::app(Message::ImportFileResult(files)),
+                    |files| cosmic::action::app(Message::ImportFileResult(files)),
                 ));
             }
 
@@ -1069,8 +1062,8 @@ impl Application for Oboete {
                             let command = Task::perform(
                                 StudySet::import(self.database.clone().unwrap(), studysets),
                                 |result| match result {
-                                    Ok(_) => cosmic::app::message::app(Message::FetchStudySets),
-                                    Err(_) => cosmic::app::message::app(Message::FetchStudySets),
+                                    Ok(_) => cosmic::action::app(Message::FetchStudySets),
+                                    Err(_) => cosmic::action::app(Message::FetchStudySets),
                                 },
                             );
 
@@ -1086,7 +1079,10 @@ impl Application for Oboete {
     }
 
     /// Called when a nav item is selected.
-    fn on_nav_select(&mut self, entity: segmented_button::Entity) -> Task<Self::Message> {
+    fn on_nav_select(
+        &mut self,
+        entity: segmented_button::Entity,
+    ) -> Task<cosmic::Action<Self::Message>> {
         let mut tasks = vec![];
         // Activate the page in the model.
         self.nav.activate(entity);
@@ -1111,7 +1107,7 @@ impl Application for Oboete {
 
 impl Oboete {
     /// Updates the header and window titles.
-    pub fn update_title(&mut self) -> Task<Message> {
+    pub fn update_title(&mut self) -> Task<cosmic::Action<Message>> {
         let mut window_title = fl!("app-title");
 
         if let Some(page) = self.nav.text(self.nav.active()) {
@@ -1133,16 +1129,18 @@ impl Oboete {
             AppTheme::System => 0,
         };
 
-        widget::settings::view_column(vec![widget::settings::section()
-            .title(fl!("appearance"))
-            .add(
-                widget::settings::item::builder(fl!("theme")).control(widget::dropdown(
-                    &self.app_themes,
-                    Some(app_theme_selected),
-                    Message::UpdateTheme,
-                )),
-            )
-            .into()])
+        widget::settings::view_column(vec![
+            widget::settings::section()
+                .title(fl!("appearance"))
+                .add(
+                    widget::settings::item::builder(fl!("theme")).control(widget::dropdown(
+                        &self.app_themes,
+                        Some(app_theme_selected),
+                        Message::UpdateTheme,
+                    )),
+                )
+                .into(),
+        ])
         .into()
     }
 
