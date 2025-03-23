@@ -105,20 +105,21 @@ impl StudyPage {
         let spacing = theme::active().cosmic().spacing;
 
         let flashcard_container = widget::container(
-            widget::button::custom(
-                // Text depends on if we are looking at the front or the back
-                widget::Text::new(match self.currently_studying_flashcard_side {
-                    CurrentFlashcardSide::Front => &self.currently_studying_flashcard.front,
-                    CurrentFlashcardSide::Back => &self.currently_studying_flashcard.back,
-                })
-                .size(spacing.space_xxl)
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .align_y(Vertical::Center)
-                .align_x(Horizontal::Center),
+            widget::container(
+                widget::mouse_area(
+                    // Text depends on if we are looking at the front or the back
+                    widget::Text::new(match self.currently_studying_flashcard_side {
+                        CurrentFlashcardSide::Front => &self.currently_studying_flashcard.front,
+                        CurrentFlashcardSide::Back => &self.currently_studying_flashcard.back,
+                    })
+                    .size(spacing.space_xxl)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .align_y(Vertical::Center)
+                    .align_x(Horizontal::Center),
+                )
+                .on_press(Message::SwapFlashcardSide),
             )
-            .on_press(Message::SwapFlashcardSide)
-            .class(button_style(false, false, ButtonStyle::NoHover))
             .height(Length::Fill)
             .width(Length::Fill),
         )
