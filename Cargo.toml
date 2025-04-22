@@ -14,13 +14,13 @@ name = "oboete"
 
 [dependencies]
 futures-util = "0.3.31"
-i18n-embed-fl = "0.9.3"
+i18n-embed-fl = "0.9.4"
 open = "5.3.2"
-rust-embed = "8.6.0"
-tokio = { version = "1.44.1", features = ["full"] }
+rust-embed = "8.7.0"
+tokio = { version = "1.44.2", features = ["full"] }
 
 # Added by me
-sqlx = { version = "0.8.3", features = [
+sqlx = { version = "0.8.5", features = [
     "sqlite",
     "runtime-tokio",
     "tls-rustls",
@@ -28,13 +28,13 @@ sqlx = { version = "0.8.3", features = [
 futures = "0.3.31"
 dirs = "6.0.0"
 serde = { version = "1.0.219", features = ["derive"] }
-rand = "0.9.0" #needed for flashcard selection
+rand = "0.9.1" #needed for flashcard selection
 ashpd = { version = "0.11.0", features = ["wayland"] } #needed for file dialogs
 percent-encoding = "2.3.1" #needed for correct anki file importing
 serde_json = "1.0.140" #needed for file exporting and importing
 
 [dependencies.i18n-embed]
-version = "0.15.3"
+version = "0.15.4"
 features = ["fluent-system", "desktop-requester"]
 
 [dependencies.libcosmic]
