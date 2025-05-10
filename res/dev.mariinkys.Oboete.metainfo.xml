@@ -73,6 +73,11 @@
     </keywords>
 
     <releases>
+        <release version="0.1.9" date="2025-05-25">
+            <description>
+                <p>Updated dependencies that include bugfixes...</p>
+            </description>
+        </release>
         <release version="0.1.8" date="2025-01-28">
             <description>
                 <p>Complete application rewrite that will make code easier to modify and mantain</p>
