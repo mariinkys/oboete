@@ -34,8 +34,10 @@ new = Nieuwe
 options = Opties
 
 <#-- Delete StudySet Dialog -->
-confirm-delete = Studieset verwijderen?
-ok = Verwijderen
+delete-studyset-title = Studieset verwijderen?
+delete-studyset-body = Wil je studieset { $studySetName } verwijderen?
+delete-studyset = Verwijderen
+cancel = Annuleren
 
 <#-- New Folder Dialog -->
 create-folder = Map aanmaken
