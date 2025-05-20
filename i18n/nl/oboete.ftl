@@ -1,7 +1,8 @@
 cancel = Annuleren
 save = Opslaan
-empty-page = Hier is nog niets
+empty-page = Er is hier nog niets
 empty-page-noset = Een studieset aanmaken
+about-anki-importing = OVER HET IMPORTEREN VAN ANKI-FLITSKAARTJES
 backup = Backup
 import = Backup importeren
 repository = Repository
@@ -60,3 +61,21 @@ flashcard-back-placeholder = Achterkant: hier vul je de betekenis in
 create = Aanmaken
 reset-flashcard-title = De status (goed/slecht) resetten
 reset-flashcard-button = Resetten
+
+<#-- Flashcard Options Context Page -->
+flashcard-options = Opties voor flitskaartjes
+folder-import = Importeren
+import-between-term-title = tussen begrip en betekenis
+import-between-term-placeholder = Karakter tussen begrip en betekenis
+import-between-cards-title = tussen kaartjes
+import-between-cards-placeholder = Karakter tussen kaartjes
+import-content-title = Iets importeren
+import-content-placeholder = Dat wat je wilt importeren
+import-button = Importeren
+reset-folder-flashcards-title = De status van alle flitskaartjes resetten
+reset-folder-flashcards-button = Resetten
+import-anki-title = Vanuit een Anki-bestand importeren
+import-anki-button = Anki-bestand selecteren
+export-folder-flashcards-title = Map met flitskaartjes exporteren
+export-folder-flashcards-button = Exporteren
+export-folder-flashcards-anki-button = Naar Anki exporteren
