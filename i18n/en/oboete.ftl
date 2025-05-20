@@ -39,8 +39,10 @@ create-studyset = Create StudySet
 studyset-name = StudySet Name
 
 <#-- Delete StudySet Dialog -->
-confirm-delete = Confirm Delete
-ok = Ok
+delete-studyset-title = Delete StudySet?
+delete-studyset-body = Do you want to delete StudySet { $studySetName } ?
+delete-studyset = Delete
+cancel = Cancel
 
 <#-- New Folder Dialog -->
 create-folder = Create Folder
