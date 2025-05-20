@@ -1,4 +1,3 @@
-app-title = Oboete
 cancel = Avbryt
 save = Spara
 empty-page = Tom

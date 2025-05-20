@@ -1,4 +1,3 @@
-app-title = Oboete
 cancel = Cancelar
 save = Guardar
 empty-page = Vacio

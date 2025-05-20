@@ -1,4 +1,3 @@
-app-title = Lembrar
 cancel = Cancelar
 save = Salvar
 empty-page = Vazio

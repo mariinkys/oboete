@@ -134,7 +134,7 @@ impl cosmic::Application for Oboete {
     ) -> (Self, Task<cosmic::Action<Self::Message>>) {
         // Application about page
         let about = About::default()
-            .name(fl!("app-title"))
+            .name("Oboete")
             .icon(Self::APP_ID)
             .version(env!("CARGO_PKG_VERSION"))
             .author("mariinkys")
@@ -1108,7 +1108,7 @@ impl cosmic::Application for Oboete {
 impl Oboete {
     /// Updates the header and window titles.
     pub fn update_title(&mut self) -> Task<cosmic::Action<Message>> {
-        let mut window_title = fl!("app-title");
+        let mut window_title = String::from("Oboete");
 
         if let Some(page) = self.nav.text(self.nav.active()) {
             window_title.push_str(" — ");
