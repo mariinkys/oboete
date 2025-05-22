@@ -4,14 +4,14 @@ empty-page = Vazio
 empty-page-noset = Tente criar um Studyset
 about-anki-importing = SOBRE A ANKI IMPORTING
 backup = Backup
-import = Importar backup
+import = Importar Backup
 repository = Repositório
 support = Suporte
 
 <#-- Appearance -->
 appearance = Aparência
 theme = Tema
-match-desktop = Correspondência de desktop
+match-desktop = Tema do sistema
 dark = Escuro
 light = Claro
 
@@ -20,64 +20,64 @@ settings = Configurações
 
 <#-- Application MenuBar -->
 file = Arquivo
-new-studyset = Novo conjunto de estudos
+new-studyset = Novo StudySet
 edit = Editar
-rename-studyset = Renomear Conjunto de Estudos
-delete-studyset = Excluir Conjunto de Estudos
-view = Visualizar
+rename-studyset = Renomear StudySet
+delete-studyset = Excluir StudySet
+view = Exibir
 about = Sobre
 
 <#-- Page Headers -->
 folders = Pastas
-flashcards = flashcards
+flashcards = Flashcards
 study = Estudar
 new = Novo
 options = Opções
 
 <#-- New StudySet Dialog -->
-create-studyset = Criar conjunto de flashcards
-studyset-name = Nome do Conjunto de Estudos
+create-studyset = Criar StudySet
+studyset-name = Nome do StudySet
 
 <#-- Delete StudySet Dialog -->
-confirm-delete = Confirme excluir
-ok = Ok
+confirm-delete = Pressione OK para confirmar a exclusão
+ok = OK
 
 <#-- New Folder Dialog -->
-create-folder = Crie pasta
-rename-folder = Renomear a pasta
-folder-name = Nome da pasta
+create-folder = Criar Pasta
+rename-folder = Renomear Pasta
+folder-name = Nome da Pasta
 
 <#-- Folder Details Context Page -->
-folder-details = Detalhes da pasta
+folder-details = Detalhes da Pasta
 
 <#-- Flashcards Page -->
-ok-status = Ok
+ok-status = OK
 good-status = Bom
 bad-status = Ruim
 
 <#-- Flashcard Create/Edit Context Page -->
-flashcard-front-title = Frente do flashcard
-flashcard-back-title = Verso do flashcard
+flashcard-front-title = Frente do Flashcard
+flashcard-back-title = Verso do Flashcard
 flashcard-front-placeholder = Conteúdo da frente
 flashcard-back-placeholder = Conteúdo do verso
 create = Criar
-reset-flashcard-title = Redefinir status dos flashcards
+reset-flashcard-title = Redefinir status do flashcard
 reset-flashcard-button = Redefinir
 
 <#-- Flashcard Options Context Page -->
-flashcard-options = Opções de Flashcards
+flashcard-options = Opções de Flashcard
 folder-import = Importar
-import-between-term-title = Entre Termo e Definição
+import-between-term-title = Entre termo e definição
 import-between-term-placeholder = Caractere entre termo e definição
 import-between-cards-title = Entre cartas
-import-between-cards-placeholder = Personagem entre cartas
+import-between-cards-placeholder = Caractere entre cartas
 import-content-title = Importar conteúdo
 import-content-placeholder = Conteúdo a ser importado
 import-button = Importar
-reset-folder-flashcards-title = Redefinir todos os status do Flashcard
-reset-folder-flashcards-button = Reiniciar
-import-anki-title = Importar do arquivo Anki
-import-anki-button = Selecione o arquivo Anki
-export-folder-flashcards-title = Flashcards de pasta de exportação
+reset-folder-flashcards-title = Redefinir todos os status dos flashcards
+reset-folder-flashcards-button = Redefinir
+import-anki-title = Importar de um arquivo Anki
+import-anki-button = Selecione um arquivo Anki
+export-folder-flashcards-title = Exportar flashcards
 export-folder-flashcards-button = Exportar
 export-folder-flashcards-anki-button = Exportar Anki
