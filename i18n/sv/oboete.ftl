@@ -5,6 +5,8 @@ empty-page-noset = Försök att skapa en studieuppsättning
 about-anki-importing = OM ANKI IMPORTERING
 backup = Säkerhetskopiering
 import = Importera säkerhetskopia
+repository = Förråd
+support = Support
 
 <#-- Utseende -->
 appearance = Utseende
