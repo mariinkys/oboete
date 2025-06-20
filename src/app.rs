@@ -190,9 +190,9 @@ impl cosmic::Application for Oboete {
 
     /// Elements to pack at the start of the header bar.
     fn header_start(&self) -> Vec<Element<Self::Message>> {
-        let menu_bar = menu::bar(vec![
+        let menu_bar = menu::MenuBar::new(vec![
             menu::Tree::with_children(
-                menu::root(fl!("file")),
+                Element::from(menu::root(fl!("file"))),
                 menu::items(
                     &self.key_binds,
                     vec![
@@ -203,7 +203,7 @@ impl cosmic::Application for Oboete {
                 ),
             ),
             menu::Tree::with_children(
-                menu::root(fl!("edit")),
+                Element::from(menu::root(fl!("edit"))),
                 menu::items(
                     &self.key_binds,
                     vec![
@@ -221,7 +221,7 @@ impl cosmic::Application for Oboete {
                 ),
             ),
             menu::Tree::with_children(
-                menu::root(fl!("view")),
+                Element::from(menu::root(fl!("view"))),
                 menu::items(
                     &self.key_binds,
                     vec![
