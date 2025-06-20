@@ -19,6 +19,7 @@ use crate::{
 };
 
 pub struct FolderContent {
+    current_folder_rtl_fix: bool,
     current_folder_id: Option<i32>,
     // Flashcards inside the folder
     flashcards: Vec<Flashcard>,
@@ -102,7 +103,7 @@ pub enum Message {
     OpenFolderExportResult(Vec<String>, ExportOptions),
 
     // Change to Study Page
-    StudyFolder(i32),
+    StudyFolder(i32, bool),
 }
 
 pub enum FolderContentTask {
@@ -121,17 +122,23 @@ pub enum FolderContentTask {
     RestartFolderFlashcardsStatus(i32), // We pass the folder_id
     OpenFolderExport(ExportOptions),
 
-    StudyFolder(i32),
+    StudyFolder(i32, bool),
 }
 
 impl FolderContent {
     pub fn init() -> Self {
         Self {
             current_folder_id: None,
+            current_folder_rtl_fix: false,
             flashcards: Vec::new(),
             add_edit_flashcard: AddEditFlashcardState::new(),
             folder_options_state: FolderOptionsContextPageState::new(),
         }
+    }
+
+    /// Sets the value of the currently selected folder
+    pub fn set_current_rtlfix(&mut self, value: bool) {
+        self.current_folder_rtl_fix = value;
     }
 
     /// Sets the value of the currently selected folder
@@ -342,8 +349,8 @@ impl FolderContent {
             }
 
             // Asks for the study mode for a given folder (page change)
-            Message::StudyFolder(folder_id) => {
-                tasks.push(FolderContentTask::StudyFolder(folder_id));
+            Message::StudyFolder(folder_id, rtl_fix) => {
+                tasks.push(FolderContentTask::StudyFolder(folder_id, rtl_fix));
             }
         }
 
@@ -441,7 +448,10 @@ impl FolderContent {
         let study_button = if !self.flashcards.is_empty() {
             widget::button::text("Study")
                 .class(theme::Button::Suggested)
-                .on_press(Message::StudyFolder(self.current_folder_id.unwrap()))
+                .on_press(Message::StudyFolder(
+                    self.current_folder_id.unwrap(),
+                    self.current_folder_rtl_fix,
+                ))
         } else {
             widget::button::text("Study").class(theme::Button::Suggested)
         };

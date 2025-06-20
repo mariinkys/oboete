@@ -49,6 +49,7 @@ folder-name = Folder Name
 
 <#-- Folder Details Context Page -->
 folder-details = Folder Details
+folder-rtl-fix = RTL Fix
 
 <#-- Flashcards Page -->
 ok-status = Ok

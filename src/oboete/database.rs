@@ -61,5 +61,22 @@ async fn migrate_database(db_pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {
     .execute(db_pool)
     .await?;
 
+    // Add rtl_fix column to folders table if it doesn't exist
+    sqlx::query(
+        r#"
+        ALTER TABLE folders ADD COLUMN rtl_fix BOOLEAN NOT NULL DEFAULT FALSE;
+        "#,
+    )
+    .execute(db_pool)
+    .await
+    .or_else(|e| {
+        // Ignore error if column already exists
+        if e.to_string().contains("duplicate column name") {
+            Ok(sqlx::sqlite::SqliteQueryResult::default())
+        } else {
+            Err(e)
+        }
+    })?;
+
     Ok(())
 }
