@@ -76,7 +76,7 @@ impl StudySet {
             r#"
             SELECT
                 s.id AS studyset_id, s.name AS studyset_name,
-                f.id AS folder_id, f.name AS folder_name,
+                f.id AS folder_id, f.name AS folder_name, f.rtl_fix AS folder_rtl_fix,
                 fc.id AS flashcard_id, fc.front, fc.back, fc.status
             FROM studysets s
             LEFT JOIN folders f ON s.id = f.studyset_id
@@ -95,6 +95,7 @@ impl StudySet {
             let studyset_name: String = row.get("studyset_name");
             let folder_id: Option<i32> = row.get("folder_id");
             let folder_name: Option<String> = row.get("folder_name");
+            let folder_rtl_fix: bool = row.get("folder_rtl_fix");
             let flashcard_id: Option<i32> = row.get("flashcard_id");
 
             if current_studyset.is_none()
@@ -131,6 +132,7 @@ impl StudySet {
                     let mut new_folder = super::folder::Folder {
                         id: Some(folder_id),
                         name: folder_name.unwrap(),
+                        rtl_fix: folder_rtl_fix,
                         flashcards: Vec::new(),
                     };
 
@@ -171,10 +173,11 @@ impl StudySet {
 
             for folder in studyset.folders {
                 let folder_id = sqlx::query(
-                    "INSERT INTO folders (name, studyset_id) VALUES (?, ?) RETURNING id",
+                    "INSERT INTO folders (name, studyset_id, rtl_fix) VALUES (?, ?, ?) RETURNING id",
                 )
                 .bind(&folder.name)
                 .bind(studyset_id)
+                .bind(folder.rtl_fix)
                 .fetch_one(&mut *transaction)
                 .await?
                 .get::<i32, _>("id");
