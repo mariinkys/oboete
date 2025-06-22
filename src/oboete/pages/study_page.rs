@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+use cosmic::iced::Padding;
 use cosmic::prelude::*;
 use cosmic::{
     iced::{
@@ -174,14 +175,13 @@ impl StudyPage {
             )
             .align_y(cosmic::iced::Alignment::Center)
             .spacing(spacing.space_s)
-            .padding([spacing.space_none, spacing.space_xxs])
+            .padding(Padding::new(0.).bottom(10.))
             .width(Length::Fill);
 
         widget::Column::new()
             .push(flashcard_container)
             .push(options_row)
             .spacing(spacing.space_s)
-            .padding([spacing.space_none, spacing.space_xxs])
             .into()
     }
 }
