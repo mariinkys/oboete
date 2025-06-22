@@ -597,8 +597,8 @@ impl cosmic::Application for Oboete {
                             );
                         }
 
-                        //Opens a folder => Loads the flashcards of a given folder => Updates the current_folder_id
-                        homepage::HomePageTask::OpenFolder(folder_id) => {
+                        //Opens a folder => Loads the flashcards of a given folder => Updates the current_folder_id and rtlx fix
+                        homepage::HomePageTask::OpenFolder(folder_id, rtl_fix) => {
                             tasks.push(Task::perform(
                                 Flashcard::get_all(self.database.clone().unwrap(), folder_id),
                                 |result| match result {
@@ -610,6 +610,7 @@ impl cosmic::Application for Oboete {
                             ));
                             self.current_page = Page::FolderContent;
                             self.folder_content.set_current_folder_id(Some(folder_id));
+                            self.folder_content.set_current_rtlfix(rtl_fix);
                         }
                     }
                 }
@@ -814,12 +815,12 @@ impl cosmic::Application for Oboete {
                         }
 
                         // Retrieves the flashcard of a folder and gives it to the studypage
-                        folder_content::FolderContentTask::StudyFolder(folder_id) => {
+                        folder_content::FolderContentTask::StudyFolder(folder_id, rtl_fix) => {
                             tasks.push(Task::perform(
                                 Flashcard::get_all(self.database.clone().unwrap(), folder_id),
-                                |result| match result {
+                                move |result| match result {
                                     Ok(flashcards) => cosmic::action::app(Message::StudyPage(
-                                        study_page::Message::SetFlashcards(flashcards),
+                                        study_page::Message::SetFlashcards(flashcards, rtl_fix),
                                     )),
                                     Err(_) => cosmic::action::none(),
                                 },
@@ -1093,6 +1094,7 @@ impl cosmic::Application for Oboete {
             self.current_page = Page::HomePage;
             self.homepage.set_current_studyset_id(Some(*set_id));
             self.folder_content.set_current_folder_id(None);
+            self.folder_content.set_current_rtlfix(false);
             self.folder_content.clean_flashcards_vec();
 
             // If a studyset is clicked ask for the folders of the studyset to be fetched
