@@ -297,7 +297,7 @@ impl FolderContent {
                             Ok(flashcards) => {
                                 tasks.push(FolderContentTask::ImportContent(flashcards))
                             }
-                            Err(err) => eprintln!("{:?}", err),
+                            Err(err) => eprintln!("{err:?}"),
                         }
                     }
                 }

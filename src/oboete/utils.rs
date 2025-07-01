@@ -106,7 +106,7 @@ pub fn export_flashcards_anki(
     file_path: &str,
     flashcards: &Vec<Flashcard>,
 ) -> Result<(), io::Error> {
-    let correct_file_path = format!("{}.txt", file_path);
+    let correct_file_path = format!("{file_path}.txt");
     let mut file = File::create(correct_file_path)?;
 
     writeln!(file, "#separator:tab")?;
@@ -121,12 +121,12 @@ pub fn export_flashcards_anki(
 }
 
 pub fn export_flashcards_json(file_path: &str, studysets: &Vec<StudySet>) -> Result<(), io::Error> {
-    let correct_file_path = format!("{}.json", file_path);
+    let correct_file_path = format!("{file_path}.json");
     let path = Path::new(&correct_file_path);
     let mut file = File::create(path)?;
 
     let json_data = serde_json::to_string_pretty(&studysets)
-        .map_err(|e| io::Error::other(format!("Serialization error: {}", e)))?;
+        .map_err(|e| io::Error::other(format!("Serialization error: {e}")))?;
 
     file.write_all(json_data.as_bytes())?;
 
@@ -140,7 +140,7 @@ pub fn import_flashcards_json(file_path: &str) -> Result<Vec<StudySet>, io::Erro
     io::Read::read_to_string(&mut file, &mut json_data)?;
 
     let studysets: Vec<StudySet> = serde_json::from_str(&json_data)
-        .map_err(|e| io::Error::other(format!("Deserialization error: {}", e)))?;
+        .map_err(|e| io::Error::other(format!("Deserialization error: {e}")))?;
 
     Ok(studysets)
 }
