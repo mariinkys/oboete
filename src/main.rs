@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+use crate::flags::flags;
 use std::sync::Mutex;
 
 mod app;
 mod config;
+mod flags;
 mod i18n;
 mod icons;
 mod key_binds;
@@ -23,5 +25,5 @@ fn main() -> cosmic::iced::Result {
     icons::ICON_CACHE.get_or_init(|| Mutex::new(icons::IconCache::new()));
 
     // Starts the application's event loop with `()` as the application's flags.
-    cosmic::app::run::<app::Oboete>(settings, ())
+    cosmic::app::run::<app::Oboete>(settings, flags())
 }

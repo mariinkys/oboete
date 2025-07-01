@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::config::{AppTheme, Config};
+use crate::config::{AppTheme, OboeteConfig};
 use crate::key_binds::key_binds;
 use crate::oboete::database::init_database;
 use crate::oboete::models::flashcard::Flashcard;
@@ -13,7 +13,6 @@ use crate::oboete::utils::{export_flashcards_json, import_flashcards_json};
 use crate::{fl, icons};
 use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::app::context_drawer;
-use cosmic::cosmic_config::{self, CosmicConfigEntry};
 use cosmic::iced::{Event, Length, Subscription};
 use cosmic::iced_core::keyboard::{Key, Modifiers};
 use cosmic::prelude::*;
@@ -27,8 +26,6 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
 const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
-// const APP_ICON: &[u8] =
-//     include_bytes!("../res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg");
 
 /// The application model stores app-specific state used to describe its interface and
 /// drive its logic.
@@ -53,8 +50,10 @@ pub struct Oboete {
     key_binds: HashMap<menu::KeyBind, MenuAction>,
     /// Application Keyboard Modifiers (current state)
     modifiers: Modifiers,
+    /// Application configuration handler
+    config_handler: Option<cosmic::cosmic_config::Config>,
     // Configuration data that persists between application runs.
-    config: Config,
+    config: OboeteConfig,
     // Application Themes
     app_themes: Vec<String>,
     /// Application HomePage
@@ -71,7 +70,7 @@ pub struct Oboete {
 #[derive(Debug, Clone)]
 pub enum Message {
     ToggleContextPage(ContextPage),
-    UpdateConfig(Config),
+    UpdateConfig(OboeteConfig),
     UpdateTheme(usize),
     LaunchUrl(String),
     Key(Modifiers, Key),
@@ -111,7 +110,7 @@ impl cosmic::Application for Oboete {
     type Executor = cosmic::executor::Default;
 
     /// Data that your application receives to its init method.
-    type Flags = ();
+    type Flags = crate::flags::Flags;
 
     /// Messages which the application and its widgets will emit.
     type Message = Message;
@@ -128,10 +127,7 @@ impl cosmic::Application for Oboete {
     }
 
     /// Initializes the application with any given flags and startup commands.
-    fn init(
-        core: cosmic::Core,
-        _flags: Self::Flags,
-    ) -> (Self, Task<cosmic::Action<Self::Message>>) {
+    fn init(core: cosmic::Core, flags: Self::Flags) -> (Self, Task<cosmic::Action<Self::Message>>) {
         // Application about page
         let about = About::default()
             .name("Oboete")
@@ -158,19 +154,8 @@ impl cosmic::Application for Oboete {
             database: None,
             key_binds: key_binds(),
             modifiers: Modifiers::empty(),
-            // Optional configuration file for an application.
-            config: cosmic_config::Config::new(Self::APP_ID, Config::VERSION)
-                .map(|context| match Config::get_entry(&context) {
-                    Ok(config) => config,
-                    Err((_errors, config)) => {
-                        // for why in errors {
-                        //     tracing::error!(%why, "error loading app config");
-                        // }
-
-                        config
-                    }
-                })
-                .unwrap_or_default(),
+            config_handler: flags.config_handler,
+            config: flags.config,
             app_themes: vec![fl!("match-desktop"), fl!("dark"), fl!("light")],
             homepage: HomePage::init(),
             folder_content: FolderContent::init(),
@@ -180,6 +165,7 @@ impl cosmic::Application for Oboete {
 
         let tasks = vec![
             app.update_title(),
+            cosmic::command::set_theme(app.config.app_theme.theme()),
             Task::perform(init_database(Self::APP_ID), |database| {
                 cosmic::action::app(Message::DatabaseConnected(database))
             }),
@@ -421,7 +407,7 @@ impl cosmic::Application for Oboete {
             }),
             // Watch for application configuration changes.
             self.core()
-                .watch_config::<Config>(Self::APP_ID)
+                .watch_config::<OboeteConfig>(Self::APP_ID)
                 .map(|update| {
                     // for why in update.errors {
                     //     tracing::error!(?why, "app config error");
@@ -462,8 +448,17 @@ impl cosmic::Application for Oboete {
                     _ => AppTheme::System,
                 };
 
-                self.config = Config { app_theme };
-                return cosmic::command::set_theme(self.config.app_theme.theme());
+                if let Some(handler) = &self.config_handler {
+                    if let Err(err) = self.config.set_app_theme(handler, app_theme) {
+                        eprintln!("{err}");
+                        // even if it fails we update the config (it won't get saved after restart)
+                        let mut old_config = self.config.clone();
+                        old_config.app_theme = app_theme;
+                        self.config = old_config;
+                    }
+
+                    return cosmic::command::set_theme(self.config.app_theme.theme());
+                }
             }
 
             Message::LaunchUrl(url) => match open::that_detached(&url) {
