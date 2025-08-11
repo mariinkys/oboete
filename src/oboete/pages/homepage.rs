@@ -21,6 +21,7 @@ pub struct HomePage {
 pub struct EditFolderState {
     id: Option<i32>,
     name: String,
+    rtl_fix: bool,
 }
 
 impl EditFolderState {
@@ -28,6 +29,7 @@ impl EditFolderState {
         EditFolderState {
             id: None,
             name: String::new(),
+            rtl_fix: false,
         }
     }
 }
@@ -45,10 +47,11 @@ pub enum Message {
 
     OpenEditContextPage(Folder),
     EditFolderNameInput(String),
+    ToggleRLTCheckboxValue,
 
     OpenCreateFolderDialog,
 
-    OpenFolder(i32),
+    OpenFolder(i32, bool),
 }
 
 pub enum HomePageTask {
@@ -61,7 +64,7 @@ pub enum HomePageTask {
 
     OpenCreateFolderDialog,
 
-    OpenFolder(i32),
+    OpenFolder(i32, bool),
 }
 
 impl HomePage {
@@ -99,6 +102,7 @@ impl HomePage {
                 tasks.push(HomePageTask::EditFolder(Folder {
                     id: self.edit_folder.id,
                     name: self.edit_folder.name.to_string(),
+                    rtl_fix: self.edit_folder.rtl_fix,
                     flashcards: Vec::new(),
                 }));
             }
@@ -141,6 +145,7 @@ impl HomePage {
                 self.edit_folder = EditFolderState {
                     id: folder.id,
                     name: folder.name,
+                    rtl_fix: folder.rtl_fix,
                 };
                 tasks.push(HomePageTask::OpenEditContextPage);
             }
@@ -148,14 +153,17 @@ impl HomePage {
             // Updates the value of the folder name in the edit contextpage
             Message::EditFolderNameInput(value) => self.edit_folder.name = value,
 
+            // Toggles the value of the RTL fix bool
+            Message::ToggleRLTCheckboxValue => self.edit_folder.rtl_fix = !self.edit_folder.rtl_fix,
+
             // Asks for the create folder dialog to be open on main
             Message::OpenCreateFolderDialog => {
                 tasks.push(HomePageTask::OpenCreateFolderDialog);
             }
 
             // Asks for the given folder to be opened (page change)
-            Message::OpenFolder(folder_id) => {
-                tasks.push(HomePageTask::OpenFolder(folder_id));
+            Message::OpenFolder(folder_id, rtl_fix) => {
+                tasks.push(HomePageTask::OpenFolder(folder_id, rtl_fix));
             }
         }
 
@@ -187,7 +195,7 @@ impl HomePage {
                         widget::button::icon(icons::get_handle("folder-open-symbolic", 18))
                             .class(theme::Button::Suggested)
                             .width(Length::Shrink)
-                            .on_press(Message::OpenFolder(folder.id.unwrap()));
+                            .on_press(Message::OpenFolder(folder.id.unwrap(), folder.rtl_fix));
 
                     let folder_name = widget::text(folder.name.clone())
                         .align_y(Vertical::Center)
@@ -299,6 +307,15 @@ impl HomePage {
                         widget::text::body(fl!("folder-name")).into(),
                         widget::text_input(fl!("folder-name"), &self.edit_folder.name)
                             .on_input(Message::EditFolderNameInput)
+                            .into(),
+                    ])
+                    .spacing(spacing.space_xxs),
+                )
+                .add(
+                    widget::column::with_children(vec![
+                        //widget::text::body(fl!("folder-rtl-fix")).into(),
+                        widget::checkbox(fl!("folder-rtl-fix"), self.edit_folder.rtl_fix)
+                            .on_toggle(|_| Message::ToggleRLTCheckboxValue)
                             .into(),
                     ])
                     .spacing(spacing.space_xxs),

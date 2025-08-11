@@ -17,6 +17,7 @@ use crate::{
 };
 
 pub struct StudyPage {
+    rtl_fix: bool,
     flashcards: Vec<Flashcard>,
     currently_studying_flashcard: Flashcard,
     currently_studying_flashcard_side: CurrentFlashcardSide,
@@ -37,7 +38,7 @@ pub enum StudyActions {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SetFlashcards(Vec<Flashcard>),
+    SetFlashcards(Vec<Flashcard>, bool),
 
     SwapFlashcardSide,
     UpdateFlashcardStatus(Flashcard, StudyActions),
@@ -52,6 +53,7 @@ pub enum StudyPageTask {
 impl StudyPage {
     pub fn init() -> Self {
         Self {
+            rtl_fix: false,
             flashcards: Vec::new(),
             currently_studying_flashcard: Flashcard::new_error_variant(),
             currently_studying_flashcard_side: CurrentFlashcardSide::Front,
@@ -62,8 +64,9 @@ impl StudyPage {
         let mut tasks = Vec::new();
 
         match message {
-            // Sets the given flashcards to the appstate and selects a random flashcard
-            Message::SetFlashcards(flashcards) => {
+            // Sets the given flashcards to the appstate and selects a random flashcard, it also sets if the rtl fix is needed on the state
+            Message::SetFlashcards(flashcards, rtl_fix) => {
+                self.rtl_fix = rtl_fix;
                 self.flashcards = flashcards;
                 self.currently_studying_flashcard = select_random_flashcard(&self.flashcards)
                     .unwrap_or(Flashcard::new_error_variant());
@@ -107,18 +110,30 @@ impl StudyPage {
 
         let flashcard_container = widget::container(
             widget::container(
-                widget::mouse_area(
-                    // Text depends on if we are looking at the front or the back
-                    widget::Text::new(match self.currently_studying_flashcard_side {
-                        CurrentFlashcardSide::Front => &self.currently_studying_flashcard.front,
-                        CurrentFlashcardSide::Back => &self.currently_studying_flashcard.back,
-                    })
-                    .size(spacing.space_xxl)
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .align_y(Vertical::Center)
-                    .align_x(Horizontal::Center),
-                )
+                widget::mouse_area(match &self.rtl_fix {
+                    true => {
+                        // Text depends on if we are looking at the front or the back
+                        widget::Text::new(match self.currently_studying_flashcard_side {
+                            CurrentFlashcardSide::Front => &self.currently_studying_flashcard.front,
+                            CurrentFlashcardSide::Back => &self.currently_studying_flashcard.back,
+                        })
+                        .size(spacing.space_xxl)
+                        .width(Length::Fill)
+                        .height(Length::Fill)
+                    }
+                    false => {
+                        // Text depends on if we are looking at the front or the back
+                        widget::Text::new(match self.currently_studying_flashcard_side {
+                            CurrentFlashcardSide::Front => &self.currently_studying_flashcard.front,
+                            CurrentFlashcardSide::Back => &self.currently_studying_flashcard.back,
+                        })
+                        .size(spacing.space_xxl)
+                        .width(Length::Fill)
+                        .height(Length::Fill)
+                        .align_y(Vertical::Center)
+                        .align_x(Horizontal::Center)
+                    }
+                })
                 .on_press(Message::SwapFlashcardSide),
             )
             .height(Length::Fill)
