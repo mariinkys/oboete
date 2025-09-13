@@ -15,7 +15,10 @@
     <project_license>GPL-3.0-only</project_license>
 
     <description>
-        <p>Oboete is a straightforward and efficient flashcard application designed to help users study and memorize information effectively. Whether you're learning a new language, studying for exams, or just trying to remember important facts, Oboete provides an intuitive platform for creating, organizing, and reviewing flashcards.</p>
+        <p>Oboete is a straightforward and efficient flashcard application designed to help users
+            study and memorize information effectively. Whether you're learning a new language,
+            studying for exams, or just trying to remember important facts, Oboete provides an
+            intuitive platform for creating, organizing, and reviewing flashcards.</p>
         <ul>
             <li>Study flashcards with ease</li>
             <li>Fast and easy to use</li>
@@ -25,9 +28,10 @@
         </ul>
     </description>
 
-    <icon type="remote" height="256" width="256">https://raw.githubusercontent.com/mariinkys/oboete/main/res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg</icon>
+    <icon type="remote" height="256" width="256">
+        https://raw.githubusercontent.com/mariinkys/oboete/main/res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg</icon>
     <launchable type="desktop-id">dev.mariinkys.Oboete.desktop</launchable>
-    <content_rating type="oars-1.1"/>
+    <content_rating type="oars-1.1" />
 
     <provides>
         <id>com.system76.CosmicApplication</id>
@@ -36,15 +40,18 @@
 
     <screenshots>
         <screenshot type="default" xml:lang="en">
-            <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/main-dark.png</image>
+            <image>
+                https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/main-dark.png</image>
             <caption>StudySets Page</caption>
         </screenshot>
         <screenshot xml:lang="en">
-            <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/folder-inside-dark.png</image>
+            <image>
+                https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/folder-inside-dark.png</image>
             <caption>Folder Inside</caption>
         </screenshot>
         <screenshot xml:lang="en">
-            <image>https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/study-dark.png</image>
+            <image>
+                https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/study-dark.png</image>
             <caption>Study Mode Sample</caption>
         </screenshot>
     </screenshots>
@@ -73,6 +80,11 @@
     </keywords>
 
     <releases>
+        <release version="0.1.11" date="2025-09-25">
+            <description>
+                <p>Updated dependencies</p>
+            </description>
+        </release>
         <release version="0.1.10" date="2025-07-07">
             <description>
                 <p>Application config persists between runs</p>

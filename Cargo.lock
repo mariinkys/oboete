@@ -3762,7 +3762,7 @@ dependencies = [
 
 [[package]]
 name = "oboete"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "ashpd 0.12.0",
  "dirs 6.0.0",
