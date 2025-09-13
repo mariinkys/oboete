@@ -113,7 +113,7 @@ impl StudyPage {
                         CurrentFlashcardSide::Front => &self.currently_studying_flashcard.front,
                         CurrentFlashcardSide::Back => &self.currently_studying_flashcard.back,
                     })
-                    .size(spacing.space_xxl)
+                    .size(75.)
                     .width(Length::Fill)
                     .height(Length::Fill)
                     .align_y(Vertical::Center)

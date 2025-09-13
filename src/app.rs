@@ -131,7 +131,7 @@ impl cosmic::Application for Oboete {
         // Application about page
         let about = About::default()
             .name("Oboete")
-            .icon(Self::APP_ID)
+            .icon(widget::icon::from_name(Self::APP_ID))
             .version(env!("CARGO_PKG_VERSION"))
             .author("mariinkys")
             .license("GPL-3.0-only")

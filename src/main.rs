@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
+#![allow(clippy::collapsible_if)]
+#![allow(mismatched_lifetime_syntaxes)]
 
 use crate::flags::flags;
 use std::sync::Mutex;

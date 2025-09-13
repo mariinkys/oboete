@@ -42,7 +42,7 @@ sudo just install
 ```
 
 # Development Notes
-In order to build the Flatpak, first you need to create the 'cargo-sources.json' file, for that we'll use [this python script, from flatpak-builder-tools](https://github.com/flatpak/flatpak-builder-tools/tree/master/cargo), remember that the 'toml' and 'aiohttp' python modules are needed (they can be installed with pip).
+In order to build the Flatpak, first you need to create the 'cargo-sources.json' file, for that we'll use [this python script, from flatpak-builder-tools](https://github.com/flatpak/flatpak-builder-tools/tree/master/cargo), remember that the 'tomlkit' and 'aiohttp' python modules are needed (they can be installed with pip).
 
 Once you have that, with the python script in the root of the project, you can start with:
 ```
