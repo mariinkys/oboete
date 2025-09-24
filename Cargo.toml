@@ -1,6 +1,6 @@
 [package]
 name = "oboete"
-version = "0.1.11"
+version = "0.1.12"
 authors = ["mariinkys (Alex Marín)"]
 edition = "2024"
 description = "A simple flashcards application for the COSMIC™ desktop"
@@ -27,11 +27,11 @@ sqlx = { version = "0.8.6", features = [
 ] }
 futures = "0.3.31"
 dirs = "6.0.0"
-serde = { version = "1.0.219", features = ["derive"] }
+serde = { version = "1.0.226", features = ["derive"] }
 rand = "0.9.2" #needed for flashcard selection
 ashpd = { version = "0.12.0", features = ["wayland"] } #needed for file dialogs
 percent-encoding = "2.3.2" #needed for correct anki file importing
-serde_json = "1.0.143" #needed for file exporting and importing
+serde_json = "1.0.145" #needed for file exporting and importing
 
 [dependencies.i18n-embed]
 version = "0.16.0"

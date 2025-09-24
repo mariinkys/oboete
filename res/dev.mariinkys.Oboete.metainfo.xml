@@ -80,7 +80,13 @@
     </keywords>
 
     <releases>
-        <release version="0.1.11" date="2025-09-25">
+        <release version="0.1.12" date="2025-09-24">
+            <description>
+                <p>Updated application runtime</p>
+                <p>Updated dependencies</p>
+            </description>
+        </release>
+        <release version="0.1.11" date="2025-09-13">
             <description>
                 <p>Updated dependencies</p>
             </description>
