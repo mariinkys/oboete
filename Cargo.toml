@@ -15,7 +15,7 @@ name = "oboete"
 [dependencies]
 futures-util = "0.3.31"
 i18n-embed-fl = "0.10.0"
-open = "5.3.2"
+open = "5.3.3"
 rust-embed = "8.9.0"
 tokio = { version = "1.48.0", features = ["full"] }
 
