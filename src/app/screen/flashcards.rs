@@ -11,6 +11,7 @@ use cosmic::widget::{
     Row, Space, button, container, image, list, scrollable, settings, text, text_input,
 };
 use cosmic::{Element, Task, theme};
+use percent_encoding::percent_decode;
 use sqlx::{Pool, Sqlite};
 
 use crate::app::context_page::ContextPage;
@@ -865,7 +866,9 @@ fn apply_flashcard_add_edit_input(
             #[allow(clippy::collapsible_if)]
             if !selected_path.is_empty() {
                 if let FlashcardField::Image { path, .. } = &mut flashcard.front {
-                    *path = selected_path;
+                    *path = percent_decode(selected_path.as_bytes())
+                        .decode_utf8_lossy()
+                        .to_string();
                 };
             }
         }
@@ -936,7 +939,9 @@ fn apply_flashcard_add_edit_input(
             #[allow(clippy::collapsible_if)]
             if !selected_path.is_empty() {
                 if let FlashcardField::Image { path, .. } = &mut flashcard.back {
-                    *path = selected_path;
+                    *path = percent_decode(selected_path.as_bytes())
+                        .decode_utf8_lossy()
+                        .to_string();
                 };
             }
         }
