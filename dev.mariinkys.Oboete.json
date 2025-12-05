@@ -31,8 +31,8 @@
         "cargo --offline fetch --manifest-path Cargo.toml --verbose",
         "cargo --offline build --release --verbose",
         "install -Dm0755 ./target/release/oboete /app/bin/oboete",
-        "install -Dm0644 ./resources/dev.mariinkys.Oboete.desktop /app/share/applications/dev.mariinkys.Oboete.desktop",
-        "install -Dm0644 ./resources/dev.mariinkys.Oboete.metainfo.xml /app/share/metainfo/dev.mariinkys.Oboete.metainfo.xml",
+        "install -Dm0644 ./resources/app.desktop /app/share/applications/dev.mariinkys.Oboete.desktop",
+        "install -Dm0644 ./resources/app.metainfo.xml /app/share/metainfo/dev.mariinkys.Oboete.metainfo.xml",
         "install -Dm0644 ./resources/icons/hicolor/scalable/apps/icon.svg /app/share/icons/hicolor/scalable/apps/dev.mariinkys.Oboete.svg"
       ],
       "sources": [
