@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Original Code by edfloreshz (https://github.com/edfloreshz/orderly/blob/main/src/app/icon_cache.rs)
 
 use cosmic::widget::icon;
 use std::collections::HashMap;
@@ -24,7 +23,7 @@ impl IconCache {
         macro_rules! bundle {
             ($name:expr, $size:expr) => {
                 let data: &'static [u8] =
-                    include_bytes!(concat!("../res/icons/bundled/", $name, ".svg"));
+                    include_bytes!(concat!("../resources/icons/bundled/", $name, ".svg"));
                 cache.insert(
                     IconCacheKey {
                         name: $name,

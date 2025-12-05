@@ -1,24 +1,29 @@
+# Name of the application's binary.
 name := 'oboete'
-export APPID := 'dev.mariinkys.Oboete'
+# The unique ID of the application.
+appid := 'dev.mariinkys.Oboete'
 
+# Path to root file system, which defaults to `/`.
 rootdir := ''
+# The prefix for the `/usr` directory.
 prefix := '/usr'
+# The location of the cargo target directory.
+cargo-target-dir := env('CARGO_TARGET_DIR', 'target')
 
+# Application's appstream metadata
+appdata := appid + '.metainfo.xml'
+# Application's desktop entry
+desktop := appid + '.desktop'
+# Application's icon.
+icon-svg := appid + '.svg'
+
+# Install destinations
 base-dir := absolute_path(clean(rootdir / prefix))
-
-bin-src := 'target' / 'release' / name
+appdata-dst := base-dir / 'share' / 'appdata' / appdata
 bin-dst := base-dir / 'bin' / name
-
-desktop := APPID + '.desktop'
-desktop-src := 'res' / desktop
 desktop-dst := base-dir / 'share' / 'applications' / desktop
-
-metainfo := APPID + '.metainfo.xml'
-metainfo-src := 'res' / metainfo
-metainfo-dst := base-dir / 'share' / 'metainfo' / metainfo
-
-icons-src := 'res' / 'icons' / 'hicolor'
-icons-dst := clean(rootdir / prefix) / 'share' / 'icons' / 'hicolor'
+icons-dst := base-dir / 'share' / 'icons' / 'hicolor'
+icon-svg-dst := icons-dst / 'scalable' / 'apps'
 
 # Default recipe which runs `just build-release`
 default: build-release
@@ -26,6 +31,13 @@ default: build-release
 # Runs `cargo clean`
 clean:
     cargo clean
+
+# Removes vendored dependencies
+clean-vendor:
+    rm -rf .cargo vendor vendor.tar
+
+# `cargo clean` and removes vendored dependencies
+clean-dist: clean clean-vendor
 
 # Compiles with debug profile
 build-debug *args:
@@ -44,53 +56,41 @@ check *args:
 # Runs a clippy check with JSON message format
 check-json: (check '--message-format=json')
 
-dev *args:
-    cargo fmt
-    just run {{args}}
-
-# Run with debug logs
+# Run the application for testing purposes
 run *args:
-    env RUST_LOG=oboete=info RUST_BACKTRACE=full cargo run --release {{args}}
+    env RUST_BACKTRACE=full cargo run --release {{args}}
 
 # Installs files
 install:
-    install -Dm0755 {{bin-src}} {{bin-dst}}
-    install -Dm0644 {{desktop-src}} {{desktop-dst}}
-    install -Dm0644 {{metainfo-src}} {{metainfo-dst}}
-
-    for size in `ls {{icons-src}}`; do \
-        install -Dm0644 "{{icons-src}}/$size/apps/{{APPID}}.svg" "{{icons-dst}}/$size/apps/{{APPID}}.svg"; \
-    done
-
+    install -Dm0755 {{ cargo-target-dir / 'release' / name }} {{bin-dst}}
+    install -Dm0644 {{ 'resources' / desktop }} {{desktop-dst}}
+    install -Dm0644 {{ 'resources' / appdata }} {{appdata-dst}}
+    install -Dm0644 {{ 'resources' / 'icons' / 'hicolor' / 'scalable' / 'apps' / 'icon.svg' }} {{icon-svg-dst}}
 
 # Uninstalls installed files
 uninstall:
-    rm {{bin-dst}}
-    rm {{desktop-dst}}
-    rm {{metainfo-dst}}
-
+    rm {{bin-dst}} {{desktop-dst}} {{icon-svg-dst}}
 
 # Vendor dependencies locally
 vendor:
-    #!/usr/bin/env bash
     mkdir -p .cargo
-    cargo vendor --sync Cargo.toml | head -n -1 > .cargo/config.toml
+    cargo vendor | head -n -1 > .cargo/config.toml
     echo 'directory = "vendor"' >> .cargo/config.toml
-    echo >> .cargo/config.toml
-    echo '[env]' >> .cargo/config.toml
-    if [ -n "${SOURCE_DATE_EPOCH}" ]
-    then
-        source_date="$(date -d "@${SOURCE_DATE_EPOCH}" "+%Y-%m-%d")"
-        echo "VERGEN_GIT_COMMIT_DATE = \"${source_date}\"" >> .cargo/config.toml
-    fi
-    if [ -n "${SOURCE_GIT_HASH}" ]
-    then
-        echo "VERGEN_GIT_SHA = \"${SOURCE_GIT_HASH}\"" >> .cargo/config.toml
-    fi
-    tar pcf vendor.tar .cargo vendor
-    rm -rf .cargo vendor
+    tar pcf vendor.tar vendor
+    rm -rf vendor
 
 # Extracts vendored dependencies
 vendor-extract:
     rm -rf vendor
     tar pxf vendor.tar
+
+# Bump cargo version, create git commit, and create tag
+tag version:
+    find -type f -name Cargo.toml -exec sed -i '0,/^version/s/^version.*/version = "{{version}}"/' '{}' \; -exec git add '{}' \;
+    cargo check
+    cargo clean
+    git add Cargo.lock
+    git commit -m 'release: {{version}}'
+    git commit --amend
+    git tag -a {{version}} -m ''
+

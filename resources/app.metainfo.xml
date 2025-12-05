@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.mariinkys.Oboete</id>
+  <developer id="dev.mariinkys">
+    <name>mariinkys</name>
+  </developer>
+  <url type="homepage">https://github.com/mariinkys/oboete</url>
+  <url type="bugtracker">https://github.com/mariinkys/oboete/issues</url>
+  <url type="donation">https://buymeacoffee.com/mariinkys</url>
+
+  <name>Oboete</name>
+  <summary>A simple flashcards application</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+
+  <description>
+    <p>Oboete is a straightforward and efficient flashcard application designed to help users
+      study and memorize information effectively. Whether you're learning a new language,
+      studying for exams, or just trying to remember important facts, Oboete provides an
+      intuitive platform for creating, organizing, and reviewing flashcards.</p>
+    <ul>
+      <li>Study flashcards with ease</li>
+      <li>Fast and easy to use</li>
+      <li>Works out of the box</li>
+      <li>Can import flashcards from other sources such as Anki</li>
+      <li>Does NOT sync to the cloud</li>
+    </ul>
+  </description>
+
+  <icon type="remote" height="256" width="256">
+    https://raw.githubusercontent.com/mariinkys/oboete/main/resources/icons/hicolor/scalable/apps/icon.svg</icon>
+  <launchable type="desktop-id">dev.mariinkys.Oboete.desktop</launchable>
+  <content_rating type="oars-1.1" />
+
+  <provides>
+    <id>com.system76.CosmicApplication</id>
+    <binary>oboete</binary>
+  </provides>
+
+  <screenshots>
+    <screenshot type="default" xml:lang="en">
+      <image>
+        https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/main-dark.png</image>
+      <caption>StudySets Page</caption>
+    </screenshot>
+    <screenshot xml:lang="en">
+      <image>
+        https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/folder-inside-dark.png</image>
+      <caption>Folder Inside</caption>
+    </screenshot>
+    <screenshot xml:lang="en">
+      <image>
+        https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/study-dark.png</image>
+      <caption>Study Mode Sample</caption>
+    </screenshot>
+  </screenshots>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#4ADE80</color>
+    <color type="primary" scheme_preference="dark">#22C55E</color>
+  </branding>
+
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>touch</control>
+  </supports>
+
+  <categories>
+    <category>COSMIC</category>
+    <category>Education</category>
+    <category>Languages</category>
+  </categories>
+
+  <keywords>
+    <keyword>COSMIC</keyword>
+    <keyword>Flashcards</keyword>
+    <keyword>Study</keyword>
+    <keyword>Memory</keyword>
+    <keyword>Learning</keyword>
+    <keyword>Vocabulary</keyword>
+    <keyword>Quiz</keyword>
+    <keyword>Language</keyword>
+    <keyword>Japanese</keyword>
+    <keyword>Spaced Repetition</keyword>
+    <keyword>Anki</keyword>
+  </keywords>
+
+  <releases>
+    <release version="0.2.0" date="2025-12-05">
+      <description>
+        <p>TODO</p>
+      </description>
+    </release>
+    <release version="0.1.13" date="2025-11-25">
+      <description>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
+    <release version="0.1.12" date="2025-09-24">
+      <description>
+        <p>Updated application runtime</p>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
+    <release version="0.1.11" date="2025-09-13">
+      <description>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
+    <release version="0.1.10" date="2025-07-07">
+      <description>
+        <p>Application config persists between runs</p>
+        <p>Fixed study screen padding</p>
+        <p>Updated portuguese translation</p>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
+    <release version="0.1.9" date="2025-05-25">
+      <description>
+        <p>Updated dependencies that include bugfixes...</p>
+      </description>
+    </release>
+    <release version="0.1.8" date="2025-01-28">
+      <description>
+        <p>Complete application rewrite that will make code easier to modify and mantain</p>
+        <p>Updated design</p>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
+    <release version="0.1.7" date="2024-12-19">
+      <description>
+        <p>New about page</p>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
+    <release version="0.1.6" date="2024-10-02">
+      <description>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
+    <release version="0.1.5" date="2024-07-13">
+      <description>
+        <p>Fixed Flatpak theming when using Cosmic</p>
+        <p>Fixed width on header options</p>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
+    <release version="0.1.4" date="2024-07-09">
+      <description>
+        <p>Added keybinds</p>
+        <p>Added theming settings</p>
+        <p>Updated application screenshots</p>
+      </description>
+    </release>
+    <release version="0.1.3" date="2024-07-05">
+      <description>
+        <p>Fix application categories</p>
+      </description>
+    </release>
+    <release version="0.1.2" date="2024-07-02">
+      <description>
+        <p>Added Export feature</p>
+        <p>Added Anki Export feature</p>
+        <p>Flashcards now show status while studying</p>
+        <p>Added application wide Backup and Restore</p>
+        <p>Added Italian translation</p>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
+    <release version="0.1.1" date="2024-06-30">
+      <description>
+        <p>Last fixes needed for the Flatpak release</p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2024-06-29">
+      <description>
+        <p>First Stable Release</p>
+      </description>
+    </release>
+  </releases>
+</component>

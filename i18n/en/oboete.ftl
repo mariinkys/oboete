@@ -50,12 +50,18 @@ folder-name = Folder Name
 <#-- Folder Details Context Page -->
 folder-details = Folder Details
 
+<#-- Folder Deletion Dialog -->
+delete-folder = Delete Folder
+
 <#-- Flashcards Page -->
+none-status = Not Studied
+bad-status = Bad
 ok-status = Ok
 good-status = Good
-bad-status = Bad
+easy-status = Easy
 
 <#-- Flashcard Create/Edit Context Page -->
+flashcard-type = Flashcard Type
 flashcard-front-title = Flashcard Front
 flashcard-back-title = Flashcard Back
 flashcard-front-placeholder = Front Content
@@ -81,3 +87,6 @@ import-anki-button = Select Anki File
 export-folder-flashcards-title = Export Folder Flashcards
 export-folder-flashcards-button = Export
 export-folder-flashcards-anki-button = Export Anki
+
+<#-- Flashcard Deletion Dialog -->
+delete-flashcard = Delete Flashcard

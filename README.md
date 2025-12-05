@@ -1,6 +1,6 @@
 <div align="center">
   <br>
-  <img src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/icons/hicolor/256x256/apps/dev.mariinkys.Oboete.svg" width="150" />
+  <img src="https://raw.githubusercontent.com/mariinkys/oboete/main/resources/icons/hicolor/scalable/apps/dev.mariinkys.Oboete.svg" width="150" />
   <h1>Oboete</h1>
 
   ![Flathub Version](https://img.shields.io/flathub/v/dev.mariinkys.Oboete)
@@ -11,9 +11,9 @@
 
   <h3>A simple flashcards application for the COSMIC™ desktop</h3>
 
-  <img alt="Main Window Dark" width="320" src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/main-dark.png"/>
-  <img alt="Folder Window Dark" width="320" src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/folder-inside-dark.png"/>
-  <img alt="Study Window Dark" width="320" src="https://raw.githubusercontent.com/mariinkys/oboete/main/res/screenshots/study-dark.png"/>
+  <img alt="Main Window Dark" width="320" src="https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/main-dark.png"/>
+  <img alt="Folder Window Dark" width="320" src="https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/folder-inside-dark.png"/>
+  <img alt="Study Window Dark" width="320" src="https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/study-dark.png"/>
 
   <br><br>
 
