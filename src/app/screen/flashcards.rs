@@ -797,7 +797,7 @@ fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'
                 ]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .spacing(spacing.space_xxs),
+                .spacing(spacing.space_s),
             );
         }
 

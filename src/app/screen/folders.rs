@@ -269,17 +269,20 @@ fn folders_view<'a>(spacing: &Spacing, folders: &'a [Folder]) -> Element<'a, Mes
         for folder in folders {
             folders_list = folders_list.add(
                 row![
-                    button::icon(icons::get_handle("folder-open-symbolic", 18))
-                        .class(theme::Button::Suggested)
-                        .width(Length::Shrink)
-                        .on_press(Message::OpenFolder(folder.id.unwrap_or_default())),
-                    button::icon(icons::get_handle("edit-symbolic", 18))
-                        .class(theme::Button::Standard)
-                        .width(Length::Shrink)
-                        .on_press(Message::OpenContextPage(
-                            ContextPage::FolderSettings,
-                            folder.clone()
-                        )),
+                    row![
+                        button::icon(icons::get_handle("folder-open-symbolic", 18))
+                            .class(theme::Button::Suggested)
+                            .width(Length::Shrink)
+                            .on_press(Message::OpenFolder(folder.id.unwrap_or_default())),
+                        button::icon(icons::get_handle("edit-symbolic", 18))
+                            .class(theme::Button::Standard)
+                            .width(Length::Shrink)
+                            .on_press(Message::OpenContextPage(
+                                ContextPage::FolderSettings,
+                                folder.clone()
+                            ))
+                    ]
+                    .spacing(spacing.space_xxs),
                     text(folder.name.clone())
                         .align_y(Vertical::Center)
                         .align_x(Horizontal::Left)
@@ -290,7 +293,7 @@ fn folders_view<'a>(spacing: &Spacing, folders: &'a [Folder]) -> Element<'a, Mes
                 ]
                 .width(Length::Fill)
                 .align_y(Alignment::Center)
-                .spacing(spacing.space_xxs),
+                .spacing(spacing.space_s),
             );
         }
 
