@@ -1,6 +1,6 @@
 <div align="center">
   <br>
-  <img src="./resources/icons/hicolor/scalable/apps/dev.mariinkys.Oboete.svg" width="150" />
+  <img src="./resources/icons/hicolor/scalable/apps/icon.svg" width="150" />
   <h1>Oboete</h1>
 
   ![Flathub Version](https://img.shields.io/flathub/v/dev.mariinkys.Oboete)
