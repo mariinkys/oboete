@@ -27,6 +27,7 @@ mod context_page;
 mod core;
 mod dialogs;
 mod screen;
+mod widgets;
 
 const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 

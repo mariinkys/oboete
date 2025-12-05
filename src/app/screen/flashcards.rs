@@ -17,6 +17,7 @@ use sqlx::{Pool, Sqlite};
 use crate::app::context_page::ContextPage;
 use crate::app::core::models::flashcard::{Flashcard, FlashcardField};
 use crate::app::core::utils;
+use crate::app::widgets::pill::pill;
 use crate::{fl, icons};
 
 pub struct FlashcardsScreen {
@@ -784,10 +785,12 @@ fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'
                         .align_y(Vertical::Center)
                         .align_x(Horizontal::Left)
                         .width(Length::Fill),
-                    text(flashcard.status.to_string()) // TODO: Badge that looks cool
-                        .align_y(Vertical::Center)
-                        .align_x(Horizontal::Right)
-                        .width(Length::Fill),
+                    container(
+                        pill(flashcard.status.to_string()).color(flashcard.status.get_color())
+                    )
+                    .align_y(Vertical::Center)
+                    .align_x(Horizontal::Right)
+                    .width(Length::Fill),
                     button::icon(icons::get_handle("user-trash-full-symbolic", 18))
                         .class(theme::Button::Destructive)
                         .on_press(Message::DeleteFlashcard(flashcard.clone()))
