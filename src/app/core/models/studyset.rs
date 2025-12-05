@@ -12,6 +12,7 @@ pub struct StudySet {
 }
 
 impl StudySet {
+    /// Get all [`StudySet`] from the database
     pub async fn get_all(pool: Arc<Pool<Sqlite>>) -> Result<Vec<StudySet>, anywho::Error> {
         let mut rows =
             sqlx::query("SELECT id, name FROM studysets ORDER BY id ASC").fetch(pool.as_ref());
@@ -30,6 +31,7 @@ impl StudySet {
         Ok(result)
     }
 
+    /// Add a [`StudySet`] to the database
     pub async fn add(pool: Arc<Pool<Sqlite>>, name: String) -> Result<(), anywho::Error> {
         sqlx::query("INSERT INTO studysets (name) VALUES (?)")
             .bind(&name)
@@ -39,6 +41,7 @@ impl StudySet {
         Ok(())
     }
 
+    /// Edit a [`StudySet`] on the database
     pub async fn edit(pool: Arc<Pool<Sqlite>>, studyset: StudySet) -> Result<(), anywho::Error> {
         sqlx::query("UPDATE studysets SET name = $1 WHERE id = $2")
             .bind(&studyset.name)
@@ -49,6 +52,7 @@ impl StudySet {
         Ok(())
     }
 
+    /// Delete a [`StudySet`] from the database (and it's folders and the folders flashcards)
     pub async fn delete(pool: Arc<Pool<Sqlite>>, studyset_id: i32) -> Result<(), sqlx::Error> {
         sqlx::query("DELETE FROM studysets WHERE id = ?")
             .bind(studyset_id)

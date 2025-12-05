@@ -14,6 +14,7 @@ pub fn check_path(image_path: &String) -> bool {
     path.starts_with(&output_path)
 }
 
+/// Attempts to save the image of the given path on the standard oboete output path
 pub fn save_image(image_path: &String) -> Result<String, anywho::Error> {
     let output_path = dirs::data_dir()
         .ok_or_else(|| anywho::anywho!("Failed to get data directory"))?
@@ -37,6 +38,7 @@ pub fn save_image(image_path: &String) -> Result<String, anywho::Error> {
     Ok(destination.to_string_lossy().to_string())
 }
 
+/// Deletes the image of the given path
 pub async fn delete_image(image_path: String) -> Result<(), anywho::Error> {
     let path = Path::new(&image_path);
 

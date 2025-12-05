@@ -26,6 +26,7 @@ struct BackupFolder {
     flashcards: Vec<Flashcard>,
 }
 
+/// Backup all of the data of the application into a .ron file that get's saved on the given path
 pub async fn backup_oboete(
     pool: Arc<Pool<Sqlite>>,
     file_path: String,
@@ -142,6 +143,7 @@ pub async fn backup_oboete(
     Ok(())
 }
 
+/// Import all of the data into the application from a .ron file that's on the given path
 pub async fn import_oboete(
     pool: Arc<Pool<Sqlite>>,
     file_path: String,

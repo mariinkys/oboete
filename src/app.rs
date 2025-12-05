@@ -75,29 +75,48 @@ enum State {
 /// Messages emitted by the application and its widgets.
 #[derive(Debug, Clone)]
 pub enum Message {
+    /// Opens the given URL in the browser
     LaunchUrl(String),
+    /// Opens (or closes if already open) the given [`ContextPage`]
     ToggleContextPage(ContextPage),
+    /// Update the application config
     UpdateConfig(OboeteConfig),
+    /// Update the application theme
     UpdateTheme(usize),
+    /// Callback after clicking something in the app menu
     MenuAction(app_menu::MenuAction),
+    /// Asks to execute various actions related to the application dialogs
     DialogAction(dialogs::DialogAction),
+    /// Executes the appropiate cosmic binding on keyboard shortcut
     Key(Modifiers, Key),
+    /// Updates the current state of keyboard modifiers
     Modifiers(Modifiers),
 
+    /// Callback after loading the application database
     DatabaseLoaded(Arc<Pool<Sqlite>>),
 
+    /// Asks to load the studysets from the database
     FetchStudySets,
+    /// Callback after fetching the studysets from the database
     FetchedStudySets(Result<Vec<StudySet>, anywho::Error>),
 
+    /// Folders Screen
     Folders(folders::Message),
+    /// Flashcards Screen
     Flashcards(flashcards::Message),
+    /// Study Screen
     Study(study::Message),
 
+    /// Asks to open the folders page given a folder_id
     OpenFolders(i32),
+    /// Asks to open the flashcards page given a folder_id
     OpenFlashcards(i32),
+    /// Asks to open the flashcards page given a folder_id
     OpenStudy(i32),
 
+    /// Callback after asking to perform an app-wide backup
     ComleteBackup(String),
+    /// Callback after asking to perform an import
     CompleteImport(String),
 }
 
@@ -302,6 +321,7 @@ impl cosmic::Application for AppModel {
             return Subscription::batch(subscriptions);
         };
 
+        // Handle subscriptions from the current screen
         match screen {
             Screen::Folders(folders_screen) => {
                 subscriptions.push(folders_screen.subscription().map(Message::Folders))

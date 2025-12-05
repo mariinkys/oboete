@@ -14,10 +14,12 @@ use crate::app::context_page::ContextPage;
 use crate::app::core::models::folder::Folder;
 use crate::{fl, icons};
 
+/// Screen [`State`] holder
 pub struct FoldersScreen {
     state: State,
 }
 
+/// The different states this screen can be in
 enum State {
     Loading,
     NoStudySet,
@@ -30,21 +32,31 @@ enum State {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    /// Update the current studyset id, needed for some database operations
     UpdateCurrentSetId(i32),
+    /// Load the folders into state
     LoadFolders,
+    /// Callback after asking to load the folders into state
     FoldersLoaded(Result<Vec<Folder>, anywho::Error>),
 
+    /// Ask to open the [`DialogPage`] for creating a new folder
     OpenCreateFolderDialog,
+    /// Ask to open the given [`ContextPage`] for the given [`Folder`]
     OpenContextPage(ContextPage, Folder),
 
+    /// Ask to edit a [`Folder`] in the database
     EditFolder,
+    /// Callback after some input has been modified for the currently editing folder
     EditFolderInput(String),
 
+    /// Ask to delete a [`Folder`] from the database
     DeleteFolder(i32),
 
+    /// Ask to open the contents of the given [`Folder`] id
     OpenFolder(i32),
 }
 
+/// Allows us to talk with the parent screen
 pub enum Action {
     None,
     Run(Task<Message>),
@@ -57,6 +69,7 @@ pub enum Action {
 }
 
 impl FoldersScreen {
+    /// Init the screen
     pub fn new(database: &Arc<Pool<Sqlite>>, studyset_id: Option<i32>) -> (Self, Task<Message>) {
         if let Some(set_id) = studyset_id {
             (
@@ -79,6 +92,7 @@ impl FoldersScreen {
         }
     }
 
+    /// View of the screen
     pub fn view(&self) -> Element<'_, Message> {
         match &self.state {
             State::Loading => container(text("Loading...")).center(Length::Fill).into(),
@@ -103,6 +117,7 @@ impl FoldersScreen {
         }
     }
 
+    /// Handles interactions for this screen
     pub fn update(&mut self, message: Message, database: &Arc<Pool<Sqlite>>) -> Action {
         match message {
             Message::UpdateCurrentSetId(set_id) => {
@@ -200,6 +215,7 @@ impl FoldersScreen {
         }
     }
 
+    /// Subscriptions of this screen
     pub fn subscription(&self) -> Subscription<Message> {
         Subscription::none()
     }
@@ -208,6 +224,7 @@ impl FoldersScreen {
     // CONTEXT PAGES
     //
 
+    /// View of the folder settings [`ContextPage`] of the application
     pub fn folder_settings<'a>(&'a self, spacing: Spacing) -> Element<'a, Message> {
         let State::Ready { edit_folder, .. } = &self.state else {
             return text("Error").into(); // It's theoretically impossible to be here.
@@ -246,6 +263,7 @@ impl FoldersScreen {
 // VIEWS
 //
 
+/// View of the header of this screen
 fn header_view<'a>(spacing: Spacing) -> Element<'a, Message> {
     let new_folder_button = button::icon(icons::get_handle("list-add-symbolic", 18))
         .class(theme::Button::Suggested)
@@ -260,6 +278,7 @@ fn header_view<'a>(spacing: Spacing) -> Element<'a, Message> {
         .into()
 }
 
+/// View of the contents of this screen
 fn folders_view<'a>(spacing: &Spacing, folders: &'a [Folder]) -> Element<'a, Message> {
     let content: Element<'a, Message> = if folders.is_empty() {
         text("Create some folders to get started...").into()

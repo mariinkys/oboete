@@ -8,6 +8,7 @@ use cosmic::widget::menu::key_bind::Modifier;
 
 use crate::app::app_menu::MenuAction;
 
+/// COSMIC handled keybinds
 pub fn key_binds() -> HashMap<KeyBind, MenuAction> {
     let mut key_binds = HashMap::new();
 

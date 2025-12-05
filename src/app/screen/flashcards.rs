@@ -20,10 +20,12 @@ use crate::app::core::utils;
 use crate::app::widgets::pill::pill;
 use crate::{fl, icons};
 
+/// Screen [`State`] holder
 pub struct FlashcardsScreen {
     state: State,
 }
 
+/// The different states this screen can be in
 enum State {
     Loading,
     Ready {
@@ -36,26 +38,40 @@ enum State {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    /// Does nothing
     None,
+    /// Opens the given url on the browser
     LaunchUrl(String),
+    /// Update the current folder id, needed for some database operations
     UpdateCurrentFolderId(i32),
+    /// Load the flashcards into state
     LoadFlashcards,
+    /// Callback after asking to load the flashcards into state
     FlashcardsLoaded(Result<Vec<Flashcard>, anywho::Error>),
 
+    /// Ask to open the given [`ContextPage`] for the given [`Flashcard`] (if necessary)
     OpenContextPage(ContextPage, Option<Flashcard>),
 
+    /// Ask to edit a [`Flashcard`] in the database
     EditFlashcard,
+    /// Ask to add a [`Flashcard`] in the database
     AddFlashcard,
+    /// Callback after user input that's either adding or editing a [`Flashcard`]
     AddEditFlashcardInput(AddEditFlashcardInput),
+    /// Resets the given [`Flashcard`] status, it also resets it's FSRS Data
     ResetFlashcardStatus(i32),
 
+    /// Delete the given [`Flashcard`] from the database, also deletes any image the [`Flashcard`] may have
     DeleteFlashcard(Flashcard),
 
+    /// User input on the folder options [`ContextPage`]
     FolderOptionsInput(FolderOptionsInput),
 
+    /// Ask to open the study page of the current folder
     Study,
 }
 
+/// Represents the different inputs the user can perfrom on the flashcard upsert [`ContextPage`]
 #[derive(Debug, Clone)]
 pub enum AddEditFlashcardInput {
     FrontFieldTypeChanged(FlashcardField),
@@ -73,6 +89,7 @@ pub enum AddEditFlashcardInput {
     BackAltTextInput(String),
 }
 
+/// Represents the different inputs the user can perfrom on the folder options [`ContextPage`]
 #[derive(Debug, Clone)]
 pub enum FolderOptionsInput {
     ImportContentInput(String),
@@ -91,6 +108,7 @@ pub enum FolderOptionsInput {
     CompleteAnkiExport(String),
 }
 
+/// Allows us to talk with the parent screen
 pub enum Action {
     None,
     Run(Task<Message>),
@@ -101,6 +119,7 @@ pub enum Action {
     StudyFolder(i32),
 }
 
+/// State holder for the folder options [`ContextPage`]
 #[derive(Debug, Default)]
 struct FolderOptions {
     import_content: String,
@@ -109,6 +128,7 @@ struct FolderOptions {
 }
 
 impl FolderOptions {
+    /// Returns true if the folder options can be submitted to perform an action on the database
     pub fn is_valid(&self) -> bool {
         !self.import_content.is_empty()
             && !self.between_cards.is_empty()
@@ -117,6 +137,7 @@ impl FolderOptions {
 }
 
 impl FlashcardsScreen {
+    /// Init the screen
     pub fn new(database: &Arc<Pool<Sqlite>>, folder_id: i32) -> (Self, Task<Message>) {
         (
             Self {
@@ -130,6 +151,7 @@ impl FlashcardsScreen {
         )
     }
 
+    /// View of the screen
     pub fn view(&self) -> Element<'_, Message> {
         match &self.state {
             State::Loading => container(text("Loading...")).center(Length::Fill).into(),
@@ -151,6 +173,7 @@ impl FlashcardsScreen {
         }
     }
 
+    /// Handles interactions for this screen
     pub fn update(&mut self, message: Message, database: &Arc<Pool<Sqlite>>) -> Action {
         match message {
             Message::None => Action::None,
@@ -197,6 +220,7 @@ impl FlashcardsScreen {
             Message::FlashcardsLoaded(res) => {
                 match res {
                     Ok(flashcards) => {
+                        // If we we're editing a flashcard don't lose it's state even if we update the main content of the page
                         let add_edit_flashcard = match &self.state {
                             State::Ready {
                                 add_edit_flashcard, ..
@@ -291,6 +315,7 @@ impl FlashcardsScreen {
                 };
 
                 if let Some(folder_id) = current_folder_id {
+                    // save the front flashcard image if any
                     if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.front {
                         let new_path = utils::save_image(path);
                         if let Ok(new_path) = new_path {
@@ -300,6 +325,7 @@ impl FlashcardsScreen {
                         }
                     }
 
+                    // save the back flashcard image if any
                     if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.back {
                         let new_path = utils::save_image(path);
                         if let Ok(new_path) = new_path {
@@ -381,6 +407,7 @@ impl FlashcardsScreen {
         }
     }
 
+    /// Subscriptions of this screen
     pub fn subscription(&self) -> Subscription<Message> {
         Subscription::none()
     }
@@ -389,6 +416,7 @@ impl FlashcardsScreen {
     // CONTEXT PAGES
     //
 
+    /// View of the folder/flashcard options [`ContextPage`] of the application
     pub fn options_contextpage<'a>(&'a self, spacing: Spacing) -> Element<'a, Message> {
         let State::Ready {
             flashcards,
@@ -517,6 +545,7 @@ impl FlashcardsScreen {
         .into()
     }
 
+    /// View of the upsert flashcard [`ContextPage`] of the application
     pub fn add_edit_contextpage<'a>(&'a self, spacing: Spacing) -> Element<'a, Message> {
         let State::Ready {
             add_edit_flashcard, ..
@@ -729,6 +758,7 @@ impl FlashcardsScreen {
 // VIEWS
 //
 
+/// View of the header of this screen
 fn header_view<'a>(spacing: Spacing) -> Element<'a, Message> {
     let new_flashcard_button = button::icon(icons::get_handle("list-add-symbolic", 18))
         .class(theme::Button::Suggested)
@@ -760,6 +790,7 @@ fn header_view<'a>(spacing: Spacing) -> Element<'a, Message> {
         .into()
 }
 
+/// View of the contents of this screen
 fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'a, Message> {
     let content: Element<'a, Message> = if flashcards.is_empty() {
         text("Create some flashcards to get started...").into()
@@ -816,6 +847,7 @@ fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'
 // HELPERS
 //
 
+/// Given the [`AddEditFlashcardInput`] apply the appropiate state changes
 fn apply_flashcard_add_edit_input(
     input: AddEditFlashcardInput,
     flashcard: &mut Flashcard,
@@ -973,6 +1005,7 @@ fn apply_flashcard_add_edit_input(
     Action::None
 }
 
+/// Given the [`FolderOptionsInput`] apply the appropiate state changes
 fn apply_folder_options_input(
     input: FolderOptionsInput,
     options: &mut FolderOptions,

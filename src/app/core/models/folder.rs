@@ -12,6 +12,7 @@ pub struct Folder {
 }
 
 impl Folder {
+    /// Get all folders of the given [`StudySet`] from the database
     pub async fn get_all(
         pool: Arc<Pool<Sqlite>>,
         set_id: i32,
@@ -35,6 +36,7 @@ impl Folder {
         Ok(result)
     }
 
+    /// Add a [`Folder`] to the database
     pub async fn add(
         pool: Arc<Pool<Sqlite>>,
         name: String,
@@ -49,6 +51,7 @@ impl Folder {
         Ok(())
     }
 
+    /// Edit a [`Folder`] on the database
     pub async fn edit(pool: Arc<Pool<Sqlite>>, folder: Folder) -> Result<(), anywho::Error> {
         sqlx::query("UPDATE folders SET name = $1 WHERE id = $2")
             .bind(&folder.name)
@@ -59,6 +62,7 @@ impl Folder {
         Ok(())
     }
 
+    /// Delete a [`Folder`] from the database (and it's flashcards)
     pub async fn delete(pool: Arc<Pool<Sqlite>>, folder_id: i32) -> Result<(), anywho::Error> {
         sqlx::query("DELETE FROM folders WHERE id = ?")
             .bind(folder_id)

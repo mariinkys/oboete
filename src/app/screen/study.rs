@@ -15,11 +15,13 @@ use crate::app::core::utils;
 use crate::app::core::utils::fsrs_scheduler::FSRSScheduler;
 use crate::fl;
 
+/// Screen [`State`] holder
 pub struct StudyScreen {
     scheduler: FSRSScheduler,
     state: State,
 }
 
+/// The different states this screen can be in
 enum State {
     Loading,
     Ready {
@@ -31,16 +33,19 @@ enum State {
     },
 }
 
+/// The studymode the user is currently in
 enum PracticeMode {
     Fsrs,
     Study,
 }
 
+/// Holds the state of the currently studying [`Flashcard`]
 struct StudyingFlashcard {
     flashcard: Flashcard,
     flashcard_side: FlashcardSide,
 }
 
+/// Which flashcard side are we looking at?
 #[derive(Default)]
 enum FlashcardSide {
     #[default]
@@ -52,16 +57,23 @@ enum FlashcardSide {
 pub enum Message {
     /// Asks to go back a screen                     
     Back,
+    /// Update the current folder id, needed for some database operations
     UpdateCurrentFolderId(i32),
 
+    /// Load the flashcards into state
     LoadFlashcards,
+    /// Callback after asking to load the flashcards into state
     FlashcardsLoaded(Result<Vec<Flashcard>, anywho::Error>),
 
+    /// Ask to swap the currently studying flashcard side
     SwapFlashcardSide,
+    /// Update the currently styuding flashcard status
     UpdateFlashcardStatus(i32, FlashcardStatus),
+    /// Callback after updating the currently studying flashcard, select a new card...
     FlashcardStatusUpdated,
 }
 
+/// Allows us to talk with the parent screen
 pub enum Action {
     None,
     Back(i32),
@@ -69,6 +81,7 @@ pub enum Action {
 }
 
 impl StudyScreen {
+    /// Init the screen
     pub fn new(database: &Arc<Pool<Sqlite>>, folder_id: i32) -> (Self, Task<Message>) {
         (
             Self {
@@ -84,6 +97,7 @@ impl StudyScreen {
         )
     }
 
+    /// View of the screen
     pub fn view(&self) -> Element<'_, Message> {
         match &self.state {
             State::Loading => container(text("Loading...")).center(Length::Fill).into(),
@@ -113,6 +127,7 @@ impl StudyScreen {
         }
     }
 
+    /// Handles interactions for this screen
     pub fn update(&mut self, message: Message, database: &Arc<Pool<Sqlite>>) -> Action {
         match message {
             Message::Back => {
@@ -277,11 +292,13 @@ impl StudyScreen {
         }
     }
 
+    /// Subscriptions of this screen
     pub fn subscription(&self) -> Subscription<Message> {
         Subscription::none()
     }
 }
 
+/// View of the study page content
 fn study_view<'a>(
     studying_flashcard: &'a StudyingFlashcard,
     practice_mode: &'a PracticeMode,
@@ -362,6 +379,7 @@ fn study_view<'a>(
     .into()
 }
 
+/// View of the buttons of the study page
 fn study_buttons_view<'a>(
     spacing: Spacing,
     studying_flashcard: &'a StudyingFlashcard,
@@ -408,6 +426,7 @@ fn study_buttons_view<'a>(
 // HELPERS
 //
 
+/// Given the current [`FlashcardStatus`] gives back the appropiate [`theme::Button`]
 fn button_style(status: FlashcardStatus) -> theme::Button {
     theme::Button::Custom {
         active: Box::new(move |_focused, theme| button_appearance(theme, status)),
@@ -417,6 +436,7 @@ fn button_style(status: FlashcardStatus) -> theme::Button {
     }
 }
 
+/// Helper for giving the appropiate [`theme::Button`] for a given [`FlashcardStatus`]
 fn button_appearance(theme: &theme::Theme, status: FlashcardStatus) -> button::Style {
     let cosmic = theme.cosmic();
     let mut appearance = button::Style::new();
@@ -433,6 +453,7 @@ fn button_appearance(theme: &theme::Theme, status: FlashcardStatus) -> button::S
     appearance
 }
 
+/// Orders the [`Flashcard`] to follow the FSRS algo if possible, if not offers ALL cards sorted by due date, also determines the page [`PracticeMode`]
 fn order_due_cards(flashcards: &mut [Flashcard]) -> Option<(Vec<Flashcard>, PracticeMode)> {
     let current_day = utils::current_day();
 

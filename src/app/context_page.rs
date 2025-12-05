@@ -11,14 +11,20 @@ use crate::{
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub enum ContextPage {
     #[default]
+    /// About [`ContextPage`] of the application
     About,
+    /// Settings [`ContextPage`] of the application
     Settings,
+    /// Folder Settings [`ContextPage`] of the application
     FolderSettings,
+    /// Upsert Flashcard [`ContextPage`] of the application
     AddEditFlashcard,
+    /// FolderContent/Flashards Settings [`ContextPage`] of the application
     FolderContentOptions,
 }
 
 impl ContextPage {
+    /// Display the [`ContextPage`]
     pub fn display<'a>(
         &self,
         app_model: &'a AppModel,

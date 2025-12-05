@@ -8,6 +8,7 @@ pub use flashcards::FlashcardsScreen;
 pub use folders::FoldersScreen;
 pub use study::StudyScreen;
 
+/// Represents a [`Screen`] of the application
 #[allow(clippy::large_enum_variant)]
 pub enum Screen {
     Folders(FoldersScreen),

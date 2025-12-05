@@ -28,6 +28,7 @@ impl PartialEq for Flashcard {
 
 impl Eq for Flashcard {}
 
+/// The different Status a [`Flashcard`] can have
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub enum FlashcardStatus {
     #[default]
@@ -51,6 +52,7 @@ impl std::fmt::Display for FlashcardStatus {
 }
 
 impl FlashcardStatus {
+    /// Convert the [`FlashcardStatus`] to it's appropiate id
     pub fn to_id(self) -> i32 {
         match self {
             FlashcardStatus::None => 1,
@@ -61,6 +63,7 @@ impl FlashcardStatus {
         }
     }
 
+    /// Convert into a [`FlashcardStatus`] the given id
     pub fn from_id(id: i32) -> Option<Self> {
         match id {
             1 => Some(Self::None),
@@ -72,6 +75,7 @@ impl FlashcardStatus {
         }
     }
 
+    /// Appropiate background color for the [`FlashcardStatus`]
     pub fn get_color(&self) -> Color {
         match &self {
             FlashcardStatus::None => Color::default(),
@@ -102,6 +106,7 @@ impl FlashcardStatus {
         }
     }
 
+    /// Appropiate border color for the [`FlashcardStatus`]
     pub fn get_border_color(&self) -> Color {
         match &self {
             FlashcardStatus::None => Color::default(),
@@ -133,6 +138,8 @@ impl FlashcardStatus {
     }
 }
 
+/// Represents the different field types the flashcard can have in either it's front or it's back
+/// get's serialized into ron on the database
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum FlashcardField {
     Text(String),
@@ -166,16 +173,19 @@ impl FlashcardField {
         },
     ];
 
+    /// Get the serialized ron of the [`FlashcardField`]
     // TODO: Maybe saving RON on the DB is not the best practice, because we will have to be carefull If we ever want to
     // modify the FlashcardField Enum
     pub fn to_ron(&self) -> Result<String, anywho::Error> {
         Ok(ron::to_string(&self)?)
     }
 
+    /// Get the [`FlashcardField`] from a ron string
     pub fn from_ron(ron: String) -> Result<Self, anywho::Error> {
         Ok(ron::from_str(&ron)?)
     }
 
+    /// Returns true if [`FlashcardField`] is ready for database submission
     pub fn is_valid(&self) -> bool {
         match self {
             FlashcardField::Text(t) => !t.is_empty(),
@@ -184,6 +194,7 @@ impl FlashcardField {
     }
 }
 
+/// Wrapper of the library MemoryState that implements [`Serialize`] and [`Deserialize`] to get saved as ron in the database
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SerializableMemoryState {
     pub stability: f32,
@@ -209,6 +220,7 @@ impl From<SerializableMemoryState> for fsrs::MemoryState {
 }
 
 impl Flashcard {
+    /// Returns true if the flashcard is ready for db submission
     pub fn is_valid(&self) -> bool {
         self.front.is_valid() && self.back.is_valid()
     }
@@ -223,6 +235,7 @@ impl Flashcard {
         }
     }
 
+    /// Get all flashcards of the given [`Folder`] from the database
     pub async fn get_all(
         pool: Arc<Pool<Sqlite>>,
         folder_id: i32,
@@ -264,6 +277,7 @@ impl Flashcard {
         Ok(result)
     }
 
+    /// Add a [`Flashcard`] to the database
     pub async fn add(
         pool: Arc<Pool<Sqlite>>,
         flashcard: Flashcard,
@@ -288,6 +302,7 @@ impl Flashcard {
         Ok(())
     }
 
+    /// Edit a [`Flashcard`] on the database
     pub async fn edit(pool: Arc<Pool<Sqlite>>, flashcard: Flashcard) -> Result<(), anywho::Error> {
         let front = &flashcard.front.to_ron()?;
         let back = &flashcard.back.to_ron()?;
@@ -302,6 +317,7 @@ impl Flashcard {
         Ok(())
     }
 
+    /// Delete a [`Flashcard`] on the database
     pub async fn delete(pool: Arc<Pool<Sqlite>>, flashcard_id: i32) -> Result<(), anywho::Error> {
         sqlx::query("DELETE FROM flashcards WHERE id = ?")
             .bind(flashcard_id)
@@ -311,6 +327,7 @@ impl Flashcard {
         Ok(())
     }
 
+    /// Updates the status and FSRS data of a [`Flashcard`] on the database
     pub async fn update_status(
         pool: Arc<Pool<Sqlite>>,
         status: FlashcardStatus,
@@ -334,6 +351,7 @@ impl Flashcard {
         Ok(())
     }
 
+    /// Resets the status of a [`Flashcard`] on the database, also deletes the [`Flashcard`] fsrs data
     pub async fn reset_single_status(
         pool: Arc<Pool<Sqlite>>,
         flashcard_id: i32,
@@ -347,6 +365,7 @@ impl Flashcard {
         Ok(())
     }
 
+    /// Resets the status of all the [`Flashcard`] of a given folder on the database, also deletes the [`Flashcard`] fsrs data
     pub async fn reset_all_status(
         pool: Arc<Pool<Sqlite>>,
         folder_id: i32,
@@ -360,6 +379,7 @@ impl Flashcard {
         Ok(())
     }
 
+    /// Add more than one [`Flashcard`] to the database
     pub async fn add_bulk(
         pool: Arc<Pool<Sqlite>>,
         flashcards: Vec<Flashcard>,

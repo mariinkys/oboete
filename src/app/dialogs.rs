@@ -19,17 +19,25 @@ use crate::{
     fl,
 };
 
+/// Represents a [`DialogPage`] of the application
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DialogPage {
+    /// Dialog for creating a new [`StudySet`]
     NewStudySet(String),
+    /// Dialog for renaming a [`StudySet`]
     RenameStudySet { to: String },
+    /// Dialog for confirming the deletion of a [`StudySet`]
     DeleteStudySet,
+    /// Dialog for confirming the deletion of a [`Folder`]
     DeleteFolder(i32),
+    /// Dialog for creating a new [`Folder`]
     NewFolder(String),
+    /// Dialog for confirming the deletion of a [`Flashcard`]
     DeleteFlashcard(Flashcard),
 }
 
 impl DialogPage {
+    /// Handle the complete/ok action of each [`DialogPage`]
     pub fn complete(
         &self,
         database: &Arc<Pool<Sqlite>>,
@@ -48,7 +56,6 @@ impl DialogPage {
                 }
                 Task::none()
             }
-
             DialogPage::RenameStudySet { to: studyset_name } => {
                 #[allow(clippy::collapsible_if)]
                 if !studyset_name.is_empty() {
@@ -91,7 +98,6 @@ impl DialogPage {
                     Err(_) => cosmic::action::none(),
                 },
             ),
-            // Actions for the NewFolder Dialog
             DialogPage::NewFolder(folder_name) => {
                 #[allow(clippy::collapsible_if)]
                 if let Some(set_id) = nav.active_data::<i32>() {
@@ -114,7 +120,6 @@ impl DialogPage {
                 }
                 Task::none()
             }
-
             DialogPage::DeleteFlashcard(flashcard) => {
                 let front_task = if let FlashcardField::Image { path, .. } = &flashcard.front {
                     // TODO: If this fails we can simply ignore it?
@@ -157,11 +162,11 @@ impl DialogPage {
         }
     }
 
+    /// View of the [`DialogPage`]
     pub fn display(&self, dialog_state: &DialogState) -> Option<Element<Message>> {
         let spacing = theme::active().cosmic().spacing;
 
         let dialog = match &self {
-            // View of the New StudySet Dialog
             DialogPage::NewStudySet(studyset_name) => widget::dialog()
                 .title(fl!("create-studyset"))
                 .primary_action(
@@ -187,8 +192,6 @@ impl DialogPage {
                     ])
                     .spacing(spacing.space_xxs),
                 ),
-
-            // View of the Rename StudySet Dialog
             DialogPage::RenameStudySet { to: studyset_name } => widget::dialog()
                 .title(fl!("rename-studyset"))
                 .primary_action(
@@ -214,8 +217,6 @@ impl DialogPage {
                     ])
                     .spacing(spacing.space_xxs),
                 ),
-
-            // View of the DeleteStudySet Dialog
             DialogPage::DeleteStudySet => widget::dialog()
                 .title(fl!("delete-studyset"))
                 .body(fl!("confirm-delete"))
@@ -227,8 +228,6 @@ impl DialogPage {
                     widget::button::standard(fl!("cancel"))
                         .on_press(Message::DialogAction(DialogAction::DialogCancel)),
                 ),
-
-            // View of the DeleteFolder Dialog
             DialogPage::DeleteFolder(_folder_id) => widget::dialog()
                 .title(fl!("delete-folder"))
                 .body(fl!("confirm-delete"))
@@ -240,8 +239,6 @@ impl DialogPage {
                     widget::button::standard(fl!("cancel"))
                         .on_press(Message::DialogAction(DialogAction::DialogCancel)),
                 ),
-
-            // View of the NewFolder Dialog
             DialogPage::NewFolder(folder_name) => widget::dialog()
                 .title(fl!("create-folder"))
                 .primary_action(
@@ -267,8 +264,6 @@ impl DialogPage {
                     ])
                     .spacing(spacing.space_xxs),
                 ),
-
-            // View of the DeleteFlashcard Dialog
             DialogPage::DeleteFlashcard(_flashcard) => widget::dialog()
                 .title(fl!("delete-flashcard"))
                 .body(fl!("confirm-delete"))
@@ -286,20 +281,31 @@ impl DialogPage {
     }
 }
 
+/// Represents an Action related to a Dialog
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DialogAction {
+    /// Asks to open the [`DialogPage`] for creating a new [`StudySet`]
     OpenNewStudySetDialog,
+    /// Asks to open the [`DialogPage`] for renaming a [`StudySet`]
     OpenRenameStudySetDialog,
+    /// Asks to open the [`DialogPage`] for confirming the deletion of a [`StudySet`]
     OpenDeleteStudySetDialog,
+    /// Asks to open the [`DialogPage`] for creating a new [`Folder`]
     OpenCreateFolderDialog,
+    /// Asks to open the [`DialogPage`] for confirming the deletion of a [`Folder`]
     OpenDeleteFolderDialog(i32),
+    /// Asks to open the [`DialogPage`] for confirming the deletion of a [`Flashcard`]
     OpenDeleteFlashcardDialog(Flashcard),
+    /// Action after user confirms/ok's/accepts the action of a Dialog
     DialogComplete,
+    /// Action after user cancels the action of a Dialog
     DialogCancel,
+    /// Updates the value of the given [`DialogPage`]
     DialogUpdate(DialogPage),
 }
 
 impl DialogAction {
+    /// Executes the [`DialogAction`]
     pub fn execute(
         self,
         dialog_pages: &mut VecDeque<DialogPage>,
@@ -357,6 +363,7 @@ impl DialogAction {
     }
 }
 
+/// State of all the dialog widgets of the app
 pub struct DialogState {
     /// Input inside of the Dialog Pages of the Application
     pub dialog_text_input: widget::Id,

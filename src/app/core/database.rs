@@ -4,6 +4,7 @@ use std::{fs, sync::Arc};
 
 use sqlx::{Pool, Sqlite, SqlitePool};
 
+/// Init the application database
 pub async fn init_database(app_id: &str) -> Arc<Pool<Sqlite>> {
     let db_path = dirs::data_dir()
         .unwrap()
