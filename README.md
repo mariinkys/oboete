@@ -1,6 +1,6 @@
 <div align="center">
   <br>
-  <img src="https://raw.githubusercontent.com/mariinkys/oboete/main/resources/icons/hicolor/scalable/apps/dev.mariinkys.Oboete.svg" width="150" />
+  <img src="./resources/icons/hicolor/scalable/apps/dev.mariinkys.Oboete.svg" width="150" />
   <h1>Oboete</h1>
 
   ![Flathub Version](https://img.shields.io/flathub/v/dev.mariinkys.Oboete)
@@ -11,9 +11,9 @@
 
   <h3>A simple flashcards application for the COSMIC™ desktop</h3>
 
-  <img alt="Main Window Dark" width="320" src="https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/main-dark.png"/>
-  <img alt="Folder Window Dark" width="320" src="https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/folder-inside-dark.png"/>
-  <img alt="Study Window Dark" width="320" src="https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/study-dark.png"/>
+  <img alt="Main Window Dark" width="320" src="./resources/screenshots/main-dark.png"/>
+  <img alt="Folder Window Dark" width="320" src="./resources/screenshots/folder-inside-dark.png"/>
+  <img alt="Study Window Dark" width="320" src="./resources/screenshots/study-dark.png"/>
 
   <br><br>
 
@@ -31,7 +31,7 @@ This project is related to my [other flashcard project](https://github.com/marii
 
 ## Anki Importing Support
 
-Please Look at: [ANKI_IMPORTING](https://github.com/mariinkys/oboete/blob/main/info/ANKI_IMPORTING.md)
+Please Look at: [ANKI_IMPORTING](./info/ANKI_IMPORTING.md)
 
 # Installation
 ```
@@ -64,4 +64,4 @@ Useful resources include:
 
 Copyright 2024 © Alex Marín
 
-Released under the terms of the [GPL-3.0](https://github.com/mariinkys/oboete/blob/main/LICENSE)
+Released under the terms of the [GPL-3.0](./LICENSE)
