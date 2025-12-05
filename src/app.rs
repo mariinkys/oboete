@@ -2,13 +2,14 @@
 
 use crate::app::app_menu::MenuAction;
 use crate::app::context_page::ContextPage;
-use crate::app::core::init_database;
 use crate::app::core::models::studyset::StudySet;
+use crate::app::core::{init_database, utils};
 use crate::app::dialogs::{DialogPage, DialogState};
 use crate::app::screen::{Screen, flashcards, folders, study};
 use crate::config::{AppTheme, OboeteConfig};
 use crate::key_binds::key_binds;
 use crate::{fl, icons};
+use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::app::context_drawer;
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Event, Length, Subscription};
@@ -95,6 +96,9 @@ pub enum Message {
     OpenFolders(i32),
     OpenFlashcards(i32),
     OpenStudy(i32),
+
+    ComleteBackup(String),
+    CompleteImport(String),
 }
 
 /// Create a COSMIC application from the app model
@@ -375,8 +379,63 @@ impl cosmic::Application for AppModel {
                     MenuAction::NewStudySet => self.update(Message::DialogAction(
                         dialogs::DialogAction::OpenNewStudySetDialog,
                     )),
-                    MenuAction::Backup => todo!(),
-                    MenuAction::Import => todo!(),
+                    MenuAction::Backup => Task::perform(
+                        async move {
+                            let result = SelectedFiles::save_file()
+                                .title("Save Backup")
+                                .accept_label("Save")
+                                .modal(true)
+                                .filter(FileFilter::new("RON File").glob("*.ron"))
+                                .send()
+                                .await
+                                .unwrap()
+                                .response();
+
+                            if let Ok(result) = result {
+                                result
+                                    .uris()
+                                    .iter()
+                                    .map(|file| file.path().to_string())
+                                    .collect::<Vec<String>>()
+                                    .first()
+                                    .cloned()
+                                    .unwrap_or(String::new())
+                            } else {
+                                String::new()
+                            }
+                        },
+                        Message::ComleteBackup,
+                    )
+                    .map(cosmic::action::app),
+                    MenuAction::Import => Task::perform(
+                        async move {
+                            let result = SelectedFiles::open_file()
+                                .title("Import Backup")
+                                .accept_label("Open")
+                                .modal(true)
+                                .multiple(false)
+                                .filter(FileFilter::new("RON File").glob("*.ron"))
+                                .send()
+                                .await
+                                .unwrap()
+                                .response();
+
+                            if let Ok(result) = result {
+                                result
+                                    .uris()
+                                    .iter()
+                                    .map(|file| file.path().to_string())
+                                    .collect::<Vec<String>>()
+                                    .first()
+                                    .cloned()
+                                    .unwrap_or(String::new())
+                            } else {
+                                String::new()
+                            }
+                        },
+                        Message::CompleteImport,
+                    )
+                    .map(cosmic::action::app),
                     MenuAction::RenameStudySet => self.update(Message::DialogAction(
                         dialogs::DialogAction::OpenRenameStudySetDialog,
                     )),
@@ -421,10 +480,6 @@ impl cosmic::Application for AppModel {
                     screen: Screen::Folders(folders),
                 };
 
-                //let load_studysets = self.update(Message::FetchStudySets);
-                //let folders_tasks = task.map(|msg| cosmic::action::app(Message::Folders(msg)));
-
-                //load_studysets.chain(folders_tasks)
                 self.update(Message::FetchStudySets)
             }
 
@@ -603,6 +658,39 @@ impl cosmic::Application for AppModel {
                 let (study, task) = screen::StudyScreen::new(database, folder_id);
                 *screen = Screen::Study(study);
                 task.map(|msg| cosmic::action::app(Message::Study(msg)))
+            }
+
+            Message::ComleteBackup(file_path) => {
+                let State::Ready { database, .. } = &mut self.state else {
+                    return Task::none();
+                };
+
+                Task::perform(
+                    utils::backup_oboete(Arc::clone(database), file_path),
+                    |res| match res {
+                        Ok(_) => cosmic::action::none(),
+                        Err(e) => {
+                            eprintln!("{}", e); // TODO: Handle error 
+                            cosmic::action::none()
+                        }
+                    },
+                )
+            }
+            Message::CompleteImport(file_path) => {
+                let State::Ready { database, .. } = &mut self.state else {
+                    return Task::none();
+                };
+
+                Task::perform(
+                    utils::import_oboete(Arc::clone(database), file_path),
+                    |res| match res {
+                        Ok(_) => cosmic::action::app(Message::FetchStudySets),
+                        Err(e) => {
+                            eprintln!("{}", e); // TODO: Handle error 
+                            cosmic::action::none()
+                        }
+                    },
+                )
             }
         }
     }

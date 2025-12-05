@@ -2,10 +2,13 @@
 
 const APP_ID: &str = "dev.mariinkys.Oboete";
 
+mod archive_manager;
 mod flashcards;
 pub mod fsrs_scheduler;
 mod images;
 
+pub use archive_manager::backup_oboete;
+pub use archive_manager::import_oboete;
 pub use flashcards::current_day;
 pub use flashcards::export_flashcards;
 pub use flashcards::export_flashcards_anki;
