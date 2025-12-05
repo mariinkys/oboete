@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 use futures::stream::TryStreamExt;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Row, Sqlite};

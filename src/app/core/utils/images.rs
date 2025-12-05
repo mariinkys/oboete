@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 use std::{fs, path::Path};
 
 /// Returns true if the path corresponds to an image already saved in the Oboete directory

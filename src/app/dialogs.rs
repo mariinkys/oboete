@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 use std::{collections::VecDeque, sync::Arc};
 
 use cosmic::{Element, Task, theme, widget};

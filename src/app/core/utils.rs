@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 const APP_ID: &str = "dev.mariinkys.Oboete";
 
 mod flashcards;

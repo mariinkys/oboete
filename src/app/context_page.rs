@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 use cosmic::{app::context_drawer, theme};
 
 use crate::{

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 use std::{fs, sync::Arc};
 
 use sqlx::{Pool, Sqlite, SqlitePool};

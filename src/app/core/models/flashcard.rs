@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0
+
 use crate::{app::core::utils::current_day, fl};
 use cosmic::iced::Color;
 use futures::stream::TryStreamExt;
