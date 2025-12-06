@@ -315,29 +315,33 @@ fn study_view<'a>(
     let flashcard_content: Element<Message> = match studying_flashcard.flashcard_side {
         FlashcardSide::Front => match &studying_flashcard.flashcard.front {
             FlashcardField::Text(t) => container(text(t).size(75)).center(Length::Fill).into(),
-            FlashcardField::Image { path, alt_text } => container(tooltip(
-                container(image(path).content_fit(ContentFit::Contain))
-                    .center(Length::Fill)
-                    .padding(20),
-                container(text(alt_text).size(15))
-                    .center(Length::Shrink)
-                    .padding(5),
-                tooltip::Position::FollowCursor,
-            ))
+            FlashcardField::Image { path, alt_text } => container(
+                container(tooltip(
+                    container(image(path).content_fit(ContentFit::Contain)).padding(15),
+                    container(text(alt_text).size(15))
+                        .center(Length::Shrink)
+                        .padding(5),
+                    tooltip::Position::FollowCursor,
+                ))
+                .center(Length::Fill)
+                .padding(20),
+            )
             .center(Length::Fill)
             .into(),
         },
         FlashcardSide::Back => match &studying_flashcard.flashcard.back {
             FlashcardField::Text(t) => container(text(t).size(75)).center(Length::Fill).into(),
-            FlashcardField::Image { path, alt_text } => container(tooltip(
-                container(image(path).content_fit(ContentFit::Contain))
-                    .center(Length::Fill)
-                    .padding(20),
-                container(text(alt_text).size(15))
-                    .center(Length::Shrink)
-                    .padding(5),
-                tooltip::Position::FollowCursor,
-            ))
+            FlashcardField::Image { path, alt_text } => container(
+                container(tooltip(
+                    container(image(path).content_fit(ContentFit::Contain)).padding(15),
+                    container(text(alt_text).size(15))
+                        .center(Length::Shrink)
+                        .padding(5),
+                    tooltip::Position::FollowCursor,
+                ))
+                .center(Length::Fill)
+                .padding(20),
+            )
             .center(Length::Fill)
             .into(),
         },
