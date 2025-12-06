@@ -176,6 +176,7 @@ impl StudyScreen {
                                 database,
                             ),
                             Hotkey::Space => self.update(Message::SwapFlashcardSide, database),
+                            Hotkey::Esc => self.update(Message::Back, database),
                         };
                     }
                     return Action::None;
@@ -551,12 +552,14 @@ pub enum Hotkey {
     Three,
     Four,
     Space,
+    Esc,
 }
 
 fn handle_event(event: event::Event, _: event::Status, _: iced::window::Id) -> Option<Message> {
     match event {
         event::Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => match key {
             Key::Named(Named::Space) => Some(Message::Hotkey(Hotkey::Space)),
+            Key::Named(Named::Escape) => Some(Message::Hotkey(Hotkey::Esc)),
 
             Key::Character(c) => match c.as_str() {
                 "1" => Some(Message::Hotkey(Hotkey::One)),
