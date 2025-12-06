@@ -14,6 +14,7 @@ use sqlx::{Pool, Sqlite};
 
 use crate::app::context_page::ContextPage;
 use crate::app::core::models::folder::Folder;
+use crate::app::core::utils::OboeteToast;
 use crate::{fl, icons};
 
 /// Screen [`State`] holder
@@ -34,6 +35,8 @@ enum State {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    /// Show the user a toast
+    AddToast(OboeteToast),
     /// Update the current studyset id, needed for some database operations
     UpdateCurrentSetId(i32),
     /// Load the folders into state
@@ -62,6 +65,7 @@ pub enum Message {
 pub enum Action {
     None,
     Run(Task<Message>),
+    AddToast(OboeteToast),
 
     OpenCreateFolderDialog,
     OpenDeleteFolderDialog(i32),
@@ -129,6 +133,7 @@ impl FoldersScreen {
     /// Handles interactions for this screen
     pub fn update(&mut self, message: Message, database: &Arc<Pool<Sqlite>>) -> Action {
         match message {
+            Message::AddToast(toast) => Action::AddToast(toast),
             Message::UpdateCurrentSetId(set_id) => {
                 let State::Ready { current_set_id, .. } = &mut self.state else {
                     return Action::None;
@@ -172,8 +177,8 @@ impl FoldersScreen {
                         }
                     }
                     Err(e) => {
-                        // TODO: Error Handling
                         eprintln!("{}", e);
+                        return Action::AddToast(OboeteToast::new(e));
                     }
                 }
                 Action::None
@@ -201,9 +206,8 @@ impl FoldersScreen {
                     |res| match res {
                         Ok(_) => Message::LoadFolders,
                         Err(e) => {
-                            // TODO: Error Handling
                             eprintln!("{}", e);
-                            Message::LoadFolders
+                            Message::AddToast(OboeteToast::new(e))
                         }
                     },
                 ))

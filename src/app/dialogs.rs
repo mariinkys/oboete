@@ -13,7 +13,7 @@ use crate::{
                 flashcard::{Flashcard, FlashcardField},
                 folder::Folder,
             },
-            utils,
+            utils::{self, OboeteToast},
         },
     },
     fl,
@@ -125,10 +125,13 @@ impl DialogPage {
             }
             DialogPage::DeleteFlashcard(flashcard) => {
                 let front_task = if let FlashcardField::Image { path, .. } = &flashcard.front {
-                    // TODO: If this fails we can simply ignore it?
                     if !path.is_empty() && flashcard.id.is_some() {
-                        Task::perform(utils::delete_image(path.to_string()), |_res| {
-                            cosmic::action::none()
+                        Task::perform(utils::delete_image(path.to_string()), |res| match res {
+                            Ok(_) => cosmic::action::none(),
+                            Err(e) => {
+                                eprintln!("{}", e);
+                                cosmic::action::app(Message::AddToast(OboeteToast::new(e)))
+                            }
                         })
                     } else {
                         Task::none()
@@ -139,9 +142,12 @@ impl DialogPage {
 
                 let back_task = if let FlashcardField::Image { path, .. } = &flashcard.back {
                     if !path.is_empty() && flashcard.id.is_some() {
-                        // TODO: If this fails we can simply ignore it?
-                        Task::perform(utils::delete_image(path.to_string()), |_res| {
-                            cosmic::action::none()
+                        Task::perform(utils::delete_image(path.to_string()), |res| match res {
+                            Ok(_) => cosmic::action::none(),
+                            Err(e) => {
+                                eprintln!("{}", e);
+                                cosmic::action::app(Message::AddToast(OboeteToast::new(e)))
+                            }
                         })
                     } else {
                         Task::none()

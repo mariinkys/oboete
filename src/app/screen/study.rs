@@ -11,8 +11,8 @@ use cosmic::{Element, Task, theme};
 use sqlx::{Pool, Sqlite};
 
 use crate::app::core::models::flashcard::{Flashcard, FlashcardField, FlashcardStatus};
-use crate::app::core::utils;
 use crate::app::core::utils::fsrs_scheduler::FSRSScheduler;
+use crate::app::core::utils::{self, OboeteToast};
 use crate::fl;
 
 /// Screen [`State`] holder
@@ -57,6 +57,8 @@ enum FlashcardSide {
 pub enum Message {
     /// Asks to go back a screen                     
     Back,
+    /// Show the user a toast
+    AddToast(OboeteToast),
     /// Update the current folder id, needed for some database operations
     UpdateCurrentFolderId(i32),
 
@@ -78,6 +80,7 @@ pub enum Action {
     None,
     Back(i32),
     Run(Task<Message>),
+    AddToast(OboeteToast),
 }
 
 impl StudyScreen {
@@ -141,6 +144,7 @@ impl StudyScreen {
                 }
                 Action::None
             }
+            Message::AddToast(toast) => Action::AddToast(toast),
             Message::UpdateCurrentFolderId(folder_id) => {
                 let State::Ready {
                     current_folder_id, ..
@@ -202,8 +206,8 @@ impl StudyScreen {
                         }
                     }
                     Err(e) => {
-                        // TODO: Error Handling
                         eprintln!("{}", e);
+                        return Action::AddToast(OboeteToast::new(e));
                     }
                 }
                 Action::None
@@ -256,9 +260,8 @@ impl StudyScreen {
                     |res| match res {
                         Ok(_) => Message::FlashcardStatusUpdated,
                         Err(e) => {
-                            // TODO: Error Handling
                             eprintln!("{}", e);
-                            Message::LoadFlashcards
+                            Message::AddToast(OboeteToast::new(e))
                         }
                     },
                 ))

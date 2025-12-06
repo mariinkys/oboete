@@ -16,7 +16,7 @@ use sqlx::{Pool, Sqlite};
 
 use crate::app::context_page::ContextPage;
 use crate::app::core::models::flashcard::{Flashcard, FlashcardField};
-use crate::app::core::utils;
+use crate::app::core::utils::{self, OboeteToast};
 use crate::app::widgets::pill::pill;
 use crate::{fl, icons};
 
@@ -40,6 +40,8 @@ enum State {
 pub enum Message {
     /// Does nothing
     None,
+    /// Show the user a toast
+    AddToast(OboeteToast),
     /// Opens the given url on the browser
     LaunchUrl(String),
     /// Update the current folder id, needed for some database operations
@@ -112,6 +114,7 @@ pub enum FolderOptionsInput {
 pub enum Action {
     None,
     Run(Task<Message>),
+    AddToast(OboeteToast),
 
     OpenDeleteFlashcardDialog(Flashcard),
     OpenContextPage(ContextPage),
@@ -177,6 +180,7 @@ impl FlashcardsScreen {
     pub fn update(&mut self, message: Message, database: &Arc<Pool<Sqlite>>) -> Action {
         match message {
             Message::None => Action::None,
+            Message::AddToast(toast) => Action::AddToast(toast),
             Message::LaunchUrl(url) => {
                 match open::that_detached(&url) {
                     Ok(()) => {}
@@ -236,8 +240,8 @@ impl FlashcardsScreen {
                         };
                     }
                     Err(e) => {
-                        // TODO: Error Handling
                         eprintln!("{}", e);
+                        return Action::AddToast(OboeteToast::new(e));
                     }
                 }
                 Action::None
@@ -271,10 +275,11 @@ impl FlashcardsScreen {
                     // If the image path is not in the Oboete data path we know it has not been modified so we don't need to save the image again
                     if !utils::check_path(path) {
                         let new_path = utils::save_image(path);
-                        if let Ok(new_path) = new_path {
-                            *path = new_path;
-                        } else {
-                            return Action::None; // TODO: Handle error, show toast...?
+                        match new_path {
+                            Ok(new_path) => *path = new_path,
+                            Err(e) => {
+                                return Action::AddToast(OboeteToast::new(e));
+                            }
                         }
                     }
                 }
@@ -284,10 +289,11 @@ impl FlashcardsScreen {
                     // If the image path is not in the Oboete data path we know it has not been modified so we don't need to save the image again
                     if !utils::check_path(path) {
                         let new_path = utils::save_image(path);
-                        if let Ok(new_path) = new_path {
-                            *path = new_path;
-                        } else {
-                            return Action::None; // TODO: Handle error, show toast...?
+                        match new_path {
+                            Ok(new_path) => *path = new_path,
+                            Err(e) => {
+                                return Action::AddToast(OboeteToast::new(e));
+                            }
                         }
                     }
                 }
@@ -297,9 +303,8 @@ impl FlashcardsScreen {
                     |res| match res {
                         Ok(_) => Message::LoadFlashcards,
                         Err(e) => {
-                            // TODO: Error Handling
                             eprintln!("{}", e);
-                            Message::LoadFlashcards
+                            Message::AddToast(OboeteToast::new(e))
                         }
                     },
                 ))
@@ -318,20 +323,22 @@ impl FlashcardsScreen {
                     // save the front flashcard image if any
                     if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.front {
                         let new_path = utils::save_image(path);
-                        if let Ok(new_path) = new_path {
-                            *path = new_path;
-                        } else {
-                            return Action::None; // TODO: Handle error, show toast...?
+                        match new_path {
+                            Ok(new_path) => *path = new_path,
+                            Err(e) => {
+                                return Action::AddToast(OboeteToast::new(e));
+                            }
                         }
                     }
 
                     // save the back flashcard image if any
                     if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.back {
                         let new_path = utils::save_image(path);
-                        if let Ok(new_path) = new_path {
-                            *path = new_path;
-                        } else {
-                            return Action::None; // TODO: Handle error, show toast...?
+                        match new_path {
+                            Ok(new_path) => *path = new_path,
+                            Err(e) => {
+                                return Action::AddToast(OboeteToast::new(e));
+                            }
                         }
                     }
 
@@ -344,9 +351,8 @@ impl FlashcardsScreen {
                         |res| match res {
                             Ok(_) => Message::LoadFlashcards,
                             Err(e) => {
-                                // TODO: Error Handling
                                 eprintln!("{}", e);
-                                Message::LoadFlashcards
+                                Message::AddToast(OboeteToast::new(e))
                             }
                         },
                     ));
@@ -365,7 +371,10 @@ impl FlashcardsScreen {
             }
             Message::ResetFlashcardStatus(flashcard_id) => Action::Run(Task::perform(
                 Flashcard::reset_single_status(Arc::clone(database), flashcard_id),
-                |_res| Message::LoadFlashcards, // TODO: Handle error?
+                |res| match res {
+                    Ok(_) => Message::LoadFlashcards,
+                    Err(e) => Message::AddToast(OboeteToast::new(e)),
+                },
             )),
 
             Message::DeleteFlashcard(flashcard_id) => {
@@ -918,10 +927,12 @@ fn apply_flashcard_add_edit_input(
                 if flashcard.id.is_some() && utils::check_path(path) {
                     let path_clone = path.clone();
                     *path = String::new();
-                    return Action::Run(Task::perform(
-                        utils::delete_image(path_clone),
-                        |_res| Message::None, // TODO: If this fails we can simply ignore it?
-                    ));
+                    return Action::Run(Task::perform(utils::delete_image(path_clone), |res| {
+                        match res {
+                            Ok(_) => Message::None,
+                            Err(e) => Message::AddToast(OboeteToast::new(e)),
+                        }
+                    }));
                 } else {
                     *path = String::new();
                 }
@@ -991,10 +1002,12 @@ fn apply_flashcard_add_edit_input(
                 if flashcard.id.is_some() && utils::check_path(path) {
                     let path_clone = path.clone();
                     *path = String::new();
-                    return Action::Run(Task::perform(
-                        utils::delete_image(path_clone), // TODO: If this fails we can simply ignore it?
-                        |_res| Message::None,
-                    ));
+                    return Action::Run(Task::perform(utils::delete_image(path_clone), |res| {
+                        match res {
+                            Ok(_) => Message::None,
+                            Err(e) => Message::AddToast(OboeteToast::new(e)),
+                        }
+                    }));
                 } else {
                     *path = String::new();
                 }
@@ -1036,7 +1049,10 @@ fn apply_folder_options_input(
             );
             return Action::Run(Task::perform(
                 Flashcard::add_bulk(Arc::clone(database), content, folder_id),
-                |_res| Message::LoadFlashcards, // TODO: Handle error, show toast...?
+                |res| match res {
+                    Ok(_) => Message::LoadFlashcards,
+                    Err(e) => Message::AddToast(OboeteToast::new(e)),
+                },
             ));
         }
 
@@ -1076,17 +1092,23 @@ fn apply_folder_options_input(
             if let Ok(content) = parsed_content_res {
                 return Action::Run(Task::perform(
                     Flashcard::add_bulk(Arc::clone(database), content, folder_id),
-                    |_res| Message::LoadFlashcards, // TODO: Handle error, show toast...?
+                    |res| match res {
+                        Ok(_) => Message::LoadFlashcards,
+                        Err(e) => Message::AddToast(OboeteToast::new(e)),
+                    },
                 ));
             } else {
-                return Action::None; // TODO: Handle error, show toast...?
+                return Action::AddToast(OboeteToast::new("No content found"));
             }
         }
 
         FolderOptionsInput::ResetAllStatus => {
             return Action::Run(Task::perform(
                 Flashcard::reset_all_status(Arc::clone(database), folder_id),
-                |_res| Message::LoadFlashcards, // TODO: Handle error, show toast...?
+                |res| match res {
+                    Ok(_) => Message::LoadFlashcards,
+                    Err(e) => Message::AddToast(OboeteToast::new(e)),
+                },
             ));
         }
 
@@ -1121,8 +1143,9 @@ fn apply_folder_options_input(
         }
         FolderOptionsInput::CompleteExport(file_path) => {
             let res = utils::export_flashcards(&file_path, flashcards);
-            if let Err(_e) = res {
-                return Action::None; // TODO: Handle error, show toast...?
+            if let Err(e) = res {
+                eprintln!("{}", e);
+                return Action::AddToast(OboeteToast::new(e));
             }
             return Action::Run(Task::done(Message::LoadFlashcards));
         }
@@ -1157,8 +1180,9 @@ fn apply_folder_options_input(
         }
         FolderOptionsInput::CompleteAnkiExport(file_path) => {
             let res = utils::export_flashcards_anki(&file_path, flashcards);
-            if let Err(_e) = res {
-                return Action::None; // TODO: Handle error, show toast...?
+            if let Err(e) = res {
+                eprintln!("{}", e);
+                return Action::AddToast(OboeteToast::new(e));
             }
             return Action::Run(Task::done(Message::LoadFlashcards));
         }

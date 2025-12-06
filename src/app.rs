@@ -3,6 +3,7 @@
 use crate::app::app_menu::MenuAction;
 use crate::app::context_page::ContextPage;
 use crate::app::core::models::studyset::StudySet;
+use crate::app::core::utils::OboeteToast;
 use crate::app::core::{init_database, utils};
 use crate::app::dialogs::{DialogPage, DialogState};
 use crate::app::screen::{Screen, flashcards, folders, study};
@@ -18,7 +19,7 @@ use cosmic::iced_widget::center;
 use cosmic::prelude::*;
 use cosmic::widget::menu::Action;
 use cosmic::widget::{self, about::About, menu, nav_bar};
-use cosmic::widget::{segmented_button, text};
+use cosmic::widget::{ToastId, Toasts, segmented_button, text, toaster};
 use sqlx::{Pool, Sqlite};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -35,6 +36,8 @@ const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 /// The application model stores app-specific state used to describe its interface and
 /// drive its logic.
 pub struct AppModel {
+    /// Application toasts
+    toasts: Toasts<Message>,
     /// Application state which is managed by the COSMIC runtime.
     core: cosmic::Core,
     /// Display a context drawer with the designated page if defined.
@@ -75,6 +78,10 @@ enum State {
 /// Messages emitted by the application and its widgets.
 #[derive(Debug, Clone)]
 pub enum Message {
+    /// Callback for closing a toast
+    CloseToast(ToastId),
+    /// Ask to add new toast
+    AddToast(OboeteToast),
     /// Opens the given URL in the browser
     LaunchUrl(String),
     /// Opens (or closes if already open) the given [`ContextPage`]
@@ -160,6 +167,7 @@ impl cosmic::Application for AppModel {
 
         // Construct the app model with the runtime's core.
         let mut app = AppModel {
+            toasts: Toasts::new(Message::CloseToast),
             core,
             context_page: ContextPage::default(),
             dialog_pages: VecDeque::default(),
@@ -272,13 +280,15 @@ impl cosmic::Application for AppModel {
             },
         };
 
-        widget::container(content)
-            .height(Length::Fill)
-            .apply(widget::container)
-            .width(Length::Fill)
-            .align_x(Horizontal::Center)
-            .align_y(Vertical::Center)
-            .into()
+        toaster(
+            &self.toasts,
+            widget::container(content)
+                .height(Length::Fill)
+                .apply(widget::container)
+                .width(Length::Fill)
+                .align_x(Horizontal::Center)
+                .align_y(Vertical::Center),
+        )
     }
 
     /// Register subscriptions for this application.
@@ -343,6 +353,11 @@ impl cosmic::Application for AppModel {
     /// on the application's async runtime.
     fn update(&mut self, message: Self::Message) -> Task<cosmic::Action<Self::Message>> {
         match message {
+            Message::CloseToast(id) => {
+                self.toasts.remove(id);
+                Task::none()
+            }
+            Message::AddToast(toast) => self.toasts.push(toast.into()).map(cosmic::action::app),
             Message::ToggleContextPage(context_page) => {
                 if self.context_page == context_page {
                     // Close the context drawer if the toggled context page is the same.
@@ -547,9 +562,8 @@ impl cosmic::Application for AppModel {
                         self.on_nav_select(entity)
                     }
                     Err(e) => {
-                        //TODO: Handle error
                         eprintln!("{}", e);
-                        Task::none()
+                        self.update(Message::AddToast(OboeteToast::new(e)))
                     }
                 }
             }
@@ -568,6 +582,7 @@ impl cosmic::Application for AppModel {
 
                 match folders.update(message, database) {
                     folders::Action::None => Task::none(),
+                    folders::Action::AddToast(toast) => self.update(Message::AddToast(toast)),
                     folders::Action::Run(task) => {
                         task.map(|msg| cosmic::action::app(Message::Folders(msg)))
                     }
@@ -615,6 +630,7 @@ impl cosmic::Application for AppModel {
 
                 match flashcards.update(message, database) {
                     flashcards::Action::None => Task::none(),
+                    flashcards::Action::AddToast(toast) => self.update(Message::AddToast(toast)),
                     flashcards::Action::Run(task) => {
                         task.map(|msg| cosmic::action::app(Message::Flashcards(msg)))
                     }
@@ -659,6 +675,7 @@ impl cosmic::Application for AppModel {
 
                 match study.update(message, database) {
                     study::Action::None => Task::none(),
+                    study::Action::AddToast(toast) => self.update(Message::AddToast(toast)),
                     study::Action::Back(folder_id) => {
                         self.update(Message::OpenFlashcards(folder_id))
                     }
@@ -690,8 +707,8 @@ impl cosmic::Application for AppModel {
                     |res| match res {
                         Ok(_) => cosmic::action::none(),
                         Err(e) => {
-                            eprintln!("{}", e); // TODO: Handle error 
-                            cosmic::action::none()
+                            eprintln!("{}", e);
+                            cosmic::action::app(Message::AddToast(OboeteToast::new(e)))
                         }
                     },
                 )
@@ -706,8 +723,8 @@ impl cosmic::Application for AppModel {
                     |res| match res {
                         Ok(_) => cosmic::action::app(Message::FetchStudySets),
                         Err(e) => {
-                            eprintln!("{}", e); // TODO: Handle error 
-                            cosmic::action::none()
+                            eprintln!("{}", e);
+                            cosmic::action::app(Message::AddToast(OboeteToast::new(e)))
                         }
                     },
                 )
