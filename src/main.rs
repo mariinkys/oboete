@@ -12,7 +12,6 @@ mod icons;
 mod key_binds;
 
 // TODO
-// Keyboard shortcuts
 // Migrate data strategy for 0.1 -> 0.2
 
 fn main() -> cosmic::iced::Result {

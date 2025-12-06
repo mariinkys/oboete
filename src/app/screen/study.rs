@@ -4,7 +4,9 @@ use std::sync::Arc;
 
 use cosmic::cosmic_theme::Spacing;
 use cosmic::iced::alignment::{Horizontal, Vertical};
-use cosmic::iced::{Color, ContentFit, Font, Length, Subscription};
+use cosmic::iced::keyboard::key::Named;
+use cosmic::iced::keyboard::{self, Key};
+use cosmic::iced::{self, Color, ContentFit, Font, Length, Subscription, event};
 use cosmic::iced_widget::{column, row, stack};
 use cosmic::widget::{button, container, image, mouse_area, text, tooltip};
 use cosmic::{Element, Task, theme};
@@ -59,6 +61,8 @@ pub enum Message {
     Back,
     /// Show the user a toast
     AddToast(OboeteToast),
+    /// Hotkey (Subscription) pressed
+    Hotkey(Hotkey),
     /// Update the current folder id, needed for some database operations
     UpdateCurrentFolderId(i32),
 
@@ -145,6 +149,39 @@ impl StudyScreen {
                 Action::None
             }
             Message::AddToast(toast) => Action::AddToast(toast),
+            Message::Hotkey(hotkey) => {
+                if let State::Ready {
+                    studying_flashcard, ..
+                } = &mut self.state
+                {
+                    if let Some(flashcard_id) = studying_flashcard.flashcard.id {
+                        return match hotkey {
+                            Hotkey::One => self.update(
+                                Message::UpdateFlashcardStatus(flashcard_id, FlashcardStatus::Bad),
+                                database,
+                            ),
+                            Hotkey::Two => self.update(
+                                Message::UpdateFlashcardStatus(flashcard_id, FlashcardStatus::Ok),
+                                database,
+                            ),
+                            Hotkey::Three => self.update(
+                                Message::UpdateFlashcardStatus(
+                                    flashcard_id,
+                                    FlashcardStatus::Great,
+                                ),
+                                database,
+                            ),
+                            Hotkey::Four => self.update(
+                                Message::UpdateFlashcardStatus(flashcard_id, FlashcardStatus::Easy),
+                                database,
+                            ),
+                            Hotkey::Space => self.update(Message::SwapFlashcardSide, database),
+                        };
+                    }
+                    return Action::None;
+                }
+                Action::None
+            }
             Message::UpdateCurrentFolderId(folder_id) => {
                 let State::Ready {
                     current_folder_id, ..
@@ -301,7 +338,7 @@ impl StudyScreen {
 
     /// Subscriptions of this screen
     pub fn subscription(&self) -> Subscription<Message> {
-        Subscription::none()
+        event::listen_with(handle_event)
     }
 }
 
@@ -390,7 +427,13 @@ fn study_view<'a>(
         .align_x(Horizontal::Center)
         .align_y(Vertical::Top)
         .width(Length::Fill)
-        .height(Length::Fill)
+        .height(Length::Fill),
+        container(text(format!("[{}]", fl!("space-key"))))
+            .padding(10)
+            .align_x(Horizontal::Center)
+            .align_y(Vertical::Bottom)
+            .width(Length::Fill)
+            .height(Length::Fill)
     ])
     .into()
 }
@@ -401,7 +444,7 @@ fn study_buttons_view<'a>(
     studying_flashcard: &'a StudyingFlashcard,
 ) -> Element<'a, Message> {
     row![
-        button::custom(text(fl!("bad-status")).center())
+        button::custom(text(format!("{} [1]", fl!("bad-status"))).center())
             .on_press(Message::UpdateFlashcardStatus(
                 studying_flashcard.flashcard.id.unwrap_or_default(),
                 FlashcardStatus::Bad
@@ -409,7 +452,7 @@ fn study_buttons_view<'a>(
             .class(button_style(FlashcardStatus::Bad))
             .height(Length::Fixed(60.))
             .width(Length::Fill),
-        button::custom(text(fl!("ok-status")).center())
+        button::custom(text(format!("{} [2]", fl!("ok-status"))).center())
             .on_press(Message::UpdateFlashcardStatus(
                 studying_flashcard.flashcard.id.unwrap_or_default(),
                 FlashcardStatus::Ok
@@ -417,7 +460,7 @@ fn study_buttons_view<'a>(
             .class(button_style(FlashcardStatus::Ok))
             .height(Length::Fixed(60.))
             .width(Length::Fill),
-        button::custom(text(fl!("good-status")).center())
+        button::custom(text(format!("{} [3]", fl!("good-status"))).center())
             .on_press(Message::UpdateFlashcardStatus(
                 studying_flashcard.flashcard.id.unwrap_or_default(),
                 FlashcardStatus::Great
@@ -425,7 +468,7 @@ fn study_buttons_view<'a>(
             .class(button_style(FlashcardStatus::Great))
             .height(Length::Fixed(60.))
             .width(Length::Fill),
-        button::custom(text(fl!("easy-status")).center())
+        button::custom(text(format!("{} [4]", fl!("easy-status"))).center())
             .on_press(Message::UpdateFlashcardStatus(
                 studying_flashcard.flashcard.id.unwrap_or_default(),
                 FlashcardStatus::Easy
@@ -494,5 +537,38 @@ fn order_due_cards(flashcards: &mut [Flashcard]) -> Option<(Vec<Flashcard>, Prac
         None
     } else {
         Some((due_cards, PracticeMode::Fsrs))
+    }
+}
+
+//
+// SUBSCRIPTION HANDLING
+//
+
+#[derive(Debug, Clone)]
+pub enum Hotkey {
+    One,
+    Two,
+    Three,
+    Four,
+    Space,
+}
+
+fn handle_event(event: event::Event, _: event::Status, _: iced::window::Id) -> Option<Message> {
+    match event {
+        event::Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => match key {
+            Key::Named(Named::Space) => Some(Message::Hotkey(Hotkey::Space)),
+
+            Key::Character(c) => match c.as_str() {
+                "1" => Some(Message::Hotkey(Hotkey::One)),
+                "2" => Some(Message::Hotkey(Hotkey::Two)),
+                "3" => Some(Message::Hotkey(Hotkey::Three)),
+                "4" => Some(Message::Hotkey(Hotkey::Four)),
+                _ => None,
+            },
+
+            _ => None,
+        },
+
+        _ => None,
     }
 }

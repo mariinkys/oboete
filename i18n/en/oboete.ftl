@@ -101,3 +101,4 @@ delete-flashcard = Delete Flashcard
 <#-- Study Page -->
 fsrs-mode = FSRS Mode - Due Cards - { $due } of { $total }
 study-mode =  Study Mode - Card { $number } of { $total }
+space-key = Space
