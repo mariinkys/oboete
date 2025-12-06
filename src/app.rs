@@ -1,111 +1,134 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0
 
+use crate::app::app_menu::MenuAction;
+use crate::app::context_page::ContextPage;
+use crate::app::core::models::studyset::StudySet;
+use crate::app::core::utils::OboeteToast;
+use crate::app::core::{init_database, utils};
+use crate::app::dialogs::{DialogPage, DialogState};
+use crate::app::screen::{Screen, flashcards, folders, study};
 use crate::config::{AppTheme, OboeteConfig};
 use crate::key_binds::key_binds;
-use crate::oboete::database::init_database;
-use crate::oboete::models::flashcard::Flashcard;
-use crate::oboete::models::folder::Folder;
-use crate::oboete::models::studyset::StudySet;
-use crate::oboete::pages::folder_content::{self, FolderContent};
-use crate::oboete::pages::homepage::{self, HomePage};
-use crate::oboete::pages::study_page::{self, StudyPage};
-use crate::oboete::utils::{export_flashcards_json, import_flashcards_json};
 use crate::{fl, icons};
 use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::app::context_drawer;
+use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Event, Length, Subscription};
 use cosmic::iced_core::keyboard::{Key, Modifiers};
+use cosmic::iced_widget::center;
 use cosmic::prelude::*;
-use cosmic::theme;
-use cosmic::widget::about::About;
 use cosmic::widget::menu::Action;
-use cosmic::widget::segmented_button::{self, EntityMut, SingleSelect};
-use cosmic::widget::{self, menu, nav_bar};
+use cosmic::widget::{self, about::About, menu, nav_bar};
+use cosmic::widget::{ToastId, Toasts, segmented_button, text, toaster};
 use sqlx::{Pool, Sqlite};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
+
+pub mod app_menu;
+mod context_page;
+mod core;
+mod dialogs;
+mod screen;
+mod widgets;
 
 const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 
 /// The application model stores app-specific state used to describe its interface and
 /// drive its logic.
-pub struct Oboete {
+pub struct AppModel {
+    /// Application toasts
+    toasts: Toasts<Message>,
     /// Application state which is managed by the COSMIC runtime.
     core: cosmic::Core,
-    /// Application about page
-    about: About,
     /// Display a context drawer with the designated page if defined.
     context_page: ContextPage,
     /// Dialog Pages of the Application
     dialog_pages: VecDeque<DialogPage>,
     /// Holds the state of the application dialogs
     dialog_state: DialogState,
+    /// The about page for this app.
+    about: About,
     /// Contains items assigned to the nav bar panel.
     nav: nav_bar::Model,
-    /// Currently selected Page
-    current_page: Page,
-    /// Database of the application
-    database: Option<Arc<Pool<Sqlite>>>,
     /// Key bindings for the application's menu bar.
     key_binds: HashMap<menu::KeyBind, MenuAction>,
-    /// Application Keyboard Modifiers (current state)
+    /// Application Keyboard Modifiers
     modifiers: Modifiers,
     /// Application configuration handler
     config_handler: Option<cosmic::cosmic_config::Config>,
-    // Configuration data that persists between application runs.
+    /// Configuration data that persists between application runs.
     config: OboeteConfig,
     // Application Themes
     app_themes: Vec<String>,
-    /// Application HomePage
-    homepage: HomePage,
-    /// Application FolderContent Page
-    folder_content: FolderContent,
-    /// Application StudyPage
-    study_page: StudyPage,
-    /// Contains the data to backup in case a backup is requested
-    backup_data: Option<Vec<StudySet>>,
+    /// Application State
+    state: State,
+}
+
+#[allow(clippy::large_enum_variant)]
+enum State {
+    Loading,
+    Ready {
+        /// Application Database
+        database: Arc<Pool<Sqlite>>,
+        /// Application Screen
+        screen: Screen,
+    },
 }
 
 /// Messages emitted by the application and its widgets.
 #[derive(Debug, Clone)]
 pub enum Message {
-    ToggleContextPage(ContextPage),
-    UpdateConfig(OboeteConfig),
-    UpdateTheme(usize),
+    /// Callback for closing a toast
+    CloseToast(ToastId),
+    /// Ask to add new toast
+    AddToast(OboeteToast),
+    /// Opens the given URL in the browser
     LaunchUrl(String),
+    /// Opens (or closes if already open) the given [`ContextPage`]
+    ToggleContextPage(ContextPage),
+    /// Update the application config
+    UpdateConfig(OboeteConfig),
+    /// Update the application theme
+    UpdateTheme(usize),
+    /// Callback after clicking something in the app menu
+    MenuAction(app_menu::MenuAction),
+    /// Asks to execute various actions related to the application dialogs
+    DialogAction(dialogs::DialogAction),
+    /// Executes the appropiate cosmic binding on keyboard shortcut
     Key(Modifiers, Key),
+    /// Updates the current state of keyboard modifiers
     Modifiers(Modifiers),
 
-    DatabaseConnected(Arc<Pool<Sqlite>>),
+    /// Callback after loading the application database
+    DatabaseLoaded(Arc<Pool<Sqlite>>),
 
+    /// Asks to load the studysets from the database
     FetchStudySets,
-    PopulateStudySets(Vec<StudySet>),
+    /// Callback after fetching the studysets from the database
+    FetchedStudySets(Result<Vec<StudySet>, anywho::Error>),
 
-    UpdatedStudySet(String),
-    DeletedStudySet,
+    /// Folders Screen
+    Folders(folders::Message),
+    /// Flashcards Screen
+    Flashcards(flashcards::Message),
+    /// Study Screen
+    Study(study::Message),
 
-    HomePage(homepage::Message),
-    FolderContent(folder_content::Message),
-    StudyPage(study_page::Message),
+    /// Asks to open the folders page given a folder_id
+    OpenFolders(i32),
+    /// Asks to open the flashcards page given a folder_id
+    OpenFlashcards(i32),
+    /// Asks to open the flashcards page given a folder_id
+    OpenStudy(i32),
 
-    OpenNewStudySetDialog,
-    OpenRenameStudySetDialog,
-    OpenDeleteStudySetDialog,
-    DialogComplete,
-    DialogCancel,
-    DialogUpdate(DialogPage),
-
-    GetBackupData,
-    SetBackupData(Vec<StudySet>),
-    OpenSaveBackupFileDialog,
-    SaveBackupFile(Vec<String>),
-
-    Import,
-    ImportFileResult(Vec<String>),
+    /// Callback after asking to perform an app-wide backup
+    ComleteBackup(String),
+    /// Callback after asking to perform an import
+    CompleteImport(String),
 }
 
 /// Create a COSMIC application from the app model
-impl cosmic::Application for Oboete {
+impl cosmic::Application for AppModel {
     /// The async executor that will be used to run your application's commands.
     type Executor = cosmic::executor::Default;
 
@@ -128,46 +151,43 @@ impl cosmic::Application for Oboete {
 
     /// Initializes the application with any given flags and startup commands.
     fn init(core: cosmic::Core, flags: Self::Flags) -> (Self, Task<cosmic::Action<Self::Message>>) {
-        // Application about page
+        // Create the about widget
         let about = About::default()
             .name("Oboete")
             .icon(widget::icon::from_name(Self::APP_ID))
             .version(env!("CARGO_PKG_VERSION"))
-            .author("mariinkys")
-            .license("GPL-3.0-only")
             .links([
                 (fl!("repository"), REPOSITORY),
-                (fl!("support"), "https://github.com/mariinkys/oboete/issues"),
+                (fl!("support"), &format!("{}/issues", REPOSITORY)),
             ])
+            .license(env!("CARGO_PKG_LICENSE"))
+            .author("mariinkys")
             .developers([("mariinkys", "kysdev.owjga@aleeas.com")])
             .comments("\"Pop Icons\" by System76 is licensed under CC-SA-4.0");
 
         // Construct the app model with the runtime's core.
-        let mut app = Oboete {
+        let mut app = AppModel {
+            toasts: Toasts::new(Message::CloseToast),
             core,
-            about,
             context_page: ContextPage::default(),
-            dialog_pages: VecDeque::new(),
+            dialog_pages: VecDeque::default(),
             dialog_state: DialogState::default(),
+            about,
             nav: nav_bar::Model::default(),
-            current_page: Page::HomePage,
-            database: None,
             key_binds: key_binds(),
             modifiers: Modifiers::empty(),
             config_handler: flags.config_handler,
             config: flags.config,
             app_themes: vec![fl!("match-desktop"), fl!("dark"), fl!("light")],
-            homepage: HomePage::init(),
-            folder_content: FolderContent::init(),
-            study_page: StudyPage::init(),
-            backup_data: None,
+            state: State::Loading,
         };
 
+        // Startup tasks.
         let tasks = vec![
             app.update_title(),
             cosmic::command::set_theme(app.config.app_theme.theme()),
             Task::perform(init_database(Self::APP_ID), |database| {
-                cosmic::action::app(Message::DatabaseConnected(database))
+                cosmic::action::app(Message::DatabaseLoaded(database))
             }),
         ];
 
@@ -175,7 +195,7 @@ impl cosmic::Application for Oboete {
     }
 
     /// Elements to pack at the start of the header bar.
-    fn header_start(&self) -> Vec<Element<Self::Message>> {
+    fn header_start(&self) -> Vec<Element<'_, Self::Message>> {
         let menu_bar = menu::MenuBar::new(vec![
             menu::Tree::with_children(
                 Element::from(menu::root(fl!("file"))),
@@ -230,167 +250,57 @@ impl cosmic::Application for Oboete {
     }
 
     /// Display a context drawer if the context page is requested.
-    fn context_drawer(&self) -> Option<context_drawer::ContextDrawer<Self::Message>> {
+    fn context_drawer(&self) -> Option<context_drawer::ContextDrawer<'_, Self::Message>> {
         if !self.core.window.show_context {
             return None;
         }
 
-        Some(match self.context_page {
-            ContextPage::About => context_drawer::about(
-                &self.about,
-                |s| Message::LaunchUrl(s.to_string()),
-                Message::ToggleContextPage(ContextPage::About),
-            )
-            .title(fl!("about")),
-            ContextPage::Settings => context_drawer::context_drawer(
-                self.settings(),
-                Message::ToggleContextPage(ContextPage::Settings),
-            )
-            .title(fl!("settings")),
-            ContextPage::EditFolder => context_drawer::context_drawer(
-                self.homepage
-                    .edit_folder_contextpage()
-                    .map(Message::HomePage),
-                Message::ToggleContextPage(ContextPage::EditFolder),
-            )
-            .title(fl!("folder-details")),
-            ContextPage::AddEditFlashcard => context_drawer::context_drawer(
-                self.folder_content
-                    .add_edit_flashcard_contextpage()
-                    .map(Message::FolderContent),
-                Message::ToggleContextPage(ContextPage::AddEditFlashcard),
-            )
-            .title(fl!("flashcard-options")),
-            ContextPage::FolderContentOptions => context_drawer::context_drawer(
-                self.folder_content
-                    .folder_options_contextpage()
-                    .map(Message::FolderContent),
-                Message::ToggleContextPage(ContextPage::FolderContentOptions),
-            )
-            .title(fl!("flashcard-options")),
-        })
+        self.context_page.display(self)
     }
 
     /// Display a dialog if requested.
     fn dialog(&self) -> Option<Element<Message>> {
         let dialog_page = self.dialog_pages.front()?;
-
-        let spacing = theme::active().cosmic().spacing;
-
-        // Construct each dialog view
-        let dialog = match dialog_page {
-            // View of the New StudySet Dialog
-            DialogPage::NewStudySet(studyset_name) => widget::dialog()
-                .title(fl!("create-studyset"))
-                .primary_action(
-                    widget::button::suggested(fl!("save")).on_press(Message::DialogComplete),
-                )
-                .secondary_action(
-                    widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
-                )
-                .control(
-                    widget::column::with_children(vec![
-                        widget::text::body(fl!("studyset-name")).into(),
-                        widget::text_input("", studyset_name.as_str())
-                            .id(self.dialog_state.dialog_text_input.clone())
-                            .on_input(move |name| {
-                                Message::DialogUpdate(DialogPage::NewStudySet(name))
-                            })
-                            .on_submit(|_x| Message::DialogComplete)
-                            .into(),
-                    ])
-                    .spacing(spacing.space_xxs),
-                ),
-
-            // View of the Rename StudySet Dialog
-            DialogPage::RenameStudySet { to: studyset_name } => widget::dialog()
-                .title(fl!("rename-studyset"))
-                .primary_action(
-                    widget::button::suggested(fl!("save"))
-                        .on_press_maybe(Some(Message::DialogComplete)),
-                )
-                .secondary_action(
-                    widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
-                )
-                .control(
-                    widget::column::with_children(vec![
-                        widget::text::body(fl!("studyset-name")).into(),
-                        widget::text_input("", studyset_name.as_str())
-                            .id(self.dialog_state.dialog_text_input.clone())
-                            .on_input(move |name| {
-                                Message::DialogUpdate(DialogPage::RenameStudySet { to: name })
-                            })
-                            .on_submit(|_x| Message::DialogComplete)
-                            .into(),
-                    ])
-                    .spacing(spacing.space_xxs),
-                ),
-
-            // View of the DeleteStudySet Dialog
-            DialogPage::DeleteStudySet => widget::dialog()
-                .title(fl!("delete-studyset"))
-                .body(fl!("confirm-delete"))
-                .primary_action(
-                    widget::button::suggested(fl!("ok"))
-                        .on_press_maybe(Some(Message::DialogComplete)),
-                )
-                .secondary_action(
-                    widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
-                ),
-
-            // View of the NewFolder Dialog
-            DialogPage::NewFolder(folder_name) => widget::dialog()
-                .title(fl!("create-folder"))
-                .primary_action(
-                    widget::button::suggested(fl!("save"))
-                        .on_press_maybe(Some(Message::DialogComplete)),
-                )
-                .secondary_action(
-                    widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
-                )
-                .control(
-                    widget::column::with_children(vec![
-                        widget::text::body(fl!("folder-name")).into(),
-                        widget::text_input("", folder_name.as_str())
-                            .id(self.dialog_state.dialog_text_input.clone())
-                            .on_input(move |name| {
-                                Message::DialogUpdate(DialogPage::NewFolder(name))
-                            })
-                            .on_submit(|_x| Message::DialogComplete)
-                            .into(),
-                    ])
-                    .spacing(spacing.space_xxs),
-                ),
-        };
-
-        Some(dialog.into())
+        dialog_page.display(&self.dialog_state)
     }
 
     /// Describes the interface based on the current state of the application model.
     ///
     /// Application events will be processed through the view. Any messages emitted by
     /// events received by widgets will be passed to the update method.
-    fn view(&self) -> Element<Self::Message> {
-        let content = match self.current_page {
-            Page::HomePage => self.homepage.view().map(Message::HomePage),
-            Page::FolderContent => self.folder_content.view().map(Message::FolderContent),
-            Page::StudyPage => self.study_page.view().map(Message::StudyPage),
+    fn view(&self) -> Element<'_, Self::Message> {
+        let content: Element<_> = match &self.state {
+            State::Loading => center(text(fl!("loading"))).into(),
+            State::Ready { screen, .. } => match screen {
+                Screen::Folders(folders_screen) => folders_screen.view().map(Message::Folders),
+                Screen::Flashcards(flashcards_screen) => {
+                    flashcards_screen.view().map(Message::Flashcards)
+                }
+                Screen::Study(study_screen) => study_screen.view().map(Message::Study),
+            },
         };
 
-        widget::Container::new(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        toaster(
+            &self.toasts,
+            widget::container(content)
+                .height(Length::Fill)
+                .apply(widget::container)
+                .width(Length::Fill)
+                .align_x(Horizontal::Center)
+                .align_y(Vertical::Center),
+        )
     }
 
     /// Register subscriptions for this application.
     ///
     /// Subscriptions are long-running async tasks running in the background which
-    /// emit messages to the application through a channel. They are started at the
-    /// beginning of the application, and persist through its lifetime.
+    /// emit messages to the application through a channel. They can be dynamically
+    /// stopped and started conditionally based on application state, or persist
+    /// indefinitely.
     fn subscription(&self) -> Subscription<Self::Message> {
-        Subscription::batch(vec![
-            // Waych for key_bind inputs
+        // Add subscriptions which are always active.
+        let mut subscriptions = vec![
+            // Watch for key_bind inputs
             cosmic::iced::event::listen_with(|event, status, _| match event {
                 Event::Keyboard(cosmic::iced::keyboard::Event::KeyPressed {
                     key,
@@ -415,7 +325,26 @@ impl cosmic::Application for Oboete {
 
                     Message::UpdateConfig(update.config)
                 }),
-        ])
+        ];
+
+        let State::Ready { screen, .. } = &self.state else {
+            return Subscription::batch(subscriptions);
+        };
+
+        // Handle subscriptions from the current screen
+        match screen {
+            Screen::Folders(folders_screen) => {
+                subscriptions.push(folders_screen.subscription().map(Message::Folders))
+            }
+            Screen::Flashcards(flashcards_screen) => {
+                subscriptions.push(flashcards_screen.subscription().map(Message::Flashcards))
+            }
+            Screen::Study(study_screen) => {
+                subscriptions.push(study_screen.subscription().map(Message::Study))
+            }
+        };
+
+        Subscription::batch(subscriptions)
     }
 
     /// Handles messages emitted by the application and its widgets.
@@ -423,9 +352,12 @@ impl cosmic::Application for Oboete {
     /// Tasks may be returned for asynchronous execution of code in the background
     /// on the application's async runtime.
     fn update(&mut self, message: Self::Message) -> Task<cosmic::Action<Self::Message>> {
-        let mut tasks = vec![];
-
         match message {
+            Message::CloseToast(id) => {
+                self.toasts.remove(id);
+                Task::none()
+            }
+            Message::AddToast(toast) => self.toasts.push(toast.into()).map(cosmic::action::app),
             Message::ToggleContextPage(context_page) => {
                 if self.context_page == context_page {
                     // Close the context drawer if the toggled context page is the same.
@@ -435,12 +367,12 @@ impl cosmic::Application for Oboete {
                     self.context_page = context_page;
                     self.core.window.show_context = true;
                 }
+                Task::none()
             }
-
             Message::UpdateConfig(config) => {
                 self.config = config;
+                Task::none()
             }
-
             Message::UpdateTheme(index) => {
                 let app_theme = match index {
                     1 => AppTheme::Dark,
@@ -459,618 +391,345 @@ impl cosmic::Application for Oboete {
 
                     return cosmic::command::set_theme(self.config.app_theme.theme());
                 }
+                Task::none()
             }
-
-            Message::LaunchUrl(url) => match open::that_detached(&url) {
-                Ok(()) => {}
-                Err(err) => {
-                    eprintln!("failed to open {url:?}: {err}");
+            Message::LaunchUrl(url) => {
+                match open::that_detached(&url) {
+                    Ok(()) => {}
+                    Err(err) => {
+                        eprintln!("failed to open {url:?}: {err}");
+                    }
                 }
-            },
+                Task::none()
+            }
+            Message::MenuAction(action) => {
+                let State::Ready { .. } = &mut self.state else {
+                    return Task::none();
+                };
 
+                match action {
+                    MenuAction::About => {
+                        self.update(Message::ToggleContextPage(ContextPage::About))
+                    }
+                    MenuAction::NewStudySet => self.update(Message::DialogAction(
+                        dialogs::DialogAction::OpenNewStudySetDialog,
+                    )),
+                    MenuAction::Backup => Task::perform(
+                        async move {
+                            let result = SelectedFiles::save_file()
+                                .title("Save Backup")
+                                .accept_label("Save")
+                                .modal(true)
+                                .filter(FileFilter::new("RON File").glob("*.ron"))
+                                .send()
+                                .await
+                                .unwrap()
+                                .response();
+
+                            if let Ok(result) = result {
+                                result
+                                    .uris()
+                                    .iter()
+                                    .map(|file| file.path().to_string())
+                                    .collect::<Vec<String>>()
+                                    .first()
+                                    .cloned()
+                                    .unwrap_or(String::new())
+                            } else {
+                                String::new()
+                            }
+                        },
+                        Message::ComleteBackup,
+                    )
+                    .map(cosmic::action::app),
+                    MenuAction::Import => Task::perform(
+                        async move {
+                            let result = SelectedFiles::open_file()
+                                .title("Import Backup")
+                                .accept_label("Open")
+                                .modal(true)
+                                .multiple(false)
+                                .filter(FileFilter::new("RON File").glob("*.ron"))
+                                .send()
+                                .await
+                                .unwrap()
+                                .response();
+
+                            if let Ok(result) = result {
+                                result
+                                    .uris()
+                                    .iter()
+                                    .map(|file| file.path().to_string())
+                                    .collect::<Vec<String>>()
+                                    .first()
+                                    .cloned()
+                                    .unwrap_or(String::new())
+                            } else {
+                                String::new()
+                            }
+                        },
+                        Message::CompleteImport,
+                    )
+                    .map(cosmic::action::app),
+                    MenuAction::RenameStudySet => self.update(Message::DialogAction(
+                        dialogs::DialogAction::OpenRenameStudySetDialog,
+                    )),
+                    MenuAction::DeleteStudySet => self.update(Message::DialogAction(
+                        dialogs::DialogAction::OpenDeleteStudySetDialog,
+                    )),
+                    MenuAction::Settings => {
+                        self.update(Message::ToggleContextPage(ContextPage::Settings))
+                    }
+                }
+            }
+            Message::DialogAction(action) => {
+                let State::Ready { database, .. } = &mut self.state else {
+                    return Task::none();
+                };
+
+                action.execute(
+                    &mut self.dialog_pages,
+                    &self.dialog_state,
+                    database,
+                    &self.nav,
+                )
+            }
             Message::Key(modifiers, key) => {
                 for (key_bind, action) in self.key_binds.iter() {
                     if key_bind.matches(modifiers, &key) {
                         return self.update(action.message());
                     }
                 }
+                Task::none()
             }
-
-            // Updates the current state of keyboard modifiers
             Message::Modifiers(modifiers) => {
                 self.modifiers = modifiers;
+                Task::none()
             }
 
-            // Sets the database in the appstate and asks to fetch the studysets
-            Message::DatabaseConnected(pool) => {
-                self.database = Some(pool);
-                tasks.push(self.update(Message::FetchStudySets));
+            Message::DatabaseLoaded(pool) => {
+                let (folders, _task) = screen::FoldersScreen::new(&Arc::clone(&pool), None);
+
+                self.state = State::Ready {
+                    database: pool,
+                    screen: Screen::Folders(folders),
+                };
+
+                self.update(Message::FetchStudySets)
             }
 
-            // Fetches the studysets
             Message::FetchStudySets => {
-                tasks.push(Task::perform(
-                    StudySet::get_all(self.database.clone().unwrap()),
-                    |result| match result {
-                        Ok(sets) => cosmic::action::app(Message::PopulateStudySets(sets)),
-                        Err(_) => cosmic::action::none(),
-                    },
-                ));
-            }
-
-            // Populates the navbar with the fetched StudySets
-            Message::PopulateStudySets(sets) => {
-                // Reset the navbar items
-                self.nav = nav_bar::Model::default();
-
-                // Create a navbar item for each set
-                for set in sets {
-                    self.create_nav_item(set);
-                }
-                let Some(entity) = self.nav.iter().next() else {
+                let State::Ready { database, .. } = &mut self.state else {
                     return Task::none();
                 };
-                self.nav.activate(entity);
-                // When a set is clicked on the navbar
-                let command = self.on_nav_select(entity);
-                tasks.push(command);
+
+                Task::perform(StudySet::get_all(Arc::clone(database)), |r| {
+                    cosmic::action::app(Message::FetchedStudySets(r))
+                })
             }
+            Message::FetchedStudySets(result) => {
+                match result {
+                    Ok(sets) => {
+                        // Reset the navbar items
+                        self.nav = nav_bar::Model::default();
 
-            Message::UpdatedStudySet(new_set_name) => {
-                let entity = self.nav.active();
-                self.nav.text_set(entity, new_set_name);
-            }
-
-            // Callback after a StudySet has been successfully deleted from the database
-            Message::DeletedStudySet => {
-                self.nav.remove(self.nav.active());
-                self.homepage.set_current_studyset_id(None);
-            }
-
-            // HomePage Commands
-            Message::HomePage(message) => {
-                let homepage_tasks = self.homepage.update(message);
-                for homepage_task in homepage_tasks {
-                    match homepage_task {
-                        // Fetches the Folders of a given studyset and asks for it to be saved on the homepage state
-                        homepage::HomePageTask::FetchSetFolders(set_id) => {
-                            tasks.push(Task::perform(
-                                Folder::get_all(self.database.clone().unwrap(), set_id),
-                                |result| match result {
-                                    Ok(folders) => cosmic::action::app(Message::HomePage(
-                                        homepage::Message::SetFolders(folders),
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
+                        for set in sets {
+                            self.nav
+                                .insert()
+                                .text(set.name)
+                                .data(set.id.unwrap())
+                                .icon(icons::get_icon("x-office-document-symbolic", 18));
                         }
 
-                        // Edits the given folder with the given data and notifies the HomePage
-                        homepage::HomePageTask::EditFolder(folder) => {
-                            tasks.push(Task::perform(
-                                Folder::edit(self.database.clone().unwrap(), folder),
-                                |result| match result {
-                                    Ok(_) => cosmic::action::app(Message::HomePage(
-                                        homepage::Message::EditedFolder,
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                        }
+                        // If there's no study sets on the navbar.
+                        let Some(entity) = self.nav.iter().next() else {
+                            let State::Ready {
+                                screen, database, ..
+                            } = &mut self.state
+                            else {
+                                return Task::none();
+                            };
 
-                        // Deletes the folder with the given id
-                        homepage::HomePageTask::DeleteFolder(folder_id) => {
-                            tasks.push(Task::perform(
-                                Folder::delete(self.database.clone().unwrap(), folder_id),
-                                |result| match result {
-                                    Ok(_) => cosmic::action::app(Message::HomePage(
-                                        homepage::Message::DeletedFolder,
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                        }
+                            let (folders, _task) =
+                                screen::FoldersScreen::new(&Arc::clone(database), None);
+                            *screen = Screen::Folders(folders);
 
-                        // Opens the Edit Folder ContextPage
-                        homepage::HomePageTask::OpenEditContextPage => {
-                            self.context_page = ContextPage::EditFolder;
-                            self.core.window.show_context = true;
-                        }
+                            return Task::none();
+                        };
 
-                        // Closes any Context Page
-                        homepage::HomePageTask::CloseContextPage => {
-                            self.context_page = ContextPage::About;
-                            self.core.window.show_context = false;
-                        }
-
-                        // Opens the Create Folder Dialog
-                        homepage::HomePageTask::OpenCreateFolderDialog => {
-                            self.dialog_pages
-                                .push_back(DialogPage::NewFolder(String::new()));
-                            return widget::text_input::focus(
-                                self.dialog_state.dialog_text_input.clone(),
-                            );
-                        }
-
-                        //Opens a folder => Loads the flashcards of a given folder => Updates the current_folder_id
-                        homepage::HomePageTask::OpenFolder(folder_id) => {
-                            tasks.push(Task::perform(
-                                Flashcard::get_all(self.database.clone().unwrap(), folder_id),
-                                |result| match result {
-                                    Ok(flashcards) => cosmic::action::app(Message::FolderContent(
-                                        folder_content::Message::SetFlashcards(flashcards),
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                            self.current_page = Page::FolderContent;
-                            self.folder_content.set_current_folder_id(Some(folder_id));
-                        }
+                        // If there are any items on the navbar...
+                        self.nav.activate(entity);
+                        self.on_nav_select(entity)
+                    }
+                    Err(e) => {
+                        eprintln!("{}", e);
+                        self.update(Message::AddToast(OboeteToast::new(e)))
                     }
                 }
             }
 
-            // FolderContent Commands
-            Message::FolderContent(message) => {
-                let folder_content_tasks = self.folder_content.update(message);
-                for folder_content_task in folder_content_tasks {
-                    match folder_content_task {
-                        // Fetches the Flashcards of a given folder and asks for it to be saved on the folder_content page state
-                        folder_content::FolderContentTask::FetchFolderFlashcards(folder_id) => {
-                            tasks.push(Task::perform(
-                                Flashcard::get_all(self.database.clone().unwrap(), folder_id),
-                                |result| match result {
-                                    Ok(flashcards) => cosmic::action::app(Message::FolderContent(
-                                        folder_content::Message::SetFlashcards(flashcards),
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                        }
+            Message::Folders(message) => {
+                let State::Ready {
+                    screen, database, ..
+                } = &mut self.state
+                else {
+                    return Task::none();
+                };
 
-                        // Edits the given flashcard with the given data and notifies the folder_content page
-                        folder_content::FolderContentTask::EditFlashcard(flashcard) => {
-                            tasks.push(Task::perform(
-                                Flashcard::edit(self.database.clone().unwrap(), flashcard),
-                                |result| match result {
-                                    Ok(_) => cosmic::action::app(Message::FolderContent(
-                                        folder_content::Message::EditedFlashcard,
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                        }
+                let Screen::Folders(folders) = screen else {
+                    return Task::none();
+                };
 
-                        // Adds the given flashcard with the given data and notifies the folder_content page
-                        folder_content::FolderContentTask::AddFlashcard(flashcard) => {
-                            tasks.push(Task::perform(
-                                Flashcard::add(
-                                    self.database.clone().unwrap(),
-                                    flashcard,
-                                    self.folder_content.get_current_folder_id().unwrap(),
-                                ),
-                                |result| match result {
-                                    Ok(_) => cosmic::action::app(Message::FolderContent(
-                                        folder_content::Message::AddedNewFlashcard,
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                        }
+                match folders.update(message, database) {
+                    folders::Action::None => Task::none(),
+                    folders::Action::AddToast(toast) => self.update(Message::AddToast(toast)),
+                    folders::Action::Run(task) => {
+                        task.map(|msg| cosmic::action::app(Message::Folders(msg)))
+                    }
 
-                        // Deletes the flashcard with the given id
-                        folder_content::FolderContentTask::DeleteFlashcard(flashcard_id) => {
-                            tasks.push(Task::perform(
-                                Flashcard::delete(self.database.clone().unwrap(), flashcard_id),
-                                |result| match result {
-                                    Ok(_) => cosmic::action::app(Message::FolderContent(
-                                        folder_content::Message::DeletedFlashcard,
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                        }
-
-                        // Opens the Add/Edit Flashcard ContextPage
-                        folder_content::FolderContentTask::OpenAddEditContextPage => {
-                            self.context_page = ContextPage::AddEditFlashcard;
-                            self.core.window.show_context = true;
-                        }
-
-                        // Closes any Context Page
-                        folder_content::FolderContentTask::CloseContextPage => {
-                            self.context_page = ContextPage::About;
-                            self.core.window.show_context = false;
-                        }
-
-                        // Resets the status of a single flashcard and notifies the FolderContent Page
-                        folder_content::FolderContentTask::RestartSingleFlashcardStatus(
-                            flashcard_id,
-                        ) => {
-                            tasks.push(Task::perform(
-                                Flashcard::reset_single_status(
-                                    self.database.clone().unwrap(),
-                                    flashcard_id,
-                                ),
-                                |result| match result {
-                                    Ok(_) => cosmic::action::app(Message::FolderContent(
-                                        folder_content::Message::EditedFlashcard,
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                        }
-
-                        // Opens the FolderContentOptions ContextPage
-                        folder_content::FolderContentTask::OpenFolderOptionsContextPage => {
-                            self.context_page = ContextPage::FolderContentOptions;
-                            self.core.window.show_context = true;
-                        }
-
-                        // Gets a vec of flashcards to get put into the database, does that and notifies the folder_content page
-                        folder_content::FolderContentTask::ImportContent(content) => {
-                            tasks.push(Task::perform(
-                                Flashcard::add_bulk(
-                                    self.database.clone().unwrap(),
-                                    content,
-                                    self.folder_content.get_current_folder_id().unwrap(),
-                                ),
-                                |result| match result {
-                                    Ok(_) => cosmic::action::app(Message::FolderContent(
-                                        folder_content::Message::ContentImported,
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                        }
-
-                        // Opens the file selection dialog for anki importing and executes a callback with the result
-                        folder_content::FolderContentTask::OpenAnkiFileSelection => {
-                            tasks.push(Task::perform(
-                                async move {
-                                    let result = SelectedFiles::open_file()
-                                        .title("Open Anki File")
-                                        .accept_label("Open")
-                                        .modal(true)
-                                        .multiple(false)
-                                        .filter(FileFilter::new("TXT File").glob("*.txt"))
-                                        .send()
-                                        .await
-                                        .unwrap()
-                                        .response();
-
-                                    if let Ok(result) = result {
-                                        result
-                                            .uris()
-                                            .iter()
-                                            .map(|file| file.path().to_string())
-                                            .collect::<Vec<String>>()
-                                    } else {
-                                        Vec::new()
-                                    }
-                                },
-                                |files| {
-                                    cosmic::action::app(Message::FolderContent(
-                                        folder_content::Message::OpenAnkiFileResult(files),
-                                    ))
-                                },
-                            ));
-                        }
-
-                        // Resets the status of all flashcards of a given folder and asks to refresh the flashcard vec
-                        folder_content::FolderContentTask::RestartFolderFlashcardsStatus(
-                            folder_id,
-                        ) => {
-                            tasks.push(Task::perform(
-                                Flashcard::reset_all_status(
-                                    self.database.clone().unwrap(),
-                                    folder_id,
-                                ),
-                                |result| match result {
-                                    Ok(_) => cosmic::action::app(Message::FolderContent(
-                                        folder_content::Message::EditedFlashcard,
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                        }
-
-                        // Opens the export selection dialog for folder exporting and executes a callback with the result
-                        folder_content::FolderContentTask::OpenFolderExport(options) => {
-                            tasks.push(Task::perform(
-                                async move {
-                                    let result = SelectedFiles::save_file()
-                                        .title("Save Export")
-                                        .accept_label("Save")
-                                        .modal(true)
-                                        .filter(FileFilter::new("TXT File").glob("*.txt"))
-                                        .send()
-                                        .await
-                                        .unwrap()
-                                        .response();
-                                    if let Ok(result) = result {
-                                        result
-                                            .uris()
-                                            .iter()
-                                            .map(|file| file.path().to_string())
-                                            .collect::<Vec<String>>()
-                                    } else {
-                                        Vec::new()
-                                    }
-                                },
-                                move |files| {
-                                    cosmic::action::app(Message::FolderContent(
-                                        folder_content::Message::OpenFolderExportResult(
-                                            files, options,
-                                        ),
-                                    ))
-                                },
-                            ));
-                        }
-
-                        // Retrieves the flashcard of a folder and gives it to the studypage
-                        folder_content::FolderContentTask::StudyFolder(folder_id) => {
-                            tasks.push(Task::perform(
-                                Flashcard::get_all(self.database.clone().unwrap(), folder_id),
-                                |result| match result {
-                                    Ok(flashcards) => cosmic::action::app(Message::StudyPage(
-                                        study_page::Message::SetFlashcards(flashcards),
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                            self.current_page = Page::StudyPage;
-                        }
+                    folders::Action::OpenCreateFolderDialog => self.update(Message::DialogAction(
+                        dialogs::DialogAction::OpenCreateFolderDialog,
+                    )),
+                    folders::Action::OpenDeleteFolderDialog(folder_id) => {
+                        self.update(Message::DialogAction(
+                            dialogs::DialogAction::OpenDeleteFolderDialog(folder_id),
+                        ))
+                    }
+                    folders::Action::OpenContextPage(context_page) => {
+                        self.update(Message::ToggleContextPage(context_page))
+                    }
+                    folders::Action::OpenFolder(folder_id) => {
+                        self.update(Message::OpenFlashcards(folder_id))
                     }
                 }
             }
+            Message::OpenFolders(studyset_id) => {
+                let State::Ready {
+                    screen, database, ..
+                } = &mut self.state
+                else {
+                    return Task::none();
+                };
 
-            // StudyPage Commands
-            Message::StudyPage(message) => {
-                let studypage_tasks = self.study_page.update(message);
-                for studypage_task in studypage_tasks {
-                    match studypage_task {
-                        // Update the flashcard status on the db and return the folder flashcards once again (with the updated status)
-                        study_page::StudyPageTask::UpdateFlashcardStatus(flashcard) => {
-                            tasks.push(Task::perform(
-                                Flashcard::update_status(
-                                    self.database.clone().unwrap(),
-                                    flashcard,
-                                    self.folder_content.get_current_folder_id().unwrap(),
-                                ),
-                                |result| match result {
-                                    Ok(flashcards) => cosmic::action::app(Message::StudyPage(
-                                        study_page::Message::UpdatedFlashcardStatus(flashcards),
-                                    )),
-                                    Err(_) => cosmic::action::none(),
-                                },
-                            ));
-                        }
+                let (folders, task) = screen::FoldersScreen::new(database, Some(studyset_id));
+                *screen = Screen::Folders(folders);
+                task.map(|msg| cosmic::action::app(Message::Folders(msg)))
+            }
+
+            Message::Flashcards(message) => {
+                let State::Ready {
+                    screen, database, ..
+                } = &mut self.state
+                else {
+                    return Task::none();
+                };
+
+                let Screen::Flashcards(flashcards) = screen else {
+                    return Task::none();
+                };
+
+                match flashcards.update(message, database) {
+                    flashcards::Action::None => Task::none(),
+                    flashcards::Action::AddToast(toast) => self.update(Message::AddToast(toast)),
+                    flashcards::Action::Run(task) => {
+                        task.map(|msg| cosmic::action::app(Message::Flashcards(msg)))
+                    }
+                    flashcards::Action::OpenDeleteFlashcardDialog(flashcard) => {
+                        self.update(Message::DialogAction(
+                            dialogs::DialogAction::OpenDeleteFlashcardDialog(flashcard),
+                        ))
+                    }
+                    flashcards::Action::OpenContextPage(context_page) => {
+                        self.update(Message::ToggleContextPage(context_page))
+                    }
+                    flashcards::Action::StudyFolder(folder_id) => {
+                        self.core.window.show_context = false;
+                        self.update(Message::OpenStudy(folder_id))
                     }
                 }
             }
+            Message::OpenFlashcards(folder_id) => {
+                let State::Ready {
+                    screen, database, ..
+                } = &mut self.state
+                else {
+                    return Task::none();
+                };
 
-            // Opens the dialog page to create a new StudySet
-            Message::OpenNewStudySetDialog => {
-                self.dialog_pages
-                    .push_back(DialogPage::NewStudySet(String::new()));
-                return widget::text_input::focus(self.dialog_state.dialog_text_input.clone());
+                let (flashcards, task) = screen::FlashcardsScreen::new(database, folder_id);
+                *screen = Screen::Flashcards(flashcards);
+                task.map(|msg| cosmic::action::app(Message::Flashcards(msg)))
             }
 
-            // Opens the dialog page to rename a studyset
-            Message::OpenRenameStudySetDialog => {
-                if let Some(set_name) = self.nav.text(self.nav.active()) {
-                    self.dialog_pages.push_back(DialogPage::RenameStudySet {
-                        to: set_name.to_string(),
-                    });
-                    return widget::text_input::focus(self.dialog_state.dialog_text_input.clone());
-                }
-            }
+            Message::Study(message) => {
+                let State::Ready {
+                    screen, database, ..
+                } = &mut self.state
+                else {
+                    return Task::none();
+                };
 
-            // Opens the dialog page to delete a studyset
-            Message::OpenDeleteStudySetDialog => {
-                if self.nav.data::<i32>(self.nav.active()).is_some() {
-                    self.dialog_pages.push_back(DialogPage::DeleteStudySet);
-                }
-            }
+                let Screen::Study(study) = screen else {
+                    return Task::none();
+                };
 
-            // Executes the action for each dialog page
-            Message::DialogComplete => {
-                if let Some(dialog_page) = self.dialog_pages.pop_front() {
-                    match dialog_page {
-                        // Actions for the NewStudySet Dialog
-                        DialogPage::NewStudySet(studyset_name) => {
-                            if !studyset_name.is_empty() {
-                                let set = StudySet::new(studyset_name);
-                                tasks.push(Task::perform(
-                                    StudySet::add(self.database.clone().unwrap(), set),
-                                    |result| match result {
-                                        Ok(_) => cosmic::action::app(Message::FetchStudySets),
-                                        Err(_) => cosmic::action::none(),
-                                    },
-                                ));
-                            }
-                        }
-
-                        // Actions for the RenameStudySet Dialog
-                        DialogPage::RenameStudySet { to: studyset_name } => {
-                            if !studyset_name.is_empty() {
-                                if let Some(set_id) = self.nav.active_data::<i32>() {
-                                    let command = Task::perform(
-                                        StudySet::edit(
-                                            self.database.clone().unwrap(),
-                                            StudySet {
-                                                id: Some(*set_id),
-                                                name: studyset_name.clone(),
-                                                folders: Vec::new(),
-                                            },
-                                        ),
-                                        move |result| match result {
-                                            Ok(_) => cosmic::action::app(Message::UpdatedStudySet(
-                                                studyset_name.clone(),
-                                            )),
-                                            Err(_) => cosmic::action::none(),
-                                        },
-                                    );
-                                    tasks.push(command);
-                                }
-                            }
-                        }
-
-                        // Actions for the DeleteStudySet Dialog
-                        DialogPage::DeleteStudySet => {
-                            if let Some(set_id) = self.nav.data::<i32>(self.nav.active()) {
-                                tasks.push(Task::perform(
-                                    StudySet::delete(self.database.clone().unwrap(), *set_id),
-                                    |result| match result {
-                                        Ok(_) => cosmic::action::app(Message::DeletedStudySet),
-                                        Err(_) => cosmic::action::none(),
-                                    },
-                                ));
-                            }
-                        }
-
-                        // Actions for the NewFolder Dialog
-                        DialogPage::NewFolder(folder_name) => {
-                            if !folder_name.is_empty() {
-                                let folder = Folder::new(folder_name);
-                                tasks.push(Task::perform(
-                                    Folder::add(
-                                        self.database.clone().unwrap(),
-                                        folder,
-                                        self.homepage.get_current_studyset_id().unwrap(),
-                                    ),
-                                    |result| match result {
-                                        Ok(_folder_id) => cosmic::action::app(Message::HomePage(
-                                            homepage::Message::AddedNewFolder,
-                                        )),
-                                        Err(_) => cosmic::action::none(),
-                                    },
-                                ));
-                            }
-                        }
+                match study.update(message, database) {
+                    study::Action::None => Task::none(),
+                    study::Action::AddToast(toast) => self.update(Message::AddToast(toast)),
+                    study::Action::Back(folder_id) => {
+                        self.update(Message::OpenFlashcards(folder_id))
+                    }
+                    study::Action::Run(task) => {
+                        task.map(|msg| cosmic::action::app(Message::Study(msg)))
                     }
                 }
             }
+            Message::OpenStudy(folder_id) => {
+                let State::Ready {
+                    screen, database, ..
+                } = &mut self.state
+                else {
+                    return Task::none();
+                };
 
-            // Closes the current dialog
-            Message::DialogCancel => {
-                self.dialog_pages.pop_front();
+                let (study, task) = screen::StudyScreen::new(database, folder_id);
+                *screen = Screen::Study(study);
+                task.map(|msg| cosmic::action::app(Message::Study(msg)))
             }
 
-            // Updates the current dialog page
-            Message::DialogUpdate(dialog_page) => {
-                self.dialog_pages[0] = dialog_page;
-            }
+            Message::ComleteBackup(file_path) => {
+                let State::Ready { database, .. } = &mut self.state else {
+                    return Task::none();
+                };
 
-            // Asks the DB for the data to backup and executes a callback
-            Message::GetBackupData => {
-                if self.backup_data.is_none() {
-                    tasks.push(Task::perform(
-                        StudySet::get_all_data(self.database.clone().unwrap()),
-                        |result| match result {
-                            Ok(data) => cosmic::action::app(Message::SetBackupData(data)),
-                            Err(_) => cosmic::action::none(),
-                        },
-                    ));
-                }
-            }
-
-            Message::SetBackupData(data) => {
-                self.backup_data = Some(data);
-                tasks.push(self.update(Message::OpenSaveBackupFileDialog));
-            }
-
-            Message::OpenSaveBackupFileDialog => {
-                tasks.push(Task::perform(
-                    async move {
-                        let result = SelectedFiles::save_file()
-                            .title("Save Backup")
-                            .accept_label("Save")
-                            .modal(true)
-                            .filter(FileFilter::new("JSON File").glob("*.json"))
-                            .send()
-                            .await
-                            .unwrap()
-                            .response();
-
-                        if let Ok(result) = result {
-                            result
-                                .uris()
-                                .iter()
-                                .map(|file| file.path().to_string())
-                                .collect::<Vec<String>>()
-                        } else {
-                            Vec::new()
+                Task::perform(
+                    utils::backup_oboete(Arc::clone(database), file_path),
+                    |res| match res {
+                        Ok(_) => cosmic::action::none(),
+                        Err(e) => {
+                            eprintln!("{}", e);
+                            cosmic::action::app(Message::AddToast(OboeteToast::new(e)))
                         }
                     },
-                    |files| cosmic::action::app(Message::SaveBackupFile(files)),
-                ));
+                )
             }
+            Message::CompleteImport(file_path) => {
+                let State::Ready { database, .. } = &mut self.state else {
+                    return Task::none();
+                };
 
-            Message::SaveBackupFile(open_result) => {
-                for path in open_result {
-                    if let Some(backup_data) = &self.backup_data {
-                        let result = export_flashcards_json(&path, backup_data);
-                        match result {
-                            Ok(_) => println!("export saved correctly"),
-                            Err(err) => eprintln!("{err}"),
-                        }
-                    }
-                }
-                self.backup_data = None;
-            }
-
-            Message::Import => {
-                tasks.push(Task::perform(
-                    async move {
-                        let result = SelectedFiles::open_file()
-                            .title("Open Backup File")
-                            .accept_label("Open")
-                            .modal(true)
-                            .multiple(false)
-                            .filter(FileFilter::new("JSON File").glob("*.json"))
-                            .send()
-                            .await
-                            .unwrap()
-                            .response();
-
-                        if let Ok(result) = result {
-                            result
-                                .uris()
-                                .iter()
-                                .map(|file| file.path().to_string())
-                                .collect::<Vec<String>>()
-                        } else {
-                            Vec::new()
+                Task::perform(
+                    utils::import_oboete(Arc::clone(database), file_path),
+                    |res| match res {
+                        Ok(_) => cosmic::action::app(Message::FetchStudySets),
+                        Err(e) => {
+                            eprintln!("{}", e);
+                            cosmic::action::app(Message::AddToast(OboeteToast::new(e)))
                         }
                     },
-                    |files| cosmic::action::app(Message::ImportFileResult(files)),
-                ));
-            }
-
-            Message::ImportFileResult(open_result) => {
-                for path in open_result {
-                    let result = import_flashcards_json(&path);
-                    match result {
-                        Ok(studysets) => {
-                            let command = Task::perform(
-                                StudySet::import(self.database.clone().unwrap(), studysets),
-                                |result| match result {
-                                    Ok(_) => cosmic::action::app(Message::FetchStudySets),
-                                    Err(_) => cosmic::action::app(Message::FetchStudySets),
-                                },
-                            );
-
-                            tasks.push(command);
-                        }
-                        Err(err) => eprintln!("{err}"),
-                    }
-                }
+                )
             }
         }
-
-        Task::batch(tasks)
     }
 
     /// Called when a nav item is selected.
@@ -1085,14 +744,9 @@ impl cosmic::Application for Oboete {
         // Get the data from the navbar (the selected setid)
         let location_opt = self.nav.data::<i32>(entity);
         if let Some(set_id) = location_opt {
-            self.current_page = Page::HomePage;
-            self.homepage.set_current_studyset_id(Some(*set_id));
-            self.folder_content.set_current_folder_id(None);
-            self.folder_content.clean_flashcards_vec();
-
-            // If a studyset is clicked ask for the folders of the studyset to be fetched
-            let message = Message::HomePage(homepage::Message::FetchSetFolders);
+            let message = Message::OpenFolders(*set_id);
             tasks.push(self.update(message));
+            self.core.window.show_context = false;
         }
 
         tasks.push(self.update_title());
@@ -1100,7 +754,7 @@ impl cosmic::Application for Oboete {
     }
 }
 
-impl Oboete {
+impl AppModel {
     /// Updates the header and window titles.
     pub fn update_title(&mut self) -> Task<cosmic::Action<Message>> {
         let mut window_title = String::from("Oboete");
@@ -1117,6 +771,7 @@ impl Oboete {
         }
     }
 
+    /// Settings context page
     pub fn settings(&self) -> Element<Message> {
         let app_theme_selected = match self.config.app_theme {
             AppTheme::Dark => 1,
@@ -1137,80 +792,5 @@ impl Oboete {
                 .into(),
         ])
         .into()
-    }
-
-    fn create_nav_item(&mut self, studyset: StudySet) -> EntityMut<SingleSelect> {
-        self.nav
-            .insert()
-            .text(studyset.name)
-            .data(studyset.id.unwrap())
-            .icon(icons::get_icon("x-office-document-symbolic", 18))
-    }
-}
-
-/// The page to display in the application.
-#[allow(clippy::enum_variant_names)]
-pub enum Page {
-    HomePage,
-    FolderContent,
-    StudyPage,
-}
-
-/// The context page to display in the context drawer.
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
-pub enum ContextPage {
-    #[default]
-    About,
-    Settings,
-    EditFolder,
-    AddEditFlashcard,
-    FolderContentOptions,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum MenuAction {
-    NewStudySet,
-    Backup,
-    Import,
-    RenameStudySet,
-    DeleteStudySet,
-    About,
-    Settings,
-}
-
-impl menu::action::MenuAction for MenuAction {
-    type Message = Message;
-
-    fn message(&self) -> Self::Message {
-        match self {
-            MenuAction::NewStudySet => Message::OpenNewStudySetDialog,
-            MenuAction::Backup => Message::GetBackupData,
-            MenuAction::Import => Message::Import,
-            MenuAction::RenameStudySet => Message::OpenRenameStudySetDialog,
-            MenuAction::DeleteStudySet => Message::OpenDeleteStudySetDialog,
-            MenuAction::About => Message::ToggleContextPage(ContextPage::About),
-            MenuAction::Settings => Message::ToggleContextPage(ContextPage::Settings),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum DialogPage {
-    NewStudySet(String),
-    RenameStudySet { to: String },
-    DeleteStudySet,
-    NewFolder(String),
-}
-
-pub struct DialogState {
-    /// Input inside of the Dialog Pages of the Application
-    dialog_text_input: widget::Id,
-}
-
-impl Default for DialogState {
-    fn default() -> Self {
-        Self {
-            dialog_text_input: widget::Id::unique(),
-        }
     }
 }

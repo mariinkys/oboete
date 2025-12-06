@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Oboete
+Comment=A simple flashcards application
+Type=Application
+Icon=dev.mariinkys.Oboete
+Exec=oboete %F
+Terminal=false
+StartupNotify=true
+Categories=COSMIC;Education;Languages;
+Keywords=COSMIC;Flashcards;Study;Memory;Learning;Vocabulary;Quiz;Language;Japanese;Spaced Repetition;Anki;

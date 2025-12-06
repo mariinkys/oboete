@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=Oboete
-Exec=oboete %F
-Terminal=false
-Type=Application
-StartupNotify=true
-Icon=dev.mariinkys.Oboete
-Categories=X-COSMIC;Education;Languages;
-Keywords=Flashcards;Study;Memory;Learning;Vocabulary;Quiz;Language;Japanese;Spaced Repetition;Anki;

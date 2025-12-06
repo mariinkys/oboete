@@ -1,6 +1,7 @@
-use cosmic::cosmic_config;
+// SPDX-License-Identifier: GPL-3.0
 
 use crate::config::OboeteConfig;
+use cosmic::cosmic_config;
 
 /// Flags given to our COSMIC application to use in it's "init" function.
 #[derive(Clone, Debug)]

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0
 
 use cosmic::{
     cosmic_config::{self, Config, CosmicConfigEntry, cosmic_config_derive::CosmicConfigEntry},
@@ -6,8 +6,8 @@ use cosmic::{
 };
 use serde::{Deserialize, Serialize};
 
-const CONFIG_VERSION: u64 = 1;
 const APP_ID: &str = "dev.mariinkys.Oboete";
+const CONFIG_VERSION: u64 = 1;
 
 #[derive(Debug, Default, Clone, CosmicConfigEntry, Eq, PartialEq)]
 pub struct OboeteConfig {
@@ -19,7 +19,7 @@ impl OboeteConfig {
         Config::new(APP_ID, CONFIG_VERSION).ok()
     }
 
-    pub fn config() -> OboeteConfig {
+    pub fn config() -> Self {
         match Self::config_handler() {
             Some(config_handler) => {
                 OboeteConfig::get_entry(&config_handler).unwrap_or_else(|(error, config)| {

@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
-#![allow(clippy::collapsible_if)]
+// SPDX-License-Identifier: GPL-3.0
 #![allow(mismatched_lifetime_syntaxes)]
 
 use crate::flags::flags;
@@ -11,7 +10,6 @@ mod flags;
 mod i18n;
 mod icons;
 mod key_binds;
-mod oboete;
 
 fn main() -> cosmic::iced::Result {
     // Get the system's preferred languages.
@@ -27,5 +25,5 @@ fn main() -> cosmic::iced::Result {
     icons::ICON_CACHE.get_or_init(|| Mutex::new(icons::IconCache::new()));
 
     // Starts the application's event loop with `()` as the application's flags.
-    cosmic::app::run::<app::Oboete>(settings, flags())
+    cosmic::app::run::<app::AppModel>(settings, flags())
 }
