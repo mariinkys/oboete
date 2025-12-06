@@ -154,7 +154,7 @@ impl FlashcardsScreen {
     /// View of the screen
     pub fn view(&self) -> Element<'_, Message> {
         match &self.state {
-            State::Loading => container(text("Loading...")).center(Length::Fill).into(),
+            State::Loading => container(text(fl!("loading"))).center(Length::Fill).into(),
             State::Ready { flashcards, .. } => {
                 let spacing = theme::active().cosmic().spacing;
 
@@ -595,8 +595,8 @@ impl FlashcardsScreen {
                 FlashcardField::Image { path, alt_text } => {
                     let image_input: Element<Message> = if path.is_empty() {
                         row![
-                            text::body("Select an Image").width(Length::Fill),
-                            button::text("Browse")
+                            text::body(fl!("select-image")).width(Length::Fill),
+                            button::text(fl!("browse"))
                                 .on_press(Message::AddEditFlashcardInput(
                                     AddEditFlashcardInput::FrontSelectImage
                                 ))
@@ -629,7 +629,7 @@ impl FlashcardsScreen {
 
                     cosmic::widget::column::with_children(vec![
                         image_input,
-                        text_input("Front Image Alt", alt_text)
+                        text_input(fl!("front-image-alt"), alt_text)
                             .on_input(|input| {
                                 Message::AddEditFlashcardInput(
                                     AddEditFlashcardInput::FrontAltTextInput(input),
@@ -669,8 +669,8 @@ impl FlashcardsScreen {
                 FlashcardField::Image { path, alt_text } => {
                     let image_input: Element<Message> = if path.is_empty() {
                         row![
-                            text::body("Select an Image").width(Length::Fill),
-                            button::text("Browse")
+                            text::body(fl!("select-image")).width(Length::Fill),
+                            button::text(fl!("browse"))
                                 .on_press(Message::AddEditFlashcardInput(
                                     AddEditFlashcardInput::BackSelectImage
                                 ))
@@ -703,7 +703,7 @@ impl FlashcardsScreen {
 
                     cosmic::widget::column::with_children(vec![
                         image_input,
-                        text_input("Back Image Alt", alt_text)
+                        text_input(fl!("back-image-alt"), alt_text)
                             .on_input(|input| {
                                 Message::AddEditFlashcardInput(
                                     AddEditFlashcardInput::BackAltTextInput(input),
@@ -740,7 +740,12 @@ impl FlashcardsScreen {
                     .into(),
             ]),
             row![
-                text(format!("Current Status: {}", add_edit_flashcard.status)).width(Length::Fill),
+                text(format!(
+                    "{}: {}",
+                    fl!("current-flashcard-status"),
+                    add_edit_flashcard.status
+                ))
+                .width(Length::Fill),
                 button::text(fl!("reset-flashcard-button"))
                     .on_press_maybe(add_edit_flashcard.id.is_some().then_some(
                         Message::ResetFlashcardStatus(add_edit_flashcard.id.unwrap_or_default(),)
@@ -767,7 +772,7 @@ fn header_view<'a>(spacing: Spacing) -> Element<'a, Message> {
             Some(Flashcard::default()),
         ));
 
-    let study_button = button::text("Study")
+    let study_button = button::text(fl!("study"))
         .class(theme::Button::Suggested)
         .on_press(Message::Study);
 
@@ -793,7 +798,7 @@ fn header_view<'a>(spacing: Spacing) -> Element<'a, Message> {
 /// View of the contents of this screen
 fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'a, Message> {
     let content: Element<'a, Message> = if flashcards.is_empty() {
-        text("Create some flashcards to get started...").into()
+        text(fl!("empty-flashcards-page")).into()
     } else {
         let mut flashcards_list = list::list_column().style(theme::Container::Card);
 

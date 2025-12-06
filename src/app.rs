@@ -262,7 +262,7 @@ impl cosmic::Application for AppModel {
     /// events received by widgets will be passed to the update method.
     fn view(&self) -> Element<'_, Self::Message> {
         let content: Element<_> = match &self.state {
-            State::Loading => center(text("Loading...")).into(),
+            State::Loading => center(text(fl!("loading"))).into(),
             State::Ready { screen, .. } => match screen {
                 Screen::Folders(folders_screen) => folders_screen.view().map(Message::Folders),
                 Screen::Flashcards(flashcards_screen) => {

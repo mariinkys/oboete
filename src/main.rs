@@ -14,7 +14,6 @@ mod key_binds;
 // TODO
 // Error Handling (Toasts)
 // Keyboard shortcuts
-// use fl!() on all text
 // Migrate data strategy for 0.1 -> 0.2
 
 fn main() -> cosmic::iced::Result {

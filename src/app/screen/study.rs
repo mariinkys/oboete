@@ -341,16 +341,21 @@ fn study_view<'a>(
     };
 
     let mode_text = match practice_mode {
-        PracticeMode::Fsrs => format!(
-            "FSRS Mode - Due Cards - {} of {}",
-            current_index + 1,
-            flashcards.len()
-        ),
-        PracticeMode::Study => format!(
-            "Study Mode - Card {} of {}",
-            current_index + 1,
-            flashcards.len()
-        ),
+        PracticeMode::Fsrs => {
+            fl!(
+                "fsrs-mode",
+                due = ((current_index + 1) as i64),
+                total = flashcards.len()
+            )
+        }
+
+        PracticeMode::Study => {
+            fl!(
+                "study-mode",
+                number = ((current_index + 1) as i64),
+                total = flashcards.len()
+            )
+        }
     };
 
     container(stack![

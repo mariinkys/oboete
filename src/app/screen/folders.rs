@@ -104,8 +104,8 @@ impl FoldersScreen {
     /// View of the screen
     pub fn view(&self) -> Element<'_, Message> {
         match &self.state {
-            State::Loading => container(text("Loading...")).center(Length::Fill).into(),
-            State::NoStudySet => container(text("Nothing to see here..."))
+            State::Loading => container(text(fl!("loading"))).center(Length::Fill).into(),
+            State::NoStudySet => container(text(fl!("empty-page-noset")))
                 .center(Length::Fill)
                 .into(),
             State::Ready { folders, .. } => {
@@ -309,7 +309,7 @@ fn header_view<'a>(spacing: Spacing) -> Element<'a, Message> {
 /// View of the contents of this screen
 fn folders_view<'a>(spacing: &Spacing, folders: &'a [Folder]) -> Element<'a, Message> {
     let content: Element<'a, Message> = if folders.is_empty() {
-        text("Create some folders to get started...").into()
+        text(fl!("empty-folders-page")).into()
     } else {
         let mut folders_list = list::list_column().style(theme::Container::Card);
 
