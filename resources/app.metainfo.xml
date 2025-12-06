@@ -102,7 +102,7 @@
         <p>Switched importing and exporting from JSON to RON</p>
         <p>Implemented proper database migrations</p>
         <p>UI tweaks and improvements</p>
-        <p>Upadted dependencies</p>
+        <p>Updated dependencies</p>
       </description>
     </release>
     <release version="0.1.13" date="2025-11-25">
