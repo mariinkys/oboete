@@ -11,9 +11,6 @@ mod i18n;
 mod icons;
 mod key_binds;
 
-// TODO
-// Migrate data strategy for 0.1 -> 0.2
-
 fn main() -> cosmic::iced::Result {
     // Get the system's preferred languages.
     let requested_languages = i18n_embed::DesktopLanguageRequester::requested_languages();
