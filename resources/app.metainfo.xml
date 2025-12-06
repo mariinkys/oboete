@@ -9,7 +9,7 @@
   <url type="donation">https://buymeacoffee.com/mariinkys</url>
 
   <name>Oboete</name>
-  <summary>A simple flashcards application</summary>
+  <summary>Flashcards application</summary>
 
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
@@ -25,6 +25,7 @@
       <li>Works out of the box</li>
       <li>Can import flashcards from other sources such as Anki</li>
       <li>Does NOT sync to the cloud</li>
+      <li>Image and FSRS support</li>
     </ul>
   </description>
 
@@ -92,9 +93,16 @@
   </keywords>
 
   <releases>
-    <release version="0.2.0" date="2025-12-05">
+    <release version="0.2.0" date="2025-12-06">
       <description>
-        <p>TODO</p>
+        <p>Full application rewrite</p>
+        <p>Added image support</p>
+        <p>Changed algorithm to user configurable FSRS</p>
+        <p>Added keyboard shortcuts on the study page</p>
+        <p>Switched importing and exporting from JSON to RON</p>
+        <p>Implemented proper database migrations</p>
+        <p>UI tweaks and improvements</p>
+        <p>Upadted dependencies</p>
       </description>
     </release>
     <release version="0.1.13" date="2025-11-25">
