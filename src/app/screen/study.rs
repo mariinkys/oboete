@@ -17,7 +17,6 @@ use crate::fl;
 
 /// Screen [`State`] holder
 pub struct StudyScreen {
-    scheduler: FSRSScheduler,
     state: State,
 }
 
@@ -25,6 +24,7 @@ pub struct StudyScreen {
 enum State {
     Loading,
     Ready {
+        scheduler: Box<FSRSScheduler>,
         current_folder_id: Option<i32>,
         flashcards: Vec<Flashcard>,
         studying_flashcard: StudyingFlashcard,
@@ -63,7 +63,7 @@ pub enum Message {
     /// Load the flashcards into state
     LoadFlashcards,
     /// Callback after asking to load the flashcards into state
-    FlashcardsLoaded(Result<Vec<Flashcard>, anywho::Error>),
+    FlashcardsLoaded(Result<(Vec<Flashcard>, f32), anywho::Error>),
 
     /// Ask to swap the currently studying flashcard side
     SwapFlashcardSide,
@@ -85,12 +85,10 @@ impl StudyScreen {
     pub fn new(database: &Arc<Pool<Sqlite>>, folder_id: i32) -> (Self, Task<Message>) {
         (
             Self {
-                // TODO: Configure desired retention
-                scheduler: FSRSScheduler::new(0.90).unwrap(),
                 state: State::Loading,
             },
             Task::perform(
-                Flashcard::get_all(Arc::clone(database), folder_id),
+                Flashcard::get_all_with_retention_rate(Arc::clone(database), folder_id),
                 Message::FlashcardsLoaded,
             )
             .chain(Task::done(Message::UpdateCurrentFolderId(folder_id))),
@@ -165,7 +163,7 @@ impl StudyScreen {
                 if let Some(folder_id) = *current_folder_id {
                     Action::Run(
                         Task::perform(
-                            Flashcard::get_all(Arc::clone(database), folder_id),
+                            Flashcard::get_all_with_retention_rate(Arc::clone(database), folder_id),
                             Message::FlashcardsLoaded,
                         )
                         .chain(Task::done(Message::UpdateCurrentFolderId(folder_id))),
@@ -176,13 +174,17 @@ impl StudyScreen {
             }
             Message::FlashcardsLoaded(res) => {
                 match res {
-                    Ok(mut flashcards) => {
+                    Ok((mut flashcards, retention_rate)) => {
                         if !flashcards.is_empty() {
                             if let Some((due_cards, current_mode)) =
                                 order_due_cards(&mut flashcards)
                             {
                                 let flashcard = due_cards.first().unwrap().to_owned();
+
                                 self.state = State::Ready {
+                                    scheduler: Box::from(
+                                        FSRSScheduler::new(retention_rate).unwrap(),
+                                    ),
                                     current_folder_id: None,
                                     flashcards: due_cards,
                                     studying_flashcard: StudyingFlashcard {
@@ -223,7 +225,9 @@ impl StudyScreen {
             }
             Message::UpdateFlashcardStatus(flashcard_id, flashcard_status) => {
                 let State::Ready {
-                    studying_flashcard, ..
+                    studying_flashcard,
+                    scheduler,
+                    ..
                 } = &self.state
                 else {
                     return Action::None;
@@ -232,7 +236,7 @@ impl StudyScreen {
                 let (new_memory_state, new_due_date) = match utils::update_fsrs_data(
                     &flashcard_status,
                     &studying_flashcard.flashcard,
-                    &self.scheduler,
+                    scheduler,
                 ) {
                     Some(data) => data,
                     None => {

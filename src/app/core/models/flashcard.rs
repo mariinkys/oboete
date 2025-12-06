@@ -235,7 +235,7 @@ impl Flashcard {
         }
     }
 
-    /// Get all flashcards of the given [`Folder`] from the database
+    /// Get all flashcards of the given [`Folder`] from the database, also returns the desired retention rate for the folder of this flashcards
     pub async fn get_all(
         pool: Arc<Pool<Sqlite>>,
         folder_id: i32,
@@ -275,6 +275,54 @@ impl Flashcard {
         }
 
         Ok(result)
+    }
+
+    /// Get all flashcards of the given [`Folder`] from the database, also returns the desired retention rate for the folder of this flashcards
+    pub async fn get_all_with_retention_rate(
+        pool: Arc<Pool<Sqlite>>,
+        folder_id: i32,
+    ) -> Result<(Vec<Flashcard>, f32), anywho::Error> {
+        let desired_retention =
+            sqlx::query_scalar("SELECT desired_retention FROM folders WHERE id = ?")
+                .bind(folder_id)
+                .fetch_one(pool.as_ref())
+                .await?;
+
+        let mut rows = sqlx::query(
+            "SELECT id, front, back, status, fsrs_state, due_date, last_reviewed 
+             FROM flashcards 
+             WHERE folder_id = $1 
+             ORDER BY id ASC",
+        )
+        .bind(folder_id)
+        .fetch(pool.as_ref());
+
+        let mut result = Vec::<Flashcard>::new();
+
+        while let Some(row) = rows.try_next().await? {
+            let id: i32 = row.try_get("id")?;
+            let front: String = row.try_get("front")?;
+            let back: String = row.try_get("back")?;
+            let status: i32 = row.try_get("status")?;
+
+            let fsrs_state: Option<String> = row.try_get("fsrs_state").ok();
+            let due_date: Option<i32> = row.try_get("due_date").ok();
+            let last_reviewed: Option<i32> = row.try_get("last_reviewed").ok();
+
+            let flashcard = Flashcard {
+                id: Some(id),
+                front: FlashcardField::from_ron(front)?,
+                back: FlashcardField::from_ron(back)?,
+                status: FlashcardStatus::from_id(status).unwrap_or_default(),
+                fsrs_state: fsrs_state.and_then(|s| ron::from_str(&s).ok()),
+                due_date,
+                last_reviewed,
+            };
+
+            result.push(flashcard);
+        }
+
+        Ok((result, desired_retention))
     }
 
     /// Add a [`Flashcard`] to the database

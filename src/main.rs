@@ -13,9 +13,9 @@ mod key_binds;
 
 // TODO
 // Error Handling (Toasts)
-// Customize retention rate for FSRSScheduler (add to folder db table)
 // Keyboard shortcuts
 // use fl!() on all text
+// Migrate data strategy for 0.1 -> 0.2
 
 fn main() -> cosmic::iced::Result {
     // Get the system's preferred languages.

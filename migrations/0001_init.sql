@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS studysets (
 CREATE TABLE IF NOT EXISTS folders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    desired_retention REAL NOT NULL,
     studyset_id INTEGER NOT NULL,
     FOREIGN KEY (studyset_id) REFERENCES studysets(id) ON DELETE CASCADE
 );

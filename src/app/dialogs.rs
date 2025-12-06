@@ -106,8 +106,11 @@ impl DialogPage {
                         return Task::perform(
                             Folder::add(
                                 Arc::clone(database),
-                                folder_name.to_string(),
                                 set_id_clone,
+                                Folder {
+                                    name: folder_name.to_string(),
+                                    ..Default::default()
+                                },
                             ),
                             move |result| match result {
                                 Ok(_folder_id) => {

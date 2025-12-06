@@ -6,7 +6,9 @@ use cosmic::cosmic_theme::Spacing;
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Alignment, Length, Subscription};
 use cosmic::iced_widget::{column, row};
-use cosmic::widget::{Row, Space, button, container, list, scrollable, settings, text, text_input};
+use cosmic::widget::{
+    Row, Space, button, container, list, scrollable, settings, slider, text, text_input,
+};
 use cosmic::{Element, Task, theme};
 use sqlx::{Pool, Sqlite};
 
@@ -47,7 +49,7 @@ pub enum Message {
     /// Ask to edit a [`Folder`] in the database
     EditFolder,
     /// Callback after some input has been modified for the currently editing folder
-    EditFolderInput(String),
+    EditFolderInput(EditFolderInput),
 
     /// Ask to delete a [`Folder`] from the database
     DeleteFolder(i32),
@@ -66,6 +68,13 @@ pub enum Action {
     OpenContextPage(ContextPage),
 
     OpenFolder(i32),
+}
+
+/// Identifies the possible inputs of the edit folder [`ContextPage`]
+#[derive(Debug, Clone)]
+pub enum EditFolderInput {
+    NameInput(String),
+    DesiredRetentionInput(f32),
 }
 
 impl FoldersScreen {
@@ -199,12 +208,17 @@ impl FoldersScreen {
                     },
                 ))
             }
-            Message::EditFolderInput(value) => {
+            Message::EditFolderInput(input) => {
                 let State::Ready { edit_folder, .. } = &mut self.state else {
                     return Action::None;
                 };
 
-                edit_folder.name = value;
+                match input {
+                    EditFolderInput::NameInput(value) => edit_folder.name = value,
+                    EditFolderInput::DesiredRetentionInput(value) => {
+                        edit_folder.desired_retention = value
+                    }
+                };
 
                 Action::None
             }
@@ -245,10 +259,24 @@ impl FoldersScreen {
                     cosmic::widget::column::with_children(vec![
                         text::body(fl!("folder-name")).into(),
                         text_input(fl!("folder-name"), &edit_folder.name)
-                            .on_input(Message::EditFolderInput)
+                            .on_input(|v| Message::EditFolderInput(EditFolderInput::NameInput(v)))
                             .into(),
                     ])
                     .spacing(spacing.space_xxs),
+                )
+                .add(
+                    settings::item::builder(fl!("retention-rate"))
+                        .description(format!(
+                            "{}:{:.2}",
+                            fl!("current-retention-rate"),
+                            edit_folder.desired_retention
+                        ))
+                        .control(
+                            slider(0.50..=0.99, edit_folder.desired_retention, move |v| {
+                                Message::EditFolderInput(EditFolderInput::DesiredRetentionInput(v))
+                            })
+                            .step(0.01f32),
+                        ),
                 )
                 .into(),
         ]);

@@ -49,6 +49,8 @@ folder-name = Folder Name
 
 <#-- Folder Details Context Page -->
 folder-details = Folder Details
+current-retention-rate = Current Retention Rate
+retention-rate = Retention Rate
 
 <#-- Folder Deletion Dialog -->
 delete-folder = Delete Folder

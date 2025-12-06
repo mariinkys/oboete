@@ -35,7 +35,8 @@ pub async fn backup_oboete(
         r#"
             SELECT
                 s.id AS studyset_id, s.name AS studyset_name,
-                f.id AS folder_id, f.name AS folder_name,
+                f.id AS folder_id, f.name AS folder_name, 
+                f.desired_retention AS desired_retention,
                 fc.id AS flashcard_id, fc.front, fc.back, fc.status,
                 fc.fsrs_state, fc.due_date, fc.last_reviewed
             FROM studysets s
@@ -55,6 +56,7 @@ pub async fn backup_oboete(
 
         let folder_id: Option<i32> = row.try_get("folder_id").ok();
         let folder_name: Option<String> = row.try_get("folder_name").ok();
+        let desired_retention: Option<f32> = row.try_get("desired_retention").ok();
         let flashcard_id: Option<i32> = row.try_get("flashcard_id").ok();
 
         if current_studyset.is_none()
@@ -72,7 +74,9 @@ pub async fn backup_oboete(
             });
         }
 
-        if let (Some(folder_id), Some(folder_name)) = (folder_id, folder_name) {
+        if let (Some(folder_id), Some(folder_name), Some(desired_retention)) =
+            (folder_id, folder_name, desired_retention)
+        {
             // Ignore "ghost" folders with ID 0.
             // This handles the case where LEFT JOIN returns 0 instead of NULL,
             // preventing the creation of phantom folders with empty names.
@@ -93,6 +97,7 @@ pub async fn backup_oboete(
                     folder: Folder {
                         id: Some(folder_id),
                         name: folder_name,
+                        desired_retention,
                     },
                     flashcards: Vec::new(),
                 };
@@ -162,9 +167,10 @@ pub async fn import_oboete(
 
         for backup_folder in backup_studyset.folders {
             let folder_id =
-                sqlx::query("INSERT INTO folders (name, studyset_id) VALUES (?, ?) RETURNING id")
+                sqlx::query("INSERT INTO folders (name, studyset_id, desired_retention) VALUES (?, ?, ?) RETURNING id")
                     .bind(&backup_folder.folder.name)
                     .bind(studyset_id)
+                    .bind(backup_folder.folder.desired_retention)
                     .fetch_one(&mut *transaction)
                     .await?
                     .try_get::<i32, _>("id")?;
