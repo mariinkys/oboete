@@ -228,14 +228,18 @@ impl FlashcardsScreen {
                         let add_edit_flashcard = match &self.state {
                             State::Ready {
                                 add_edit_flashcard, ..
-                            } if add_edit_flashcard.id.is_some() => add_edit_flashcard.clone(),
-                            _ => Box::new(Flashcard::default()),
+                            } if add_edit_flashcard.id.is_some() => flashcards
+                                .iter()
+                                .find(|x| x.id == add_edit_flashcard.id)
+                                .cloned()
+                                .unwrap_or_default(),
+                            _ => Flashcard::default(),
                         };
 
                         self.state = State::Ready {
                             current_folder_id: None,
                             flashcards,
-                            add_edit_flashcard,
+                            add_edit_flashcard: Box::from(add_edit_flashcard),
                             options: FolderOptions::default(),
                         };
                     }
