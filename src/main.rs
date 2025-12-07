@@ -19,7 +19,13 @@ fn main() -> cosmic::iced::Result {
     i18n::init(&requested_languages);
 
     // Settings for configuring the application window and iced runtime.
-    let settings = cosmic::app::Settings::default().size(cosmic::iced::Size::new(1200.0, 800.0));
+    let settings = cosmic::app::Settings::default()
+        .size_limits(
+            cosmic::iced::Limits::NONE
+                .min_height(420.0)
+                .min_width(450.0),
+        )
+        .size(cosmic::iced::Size::new(1200.0, 800.0));
 
     // Init the icon cache
     icons::ICON_CACHE.get_or_init(|| Mutex::new(icons::IconCache::new()));
