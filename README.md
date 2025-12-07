@@ -9,10 +9,10 @@
   ![GitHub Repo stars](https://img.shields.io/github/stars/mariinkys/Oboete)
 
 
-  <h3>A simple flashcards application for the COSMIC™ desktop</h3>
+  <h3>A flashcards application for the COSMIC™ desktop</h3>
 
-  <img alt="Main Window Dark" width="320" src="./resources/screenshots/main-dark.png"/>
-  <img alt="Folder Window Dark" width="320" src="./resources/screenshots/folder-inside-dark.png"/>
+  <img alt="Folders Window Dark" width="320" src="./resources/screenshots/folders-dark.png"/>
+  <img alt="Flashcards Window Dark" width="320" src="./resources/screenshots/flashcards-dark.png"/>
   <img alt="Study Window Dark" width="320" src="./resources/screenshots/study-dark.png"/>
 
   <br><br>

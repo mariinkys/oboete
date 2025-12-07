@@ -42,18 +42,33 @@
   <screenshots>
     <screenshot type="default" xml:lang="en">
       <image>
-        https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/main-dark.png</image>
-      <caption>StudySets Page</caption>
+        https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/folders-light.png</image>
+      <caption>Main Page (Light)</caption>
     </screenshot>
     <screenshot xml:lang="en">
       <image>
-        https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/folder-inside-dark.png</image>
-      <caption>Folder Inside</caption>
+        https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/folders-dark.png</image>
+      <caption>Main Page (Dark)</caption>
+    </screenshot>
+    <screenshot xml:lang="en">
+      <image>
+        https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/flashcards-light.png</image>
+      <caption>Flashcards Page (Light)</caption>
+    </screenshot>
+    <screenshot xml:lang="en">
+      <image>
+        https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/flashcards-dark.png</image>
+      <caption>Flashcards Page (Dark)</caption>
+    </screenshot>
+    <screenshot xml:lang="en">
+      <image>
+        https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/study-light.png</image>
+      <caption>Study Page (Light)</caption>
     </screenshot>
     <screenshot xml:lang="en">
       <image>
         https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/study-dark.png</image>
-      <caption>Study Mode Sample</caption>
+      <caption>Study Page (Dark)</caption>
     </screenshot>
   </screenshots>
 
