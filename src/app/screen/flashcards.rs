@@ -15,7 +15,7 @@ use percent_encoding::percent_decode;
 use sqlx::{Pool, Sqlite};
 
 use crate::app::context_page::ContextPage;
-use crate::app::core::models::flashcard::{Flashcard, FlashcardField};
+use crate::app::core::models::flashcard::{Flashcard, FlashcardField, FlashcardStatus};
 use crate::app::core::utils::{self, OboeteToast};
 use crate::app::widgets::pill::pill;
 use crate::{fl, icons};
@@ -729,6 +729,27 @@ impl FlashcardsScreen {
                 .spacing(spacing.space_xxs)
         };
 
+        let current_status_content: Element<Message> =
+            if add_edit_flashcard.status == FlashcardStatus::None {
+                text(format!(
+                    "{}: {}",
+                    fl!("current-flashcard-status"),
+                    add_edit_flashcard.status
+                ))
+                .width(Length::Fill)
+                .into()
+            } else {
+                row![
+                    text(format!("{}:", fl!("current-flashcard-status"))),
+                    pill(add_edit_flashcard.status.to_string())
+                        .color(add_edit_flashcard.status.get_color())
+                ]
+                .align_y(Alignment::Center)
+                .spacing(spacing.space_xxs)
+                .width(Length::Fill)
+                .into()
+            };
+
         column![
             settings::view_column(vec![
                 settings::section()
@@ -749,12 +770,7 @@ impl FlashcardsScreen {
                     .into(),
             ]),
             row![
-                text(format!(
-                    "{}: {}",
-                    fl!("current-flashcard-status"),
-                    add_edit_flashcard.status
-                ))
-                .width(Length::Fill),
+                current_status_content,
                 button::text(fl!("reset-flashcard-button"))
                     .on_press_maybe(add_edit_flashcard.id.is_some().then_some(
                         Message::ResetFlashcardStatus(add_edit_flashcard.id.unwrap_or_default(),)

@@ -29,7 +29,7 @@ impl PartialEq for Flashcard {
 impl Eq for Flashcard {}
 
 /// The different Status a [`Flashcard`] can have
-#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum FlashcardStatus {
     #[default]
     None,
