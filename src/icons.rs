@@ -41,6 +41,8 @@ impl IconCache {
         bundle!("list-add-symbolic", 18);
         bundle!("user-trash-full-symbolic", 18);
         bundle!("x-office-document-symbolic", 18);
+        bundle!("go-previous-symbolic", 18);
+
         Self { cache }
     }
 

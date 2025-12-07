@@ -15,7 +15,7 @@ use sqlx::{Pool, Sqlite};
 use crate::app::core::models::flashcard::{Flashcard, FlashcardField, FlashcardStatus};
 use crate::app::core::utils::fsrs_scheduler::FSRSScheduler;
 use crate::app::core::utils::{self, OboeteToast};
-use crate::fl;
+use crate::{fl, icons};
 
 /// Screen [`State`] holder
 pub struct StudyScreen {
@@ -434,7 +434,18 @@ fn study_view<'a>(
             .align_x(Horizontal::Center)
             .align_y(Vertical::Bottom)
             .width(Length::Fill)
-            .height(Length::Fill)
+            .height(Length::Fill),
+        container(
+            button::icon(icons::get_handle("go-previous-symbolic", 18))
+                .class(theme::Button::Icon)
+                .width(Length::Shrink)
+                .on_press(Message::Back)
+        )
+        .padding(10)
+        .align_x(Horizontal::Left)
+        .align_y(Vertical::Top)
+        .width(Length::Fill)
+        .height(Length::Fill)
     ])
     .into()
 }
