@@ -115,7 +115,7 @@ impl FoldersScreen {
             State::Ready { folders, .. } => {
                 let spacing = theme::active().cosmic().spacing;
 
-                let header = header_view(spacing);
+                let header = header_view(spacing, folders);
                 let content = folders_view(&spacing, folders);
 
                 container(
@@ -296,16 +296,22 @@ impl FoldersScreen {
 //
 
 /// View of the header of this screen
-fn header_view<'a>(spacing: Spacing) -> Element<'a, Message> {
+fn header_view<'a>(spacing: Spacing, folders: &'a [Folder]) -> Element<'a, Message> {
     let new_folder_button = button::icon(icons::get_handle("list-add-symbolic", 18))
         .class(theme::Button::Suggested)
         .on_press(Message::OpenCreateFolderDialog);
+
+    let title = if !folders.is_empty() {
+        format!("{} ({})", fl!("folders"), &folders.len())
+    } else {
+        fl!("folders")
+    };
 
     cosmic::widget::row::with_capacity(2)
         .align_y(Alignment::Center)
         .spacing(spacing.space_s)
         .padding([spacing.space_none, spacing.space_xxs])
-        .push(text::title3(fl!("folders")).width(Length::Fill))
+        .push(text::title3(title).width(Length::Fill))
         .push(new_folder_button)
         .into()
 }

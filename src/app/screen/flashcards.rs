@@ -161,7 +161,7 @@ impl FlashcardsScreen {
             State::Ready { flashcards, .. } => {
                 let spacing = theme::active().cosmic().spacing;
 
-                let header = header_view(spacing);
+                let header = header_view(spacing, flashcards);
                 let content = folders_view(&spacing, flashcards);
 
                 container(
@@ -773,7 +773,7 @@ impl FlashcardsScreen {
 //
 
 /// View of the header of this screen
-fn header_view<'a>(spacing: Spacing) -> Element<'a, Message> {
+fn header_view<'a>(spacing: Spacing, flashcards: &'a [Flashcard]) -> Element<'a, Message> {
     let new_flashcard_button = button::icon(icons::get_handle("list-add-symbolic", 18))
         .class(theme::Button::Suggested)
         .on_press(Message::OpenContextPage(
@@ -792,11 +792,17 @@ fn header_view<'a>(spacing: Spacing) -> Element<'a, Message> {
             None,
         ));
 
+    let title = if !flashcards.is_empty() {
+        format!("{} ({})", fl!("flashcards"), &flashcards.len())
+    } else {
+        fl!("flashcards")
+    };
+
     cosmic::widget::row::with_capacity(5)
         .align_y(Alignment::Center)
         .spacing(spacing.space_s)
         .padding([spacing.space_none, spacing.space_xxs])
-        .push(text::title3(fl!("flashcards")).width(Length::Shrink))
+        .push(text::title3(title).width(Length::Shrink))
         .push(options_button)
         .push(Space::new(Length::Fill, Length::Shrink))
         .push(study_button)
