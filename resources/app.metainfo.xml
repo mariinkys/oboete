@@ -27,6 +27,8 @@
       <li>Does NOT sync to the cloud</li>
       <li>Image and FSRS support</li>
     </ul>
+    <p>This app has been developed with libcosmic for the COSMIC™ desktop, and issues may occur on
+      other platforms</p>
   </description>
 
   <icon type="remote" height="256" width="256">
