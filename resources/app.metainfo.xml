@@ -110,6 +110,18 @@
   </keywords>
 
   <releases>
+    <release version="0.2.1" date="2025-12-08">
+      <description>
+        <p>Added status pill to add edit flashcard context page</p>
+        <p>Added number of items in folders and flashcards pages</p>
+        <p>Fixed a bug that prvented the app flashcard status from being updated on the add edit
+          context page</p>
+        <p>Added back button to study page</p>
+        <p>Added minimum window size</p>
+        <p>Updated application screenshots</p>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
     <release version="0.2.0" date="2025-12-05">
       <description>
         <p>Full application rewrite</p>

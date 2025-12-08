@@ -1,6 +1,6 @@
 [package]
 name = "oboete"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["mariinkys (Alex Marín)"]
 edition = "2024"
 description = "A flashcards application for the COSMIC™ desktop"
@@ -82,7 +82,7 @@ opt-level = 3
 [profile.release]
 # Compile the entire crate as one unit.
 # Slows compile times, marginal improvements.
-codegen-units = 1
+# codegen-units = 1
 # Do a second optimization pass over the entire program, including dependenc.
 # Slows compile times, marginal improvements.
 lto = "thin"
