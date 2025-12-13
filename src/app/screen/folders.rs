@@ -19,6 +19,7 @@ use crate::{fl, icons};
 
 /// Screen [`State`] holder
 pub struct FoldersScreen {
+    current_set_id: Option<i32>,
     state: State,
 }
 
@@ -27,7 +28,6 @@ enum State {
     Loading,
     NoStudySet,
     Ready {
-        current_set_id: Option<i32>,
         edit_folder: Folder,
         folders: Vec<Folder>,
     },
@@ -37,8 +37,6 @@ enum State {
 pub enum Message {
     /// Show the user a toast
     AddToast(OboeteToast),
-    /// Update the current studyset id, needed for some database operations
-    UpdateCurrentSetId(i32),
     /// Load the folders into state
     LoadFolders,
     /// Callback after asking to load the folders into state
@@ -87,17 +85,18 @@ impl FoldersScreen {
         if let Some(set_id) = studyset_id {
             (
                 Self {
+                    current_set_id: Some(set_id),
                     state: State::Loading,
                 },
                 Task::perform(
                     Folder::get_all(Arc::clone(database), set_id),
                     Message::FoldersLoaded,
-                )
-                .chain(Task::done(Message::UpdateCurrentSetId(set_id))),
+                ),
             )
         } else {
             (
                 Self {
+                    current_set_id: None,
                     state: State::NoStudySet,
                 },
                 Task::none(),
@@ -134,27 +133,12 @@ impl FoldersScreen {
     pub fn update(&mut self, message: Message, database: &Arc<Pool<Sqlite>>) -> Action {
         match message {
             Message::AddToast(toast) => Action::AddToast(toast),
-            Message::UpdateCurrentSetId(set_id) => {
-                let State::Ready { current_set_id, .. } = &mut self.state else {
-                    return Action::None;
-                };
-
-                *current_set_id = Some(set_id);
-                Action::None
-            }
             Message::LoadFolders => {
-                let State::Ready { current_set_id, .. } = &self.state else {
-                    return Action::None;
-                };
-
-                if let Some(current_set_id) = *current_set_id {
-                    Action::Run(
-                        Task::perform(
-                            Folder::get_all(Arc::clone(database), current_set_id),
-                            Message::FoldersLoaded,
-                        )
-                        .chain(Task::done(Message::UpdateCurrentSetId(current_set_id))),
-                    )
+                if let Some(current_set_id) = self.current_set_id {
+                    Action::Run(Task::perform(
+                        Folder::get_all(Arc::clone(database), current_set_id),
+                        Message::FoldersLoaded,
+                    ))
                 } else {
                     Action::None
                 }
@@ -164,13 +148,11 @@ impl FoldersScreen {
                     Ok(folders) => {
                         if let State::Ready { edit_folder, .. } = &self.state {
                             self.state = State::Ready {
-                                current_set_id: None,
                                 folders,
                                 edit_folder: edit_folder.clone(),
                             }
                         } else {
                             self.state = State::Ready {
-                                current_set_id: None,
                                 folders,
                                 edit_folder: Folder::default(),
                             }

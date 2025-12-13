@@ -19,6 +19,7 @@ use crate::{fl, icons};
 
 /// Screen [`State`] holder
 pub struct StudyScreen {
+    current_folder_id: i32,
     state: State,
 }
 
@@ -27,7 +28,6 @@ enum State {
     Loading,
     Ready {
         scheduler: Box<FSRSScheduler>,
-        current_folder_id: Option<i32>,
         flashcards: Vec<Flashcard>,
         studying_flashcard: StudyingFlashcard,
         current_index: usize, // Track position in due cards
@@ -63,8 +63,6 @@ pub enum Message {
     AddToast(OboeteToast),
     /// Hotkey (Subscription) pressed
     Hotkey(Hotkey),
-    /// Update the current folder id, needed for some database operations
-    UpdateCurrentFolderId(i32),
 
     /// Load the flashcards into state
     LoadFlashcards,
@@ -92,13 +90,13 @@ impl StudyScreen {
     pub fn new(database: &Arc<Pool<Sqlite>>, folder_id: i32) -> (Self, Task<Message>) {
         (
             Self {
+                current_folder_id: folder_id,
                 state: State::Loading,
             },
             Task::perform(
                 Flashcard::get_all_with_retention_rate(Arc::clone(database), folder_id),
                 Message::FlashcardsLoaded,
-            )
-            .chain(Task::done(Message::UpdateCurrentFolderId(folder_id))),
+            ),
         )
     }
 
@@ -136,17 +134,11 @@ impl StudyScreen {
     pub fn update(&mut self, message: Message, database: &Arc<Pool<Sqlite>>) -> Action {
         match message {
             Message::Back => {
-                let State::Ready {
-                    current_folder_id, ..
-                } = &self.state
-                else {
+                let State::Ready { .. } = &self.state else {
                     return Action::None;
                 };
 
-                if let Some(folder_id) = current_folder_id {
-                    return Action::Back(*folder_id);
-                }
-                Action::None
+                Action::Back(self.current_folder_id)
             }
             Message::AddToast(toast) => Action::AddToast(toast),
             Message::Hotkey(hotkey) => {
@@ -183,36 +175,16 @@ impl StudyScreen {
                 }
                 Action::None
             }
-            Message::UpdateCurrentFolderId(folder_id) => {
-                let State::Ready {
-                    current_folder_id, ..
-                } = &mut self.state
-                else {
-                    return Action::None;
-                };
-
-                *current_folder_id = Some(folder_id);
-                Action::None
-            }
             Message::LoadFlashcards => {
-                let State::Ready {
-                    current_folder_id, ..
-                } = &self.state
-                else {
-                    return Action::None;
-                };
+                self.state = State::Loading;
 
-                if let Some(folder_id) = *current_folder_id {
-                    Action::Run(
-                        Task::perform(
-                            Flashcard::get_all_with_retention_rate(Arc::clone(database), folder_id),
-                            Message::FlashcardsLoaded,
-                        )
-                        .chain(Task::done(Message::UpdateCurrentFolderId(folder_id))),
-                    )
-                } else {
-                    Action::None
-                }
+                Action::Run(Task::perform(
+                    Flashcard::get_all_with_retention_rate(
+                        Arc::clone(database),
+                        self.current_folder_id,
+                    ),
+                    Message::FlashcardsLoaded,
+                ))
             }
             Message::FlashcardsLoaded(res) => {
                 match res {
@@ -227,7 +199,6 @@ impl StudyScreen {
                                     scheduler: Box::from(
                                         FSRSScheduler::new(retention_rate).unwrap(),
                                     ),
-                                    current_folder_id: None,
                                     flashcards: due_cards,
                                     studying_flashcard: StudyingFlashcard {
                                         flashcard,

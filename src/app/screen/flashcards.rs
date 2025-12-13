@@ -22,6 +22,7 @@ use crate::{fl, icons};
 
 /// Screen [`State`] holder
 pub struct FlashcardsScreen {
+    current_folder_id: i32,
     state: State,
 }
 
@@ -29,7 +30,6 @@ pub struct FlashcardsScreen {
 enum State {
     Loading,
     Ready {
-        current_folder_id: Option<i32>,
         add_edit_flashcard: Box<Flashcard>,
         flashcards: Vec<Flashcard>,
         options: FolderOptions,
@@ -44,8 +44,6 @@ pub enum Message {
     AddToast(OboeteToast),
     /// Opens the given url on the browser
     LaunchUrl(String),
-    /// Update the current folder id, needed for some database operations
-    UpdateCurrentFolderId(i32),
     /// Load the flashcards into state
     LoadFlashcards,
     /// Callback after asking to load the flashcards into state
@@ -144,13 +142,13 @@ impl FlashcardsScreen {
     pub fn new(database: &Arc<Pool<Sqlite>>, folder_id: i32) -> (Self, Task<Message>) {
         (
             Self {
+                current_folder_id: folder_id,
                 state: State::Loading,
             },
             Task::perform(
                 Flashcard::get_all(Arc::clone(database), folder_id),
                 Message::FlashcardsLoaded,
-            )
-            .chain(Task::done(Message::UpdateCurrentFolderId(folder_id))),
+            ),
         )
     }
 
@@ -190,36 +188,13 @@ impl FlashcardsScreen {
                 }
                 Action::None
             }
-            Message::UpdateCurrentFolderId(folder_id) => {
-                let State::Ready {
-                    current_folder_id, ..
-                } = &mut self.state
-                else {
-                    return Action::None;
-                };
-
-                *current_folder_id = Some(folder_id);
-                Action::None
-            }
             Message::LoadFlashcards => {
-                let State::Ready {
-                    current_folder_id, ..
-                } = &self.state
-                else {
-                    return Action::None;
-                };
-
-                if let Some(folder_id) = *current_folder_id {
-                    Action::Run(
-                        Task::perform(
-                            Flashcard::get_all(Arc::clone(database), folder_id),
-                            Message::FlashcardsLoaded,
-                        )
-                        .chain(Task::done(Message::UpdateCurrentFolderId(folder_id))),
-                    )
-                } else {
-                    Action::None
-                }
+                // we can't set the state to loading here becasue we would lose the state of the current add_edit_flashcard
+                // and need to keep it (ej: when we click on reset state for a single flashcard)
+                Action::Run(Task::perform(
+                    Flashcard::get_all(Arc::clone(database), self.current_folder_id),
+                    Message::FlashcardsLoaded,
+                ))
             }
             Message::FlashcardsLoaded(res) => {
                 match res {
@@ -237,7 +212,6 @@ impl FlashcardsScreen {
                         };
 
                         self.state = State::Ready {
-                            current_folder_id: None,
                             flashcards,
                             add_edit_flashcard: Box::from(add_edit_flashcard),
                             options: FolderOptions::default(),
@@ -315,53 +289,48 @@ impl FlashcardsScreen {
             }
             Message::AddFlashcard => {
                 let State::Ready {
-                    add_edit_flashcard,
-                    current_folder_id,
-                    ..
+                    add_edit_flashcard, ..
                 } = &mut self.state
                 else {
                     return Action::None;
                 };
 
-                if let Some(folder_id) = current_folder_id {
-                    // save the front flashcard image if any
-                    if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.front {
-                        let new_path = utils::save_image(path);
-                        match new_path {
-                            Ok(new_path) => *path = new_path,
-                            Err(e) => {
-                                return Action::AddToast(OboeteToast::new(e));
-                            }
+                // save the front flashcard image if any
+                if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.front {
+                    let new_path = utils::save_image(path);
+                    match new_path {
+                        Ok(new_path) => *path = new_path,
+                        Err(e) => {
+                            return Action::AddToast(OboeteToast::new(e));
                         }
                     }
-
-                    // save the back flashcard image if any
-                    if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.back {
-                        let new_path = utils::save_image(path);
-                        match new_path {
-                            Ok(new_path) => *path = new_path,
-                            Err(e) => {
-                                return Action::AddToast(OboeteToast::new(e));
-                            }
-                        }
-                    }
-
-                    return Action::Run(Task::perform(
-                        Flashcard::add(
-                            Arc::clone(database),
-                            *add_edit_flashcard.clone(),
-                            *folder_id,
-                        ),
-                        |res| match res {
-                            Ok(_) => Message::LoadFlashcards,
-                            Err(e) => {
-                                eprintln!("{}", e);
-                                Message::AddToast(OboeteToast::new(e))
-                            }
-                        },
-                    ));
                 }
-                Action::None
+
+                // save the back flashcard image if any
+                if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.back {
+                    let new_path = utils::save_image(path);
+                    match new_path {
+                        Ok(new_path) => *path = new_path,
+                        Err(e) => {
+                            return Action::AddToast(OboeteToast::new(e));
+                        }
+                    }
+                }
+
+                Action::Run(Task::perform(
+                    Flashcard::add(
+                        Arc::clone(database),
+                        *add_edit_flashcard.clone(),
+                        self.current_folder_id,
+                    ),
+                    |res| match res {
+                        Ok(_) => Message::LoadFlashcards,
+                        Err(e) => {
+                            eprintln!("{}", e);
+                            Message::AddToast(OboeteToast::new(e))
+                        }
+                    },
+                ))
             }
             Message::AddEditFlashcardInput(input) => {
                 let State::Ready {
@@ -388,7 +357,6 @@ impl FlashcardsScreen {
             Message::FolderOptionsInput(input) => {
                 let State::Ready {
                     options,
-                    current_folder_id,
                     flashcards,
                     ..
                 } = &mut self.state
@@ -396,27 +364,16 @@ impl FlashcardsScreen {
                     return Action::None;
                 };
 
-                if let Some(folder_id) = current_folder_id {
-                    apply_folder_options_input(input, options, *folder_id, database, flashcards)
-                } else {
-                    Action::None
-                }
+                apply_folder_options_input(
+                    input,
+                    options,
+                    self.current_folder_id,
+                    database,
+                    flashcards,
+                )
             }
 
-            Message::Study => {
-                let State::Ready {
-                    current_folder_id, ..
-                } = &mut self.state
-                else {
-                    return Action::None;
-                };
-
-                if let Some(folder_id) = current_folder_id {
-                    Action::StudyFolder(*folder_id)
-                } else {
-                    Action::None
-                }
-            }
+            Message::Study => Action::StudyFolder(self.current_folder_id),
         }
     }
 
