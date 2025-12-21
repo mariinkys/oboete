@@ -19,7 +19,7 @@ icon-svg := appid + '.svg'
 
 # Install destinations
 base-dir := absolute_path(clean(rootdir / prefix))
-appdata-dst := base-dir / 'share' / 'appdata' / appdata
+appdata-dst := base-dir / 'share' / 'metainfo' / appdata
 bin-dst := base-dir / 'bin' / name
 desktop-dst := base-dir / 'share' / 'applications' / desktop
 icons-dst := base-dir / 'share' / 'icons' / 'hicolor'
