@@ -3,9 +3,7 @@
   "runtime": "org.freedesktop.Platform",
   "runtime-version": "25.08",
   "sdk": "org.freedesktop.Sdk",
-  "sdk-extensions": [
-    "org.freedesktop.Sdk.Extension.rust-stable"
-  ],
+  "sdk-extensions": ["org.freedesktop.Sdk.Extension.rust-stable"],
   "command": "oboete",
   "finish-args": [
     "--share=ipc",
@@ -13,7 +11,8 @@
     "--socket=wayland",
     "--device=dri",
     "--filesystem=xdg-config/cosmic:rw",
-    "--talk-name=com.system76.CosmicSettingsDaemon"
+    "--talk-name=com.system76.CosmicSettingsDaemon",
+    "--talk-name=org.freedesktop.portal.Desktop"
   ],
   "build-options": {
     "append-path": "/usr/lib/sdk/rust-stable/bin"

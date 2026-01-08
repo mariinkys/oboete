@@ -110,6 +110,12 @@
   </keywords>
 
   <releases>
+    <release version="0.2.2" date="2026-01-09">
+      <description>
+        <p>Better Flatpak integration via libcosmic xdg-portal</p>
+        <p>Updated dependencies</p>
+      </description>
+    </release>
     <release version="0.2.1" date="2025-12-08">
       <description>
         <p>Added status pill to add edit flashcard context page</p>
