@@ -2,8 +2,9 @@
 
 use std::sync::Arc;
 
-use ashpd::desktop::file_chooser::{FileFilter, SelectedFiles};
 use cosmic::cosmic_theme::Spacing;
+use cosmic::dialog::ashpd::desktop::file_chooser::SelectedFiles;
+use cosmic::dialog::file_chooser::FileFilter;
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Alignment, ContentFit, Length, Subscription};
 use cosmic::iced_widget::{column, pick_list, row, stack};
