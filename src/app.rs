@@ -549,6 +549,9 @@ impl cosmic::Application for AppModel {
                         task.map(|msg| cosmic::action::app(Message::Folders(msg)))
                     }
 
+                    folders::Action::OpenCreateStudySetDialog => self.update(
+                        Message::DialogAction(dialogs::DialogAction::OpenNewStudySetDialog),
+                    ),
                     folders::Action::OpenCreateFolderDialog => self.update(Message::DialogAction(
                         dialogs::DialogAction::OpenCreateFolderDialog,
                     )),

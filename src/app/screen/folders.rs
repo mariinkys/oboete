@@ -42,6 +42,8 @@ pub enum Message {
     /// Callback after asking to load the folders into state
     FoldersLoaded(Result<Vec<Folder>, anywho::Error>),
 
+    /// Ask to open the [`DialogPage`] for creating a new studyset
+    OpenCreateStudySetDialog,
     /// Ask to open the [`DialogPage`] for creating a new folder
     OpenCreateFolderDialog,
     /// Ask to open the given [`ContextPage`] for the given [`Folder`]
@@ -65,6 +67,7 @@ pub enum Action {
     Run(Task<Message>),
     AddToast(OboeteToast),
 
+    OpenCreateStudySetDialog,
     OpenCreateFolderDialog,
     OpenDeleteFolderDialog(i32),
     OpenContextPage(ContextPage),
@@ -113,7 +116,7 @@ impl FoldersScreen {
                     text(fl!("empty-page-noset")),
                     button::text(fl!("create-studyset"))
                         .class(theme::Button::Suggested)
-                        .on_press(Message::OpenCreateFolderDialog)
+                        .on_press(Message::OpenCreateStudySetDialog)
                 ]
                 .align_x(Alignment::Center)
                 .spacing(theme::active().cosmic().spacing.space_xxs),
@@ -174,6 +177,8 @@ impl FoldersScreen {
                 }
                 Action::None
             }
+
+            Message::OpenCreateStudySetDialog => Action::OpenCreateStudySetDialog,
 
             Message::OpenCreateFolderDialog => Action::OpenCreateFolderDialog,
 
