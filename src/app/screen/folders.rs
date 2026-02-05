@@ -115,7 +115,7 @@ impl FoldersScreen {
                 column![
                     text(fl!("empty-page-noset")),
                     button::text(fl!("create-studyset"))
-                        .class(theme::Button::Suggested)
+                        .class(theme::Button::Standard)
                         .on_press(Message::OpenCreateStudySetDialog)
                 ]
                 .align_x(Alignment::Center)
