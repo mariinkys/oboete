@@ -108,9 +108,18 @@ impl FoldersScreen {
     pub fn view(&self) -> Element<'_, Message> {
         match &self.state {
             State::Loading => container(text(fl!("loading"))).center(Length::Fill).into(),
-            State::NoStudySet => container(text(fl!("empty-page-noset")))
-                .center(Length::Fill)
-                .into(),
+            State::NoStudySet => container(
+                column![
+                    text(fl!("empty-page-noset")),
+                    button::text(fl!("create-studyset"))
+                        .class(theme::Button::Suggested)
+                        .on_press(Message::OpenCreateFolderDialog)
+                ]
+                .align_x(Alignment::Center)
+                .spacing(theme::active().cosmic().spacing.space_xxs),
+            )
+            .center(Length::Fill)
+            .into(),
             State::Ready { folders, .. } => {
                 let spacing = theme::active().cosmic().spacing;
 
