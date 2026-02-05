@@ -18,6 +18,7 @@ use cosmic::iced::{Event, Length, Subscription};
 use cosmic::iced_core::keyboard::{Key, Modifiers};
 use cosmic::iced_widget::center;
 use cosmic::prelude::*;
+use cosmic::surface;
 use cosmic::widget::menu::Action;
 use cosmic::widget::{self, about::About, menu, nav_bar};
 use cosmic::widget::{ToastId, Toasts, segmented_button, text, toaster};
@@ -93,6 +94,8 @@ pub enum Message {
     UpdateTheme(usize),
     /// Callback after clicking something in the app menu
     MenuAction(app_menu::MenuAction),
+    /// Needed for responsive menu bar
+    Surface(surface::Action),
     /// Asks to execute various actions related to the application dialogs
     DialogAction(dialogs::DialogAction),
     /// Executes the appropiate cosmic binding on keyboard shortcut
@@ -197,52 +200,7 @@ impl cosmic::Application for AppModel {
 
     /// Elements to pack at the start of the header bar.
     fn header_start(&self) -> Vec<Element<'_, Self::Message>> {
-        let menu_bar = menu::MenuBar::new(vec![
-            menu::Tree::with_children(
-                Element::from(menu::root(fl!("file"))),
-                menu::items(
-                    &self.key_binds,
-                    vec![
-                        menu::Item::Button(fl!("new-studyset"), None, MenuAction::NewStudySet),
-                        menu::Item::Button(fl!("backup"), None, MenuAction::Backup),
-                        menu::Item::Button(fl!("import"), None, MenuAction::Import),
-                    ],
-                ),
-            ),
-            menu::Tree::with_children(
-                Element::from(menu::root(fl!("edit"))),
-                menu::items(
-                    &self.key_binds,
-                    vec![
-                        menu::Item::Button(
-                            fl!("rename-studyset"),
-                            None,
-                            MenuAction::RenameStudySet,
-                        ),
-                        menu::Item::Button(
-                            fl!("delete-studyset"),
-                            None,
-                            MenuAction::DeleteStudySet,
-                        ),
-                    ],
-                ),
-            ),
-            menu::Tree::with_children(
-                Element::from(menu::root(fl!("view"))),
-                menu::items(
-                    &self.key_binds,
-                    vec![
-                        menu::Item::Button(fl!("about"), None, MenuAction::About),
-                        menu::Item::Button(fl!("settings"), None, MenuAction::Settings),
-                    ],
-                ),
-            ),
-        ])
-        .item_height(menu::ItemHeight::Dynamic(40))
-        .item_width(menu::ItemWidth::Uniform(270))
-        .spacing(4.0);
-
-        vec![menu_bar.into()]
+        vec![app_menu::menu_bar(&self.core, &self.key_binds)]
     }
 
     /// Enables the COSMIC application to create a nav bar with this model.
@@ -483,6 +441,9 @@ impl cosmic::Application for AppModel {
                     }
                 }
             }
+            Message::Surface(a) => {
+                cosmic::task::message(cosmic::Action::Cosmic(cosmic::app::Action::Surface(a)))
+            }
             Message::DialogAction(action) => {
                 let State::Ready { database, .. } = &mut self.state else {
                     return Task::none();
@@ -588,6 +549,9 @@ impl cosmic::Application for AppModel {
                         task.map(|msg| cosmic::action::app(Message::Folders(msg)))
                     }
 
+                    folders::Action::OpenCreateStudySetDialog => self.update(
+                        Message::DialogAction(dialogs::DialogAction::OpenNewStudySetDialog),
+                    ),
                     folders::Action::OpenCreateFolderDialog => self.update(Message::DialogAction(
                         dialogs::DialogAction::OpenCreateFolderDialog,
                     )),

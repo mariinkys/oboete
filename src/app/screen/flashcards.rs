@@ -776,15 +776,12 @@ fn header_view<'a>(spacing: Spacing, flashcards: &'a [Flashcard]) -> Element<'a,
         fl!("flashcards")
     };
 
-    cosmic::widget::row::with_capacity(5)
+    cosmic::widget::row::with_capacity(2)
         .align_y(Alignment::Center)
         .spacing(spacing.space_s)
         .padding([spacing.space_none, spacing.space_xxs])
-        .push(text::title3(title).width(Length::Shrink))
-        .push(options_button)
-        .push(Space::new(Length::Fill, Length::Shrink))
-        .push(study_button)
-        .push(new_flashcard_button)
+        .push(text::title3(title).width(Length::Fill))
+        .push(row![options_button, study_button, new_flashcard_button].spacing(spacing.space_xxs))
         .into()
 }
 
