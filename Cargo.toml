@@ -1,6 +1,6 @@
 [package]
 name = "oboete"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["mariinkys (Alex Marín)"]
 edition = "2024"
 description = "A flashcards application for the COSMIC™ desktop"

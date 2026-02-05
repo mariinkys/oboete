@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <component type="desktop-application">
   <id>dev.mariinkys.Oboete</id>
   <developer id="dev.mariinkys">
@@ -15,7 +15,8 @@
   <project_license>GPL-3.0-only</project_license>
 
   <description>
-    <p>Oboete is a straightforward and efficient flashcard application designed to help users
+    <p
+        >Oboete is a straightforward and efficient flashcard application designed to help users
       study and memorize information effectively. Whether you're learning a new language,
       studying for exams, or just trying to remember important facts, Oboete provides an
       intuitive platform for creating, organizing, and reviewing flashcards.</p>
@@ -27,7 +28,8 @@
       <li>Does NOT sync to the cloud</li>
       <li>Image and FSRS support</li>
     </ul>
-    <p>This app has been developed with libcosmic for the COSMIC™ desktop, and issues may occur on
+    <p
+        >This app has been developed with libcosmic for the COSMIC™ desktop, and issues may occur on
       other platforms</p>
   </description>
 
@@ -110,6 +112,12 @@
   </keywords>
 
   <releases>
+  <release version="0.2.3" date="2026-02-05">
+    <description>
+      <p>Improved mobile support</p>
+      <p>Updated dependencies</p>
+    </description>
+  </release>
     <release version="0.2.2" date="2026-01-09">
       <description>
         <p>Better Flatpak integration via libcosmic xdg-portal</p>
@@ -120,7 +128,8 @@
       <description>
         <p>Added status pill to add edit flashcard context page</p>
         <p>Added number of items in folders and flashcards pages</p>
-        <p>Fixed a bug that prvented the app flashcard status from being updated on the add edit
+        <p
+                >Fixed a bug that prvented the app flashcard status from being updated on the add edit
           context page</p>
         <p>Added back button to study page</p>
         <p>Added minimum window size</p>
@@ -171,7 +180,8 @@
     </release>
     <release version="0.1.8" date="2025-01-28">
       <description>
-        <p>Complete application rewrite that will make code easier to modify and mantain</p>
+        <p
+                >Complete application rewrite that will make code easier to modify and mantain</p>
         <p>Updated design</p>
         <p>Updated dependencies</p>
       </description>
