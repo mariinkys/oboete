@@ -459,7 +459,7 @@ fn study_buttons_view<'a>(
     studying_flashcard: &'a StudyingFlashcard,
 ) -> Element<'a, Message> {
     row![
-        button::custom(text(format!("{} [1]", fl!("bad-status"))).center())
+        button::custom(text(fl!("bad-status")).center())
             .on_press(Message::UpdateFlashcardStatus(
                 studying_flashcard.flashcard.id.unwrap_or_default(),
                 FlashcardStatus::Bad
@@ -467,7 +467,7 @@ fn study_buttons_view<'a>(
             .class(button_style(FlashcardStatus::Bad))
             .height(Length::Fixed(60.))
             .width(Length::Fill),
-        button::custom(text(format!("{} [2]", fl!("ok-status"))).center())
+        button::custom(text(fl!("ok-status")).center())
             .on_press(Message::UpdateFlashcardStatus(
                 studying_flashcard.flashcard.id.unwrap_or_default(),
                 FlashcardStatus::Ok
@@ -475,7 +475,7 @@ fn study_buttons_view<'a>(
             .class(button_style(FlashcardStatus::Ok))
             .height(Length::Fixed(60.))
             .width(Length::Fill),
-        button::custom(text(format!("{} [3]", fl!("good-status"))).center())
+        button::custom(text(fl!("good-status")).center())
             .on_press(Message::UpdateFlashcardStatus(
                 studying_flashcard.flashcard.id.unwrap_or_default(),
                 FlashcardStatus::Great
@@ -483,7 +483,7 @@ fn study_buttons_view<'a>(
             .class(button_style(FlashcardStatus::Great))
             .height(Length::Fixed(60.))
             .width(Length::Fill),
-        button::custom(text(format!("{} [4]", fl!("easy-status"))).center())
+        button::custom(text(fl!("easy-status")).center())
             .on_press(Message::UpdateFlashcardStatus(
                 studying_flashcard.flashcard.id.unwrap_or_default(),
                 FlashcardStatus::Easy
