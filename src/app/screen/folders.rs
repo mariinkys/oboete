@@ -5,6 +5,7 @@ use std::sync::Arc;
 use cosmic::cosmic_theme::Spacing;
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Alignment, Length, Subscription};
+use cosmic::iced_core::text::Wrapping;
 use cosmic::iced_widget::{column, row};
 use cosmic::widget::{
     Row, Space, button, container, list, scrollable, settings, slider, text, text_input,
@@ -339,7 +340,8 @@ fn folders_view<'a>(spacing: &Spacing, folders: &'a [Folder]) -> Element<'a, Mes
                     text(folder.name.clone())
                         .align_y(Vertical::Center)
                         .align_x(Horizontal::Left)
-                        .width(Length::Fill),
+                        .width(Length::Fill)
+                        .wrapping(Wrapping::WordOrGlyph),
                     button::icon(icons::get_handle("user-trash-full-symbolic", 18))
                         .class(theme::Button::Destructive)
                         .on_press(Message::DeleteFolder(folder.id.unwrap_or_default()))

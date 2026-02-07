@@ -7,6 +7,7 @@ use cosmic::dialog::ashpd::desktop::file_chooser::SelectedFiles;
 use cosmic::dialog::file_chooser::FileFilter;
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Alignment, ContentFit, Length, Subscription};
+use cosmic::iced_core::text::Wrapping;
 use cosmic::iced_widget::{column, pick_list, row, stack};
 use cosmic::widget::{
     Row, Space, button, container, image, list, scrollable, settings, text, text_input,
@@ -810,7 +811,8 @@ fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'
                     text(front_text)
                         .align_y(Vertical::Center)
                         .align_x(Horizontal::Left)
-                        .width(Length::Fill),
+                        .width(Length::Fill)
+                        .wrapping(Wrapping::WordOrGlyph),
                     container(
                         pill(flashcard.status.to_string()).color(flashcard.status.get_color())
                     )

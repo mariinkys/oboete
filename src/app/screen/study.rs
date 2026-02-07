@@ -7,6 +7,7 @@ use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::keyboard::key::Named;
 use cosmic::iced::keyboard::{self, Key};
 use cosmic::iced::{self, Color, ContentFit, Font, Length, Subscription, event};
+use cosmic::iced_core::text::Wrapping;
 use cosmic::iced_widget::{column, row, stack};
 use cosmic::widget::{button, container, image, mouse_area, text, tooltip};
 use cosmic::{Element, Task, theme};
@@ -57,7 +58,7 @@ enum FlashcardSide {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    /// Asks to go back a screen                     
+    /// Asks to go back a screen
     Back,
     /// Show the user a toast
     AddToast(OboeteToast),
@@ -323,11 +324,13 @@ fn study_view<'a>(
 ) -> Element<'a, Message> {
     let flashcard_content: Element<Message> = match studying_flashcard.flashcard_side {
         FlashcardSide::Front => match &studying_flashcard.flashcard.front {
-            FlashcardField::Text(t) => container(text(t).size(75)).center(Length::Fill).into(),
+            FlashcardField::Text(t) => container(text(t).size(75).wrapping(Wrapping::WordOrGlyph))
+                .center(Length::Fill)
+                .into(),
             FlashcardField::Image { path, alt_text } => container(
                 container(tooltip(
                     container(image(path).content_fit(ContentFit::Contain)).padding(15),
-                    container(text(alt_text).size(15))
+                    container(text(alt_text).size(15).wrapping(Wrapping::WordOrGlyph))
                         .center(Length::Shrink)
                         .padding(5),
                     tooltip::Position::FollowCursor,
@@ -339,11 +342,13 @@ fn study_view<'a>(
             .into(),
         },
         FlashcardSide::Back => match &studying_flashcard.flashcard.back {
-            FlashcardField::Text(t) => container(text(t).size(75)).center(Length::Fill).into(),
+            FlashcardField::Text(t) => container(text(t).size(75).wrapping(Wrapping::WordOrGlyph))
+                .center(Length::Fill)
+                .into(),
             FlashcardField::Image { path, alt_text } => container(
                 container(tooltip(
                     container(image(path).content_fit(ContentFit::Contain)).padding(15),
-                    container(text(alt_text).size(15))
+                    container(text(alt_text).size(15).wrapping(Wrapping::WordOrGlyph))
                         .center(Length::Shrink)
                         .padding(5),
                     tooltip::Position::FollowCursor,
