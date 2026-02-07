@@ -6,7 +6,7 @@ use cosmic::cosmic_theme::Spacing;
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::keyboard::key::Named;
 use cosmic::iced::keyboard::{self, Key};
-use cosmic::iced::{self, Color, ContentFit, Font, Length, Subscription, event};
+use cosmic::iced::{self, Color, ContentFit, Font, Length, Subscription, event, window};
 use cosmic::iced_core::text::Wrapping;
 use cosmic::iced_widget::{column, row, stack};
 use cosmic::widget::{button, container, image, mouse_area, text, tooltip};
@@ -33,6 +33,7 @@ enum State {
         studying_flashcard: StudyingFlashcard,
         current_index: usize, // Track position in due cards
         current_mode: PracticeMode,
+        window_width: f32,
     },
 }
 
@@ -64,6 +65,8 @@ pub enum Message {
     AddToast(OboeteToast),
     /// Hotkey (Subscription) pressed
     Hotkey(Hotkey),
+    /// Callback when the app window is resized
+    WindowResized(f32),
 
     /// Load the flashcards into state
     LoadFlashcards,
@@ -110,12 +113,18 @@ impl StudyScreen {
                 flashcards,
                 current_index,
                 current_mode,
+                window_width,
                 ..
             } => {
                 let spacing = theme::active().cosmic().spacing;
 
-                let content =
-                    study_view(studying_flashcard, current_mode, flashcards, current_index);
+                let content = study_view(
+                    studying_flashcard,
+                    current_mode,
+                    flashcards,
+                    current_index,
+                    window_width,
+                );
                 let buttons = study_buttons_view(spacing, studying_flashcard);
 
                 container(
@@ -176,6 +185,12 @@ impl StudyScreen {
                 }
                 Action::None
             }
+            Message::WindowResized(width) => {
+                if let State::Ready { window_width, .. } = &mut self.state {
+                    *window_width = width;
+                }
+                Action::None
+            }
             Message::LoadFlashcards => {
                 self.state = State::Loading;
 
@@ -207,6 +222,7 @@ impl StudyScreen {
                                     },
                                     current_index: 0,
                                     current_mode,
+                                    window_width: 1200.,
                                 };
                             } else {
                                 return self.update(Message::Back, &Arc::clone(database));
@@ -311,7 +327,10 @@ impl StudyScreen {
 
     /// Subscriptions of this screen
     pub fn subscription(&self) -> Subscription<Message> {
-        event::listen_with(handle_event)
+        Subscription::batch([
+            event::listen_with(handle_event),
+            window::resize_events().map(|(_id, size)| Message::WindowResized(size.width)),
+        ])
     }
 }
 
@@ -321,12 +340,18 @@ fn study_view<'a>(
     practice_mode: &'a PracticeMode,
     flashcards: &'a [Flashcard],
     current_index: &usize,
+    window_width: &'a f32,
 ) -> Element<'a, Message> {
+    // calculate text size based on window width
+    let text_size = (window_width / 15.0).clamp(30.0, 75.0);
+
     let flashcard_content: Element<Message> = match studying_flashcard.flashcard_side {
         FlashcardSide::Front => match &studying_flashcard.flashcard.front {
-            FlashcardField::Text(t) => container(text(t).size(75).wrapping(Wrapping::WordOrGlyph))
-                .center(Length::Fill)
-                .into(),
+            FlashcardField::Text(t) => {
+                container(text(t).size(text_size).wrapping(Wrapping::WordOrGlyph))
+                    .center(Length::Fill)
+                    .into()
+            }
             FlashcardField::Image { path, alt_text } => container(
                 container(tooltip(
                     container(image(path).content_fit(ContentFit::Contain)).padding(15),
@@ -342,9 +367,11 @@ fn study_view<'a>(
             .into(),
         },
         FlashcardSide::Back => match &studying_flashcard.flashcard.back {
-            FlashcardField::Text(t) => container(text(t).size(75).wrapping(Wrapping::WordOrGlyph))
-                .center(Length::Fill)
-                .into(),
+            FlashcardField::Text(t) => {
+                container(text(t).size(text_size).wrapping(Wrapping::WordOrGlyph))
+                    .center(Length::Fill)
+                    .into()
+            }
             FlashcardField::Image { path, alt_text } => container(
                 container(tooltip(
                     container(image(path).content_fit(ContentFit::Contain)).padding(15),
