@@ -10,6 +10,7 @@ const APP_ID: &str = "dev.mariinkys.Oboete";
 const CONFIG_VERSION: u64 = 1;
 
 #[derive(Debug, Default, Clone, CosmicConfigEntry, Eq, PartialEq)]
+#[version = 1]
 pub struct OboeteConfig {
     pub app_theme: AppTheme,
 }
