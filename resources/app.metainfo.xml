@@ -10,6 +10,7 @@
 
   <name>Oboete</name>
   <summary>Flashcards application</summary>
+  <summary xml:lang="cs">Aplikace pro studijní kartičky</summary>
 
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
@@ -20,17 +21,32 @@
       study and memorize information effectively. Whether you're learning a new language,
       studying for exams, or just trying to remember important facts, Oboete provides an
       intuitive platform for creating, organizing, and reviewing flashcards.</p>
+    <p xml:lang="cs"
+        >Oboete je jednoduchá a efektivní aplikace pro studijní kartičky navržená tak, aby pomáhala
+      uživatelům účinně studovat a zapamatovávat si informace. Ať už se učíte nový jazyk,
+      připravujete se na zkoušky nebo si jen potřebujete zapamatovat důležitá fakta,
+      Oboete nabízí intuitivní platformu pro vytváření, organizaci a opakování studijních kartiček.
+    </p>
     <ul>
       <li>Study flashcards with ease</li>
+      <li xml:lang="cs">Snadné studium kartiček</li>
       <li>Fast and easy to use</li>
+      <li xml:lang="cs">Rychlá a snadno použitelná aplikace</li>
       <li>Works out of the box</li>
+      <li xml:lang="cs">Funguje ihned po spuštění</li>
       <li>Can import flashcards from other sources such as Anki</li>
+      <li xml:lang="cs">Umožňuje import kartiček z jiných zdrojů, například Anki</li>
       <li>Does NOT sync to the cloud</li>
+      <li xml:lang="cs">Nesynchronizuje data do cloudu</li>
       <li>Image and FSRS support</li>
+      <li xml:lang="cs">Podpora obrázků a FSRS</li>
     </ul>
     <p
         >This app has been developed with libcosmic for the COSMIC™ desktop, and issues may occur on
       other platforms</p>
+    <p xml:lang="cs"
+        >Tato aplikace byla vyvinuta pomocí libcosmic pro prostředí COSMIC™. Na jiných platformách 
+      mohou nastat problémy.</p>
   </description>
 
   <icon type="remote" height="256" width="256">
@@ -44,35 +60,41 @@
   </provides>
 
   <screenshots>
-    <screenshot type="default" xml:lang="en">
+    <screenshot type="default">
       <image>
         https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/folders-light.png</image>
       <caption>Main Page (Light)</caption>
+      <caption xml:lang="cs">Hlavní stránka (Světlý režim)</caption>
     </screenshot>
-    <screenshot xml:lang="en">
+    <screenshot>
       <image>
         https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/folders-dark.png</image>
       <caption>Main Page (Dark)</caption>
+      <caption xml:lang="cs">Hlavní stránka (Tmavý režim)</caption>
     </screenshot>
-    <screenshot xml:lang="en">
+    <screenshot>
       <image>
         https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/flashcards-light.png</image>
       <caption>Flashcards Page (Light)</caption>
+      <caption xml:lang="cs">Stránka kartiček (Světlý režim)</caption>
     </screenshot>
-    <screenshot xml:lang="en">
+    <screenshot>
       <image>
         https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/flashcards-dark.png</image>
       <caption>Flashcards Page (Dark)</caption>
+      <caption xml:lang="cs">Stránka kartiček (Tmavý režim)</caption>
     </screenshot>
-    <screenshot xml:lang="en">
+    <screenshot>
       <image>
         https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/study-light.png</image>
       <caption>Study Page (Light)</caption>
+      <caption xml:lang="cs">Stránka studia (Světlý režim)</caption>
     </screenshot>
-    <screenshot xml:lang="en">
+    <screenshot>
       <image>
         https://raw.githubusercontent.com/mariinkys/oboete/main/resources/screenshots/study-dark.png</image>
       <caption>Study Page (Dark)</caption>
+      <caption xml:lang="cs">Stránka studia (Tmavý režim)</caption>
     </screenshot>
   </screenshots>
 
@@ -109,6 +131,16 @@
     <keyword>Japanese</keyword>
     <keyword>Spaced Repetition</keyword>
     <keyword>Anki</keyword>
+    
+    <keyword xml:lang="cs">Kartičky</keyword>
+    <keyword xml:lang="cs">Studium</keyword>
+    <keyword xml:lang="cs">Paměť</keyword>
+    <keyword xml:lang="cs">Učení</keyword>
+    <keyword xml:lang="cs">Slovní zásoba</keyword>
+    <keyword xml:lang="cs">Kvíz</keyword>
+    <keyword xml:lang="cs">Jazyk</keyword>
+    <keyword xml:lang="cs">Japonština</keyword>
+    <keyword xml:lang="cs">Rozložené opakování</keyword>
   </keywords>
 
   <releases>

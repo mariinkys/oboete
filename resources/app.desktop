@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=Oboete
 Comment=A flashcards application
+Comment[cs]=Aplikace pro studijní kartičky
 Type=Application
 Icon=dev.mariinkys.Oboete
 Exec=oboete %F
@@ -8,3 +9,4 @@ Terminal=false
 StartupNotify=true
 Categories=X-COSMIC;Education;Languages;
 Keywords=COSMIC;Flashcards;Study;Memory;Learning;Vocabulary;Quiz;Language;Japanese;Spaced Repetition;Anki;
+Keywords[cs]=COSMIC;Kartičky;Studium;Paměť;Učení;Slovní zásoba;Kvíz;Jazyk;Japonština;Rozložené opakování;Anki;
