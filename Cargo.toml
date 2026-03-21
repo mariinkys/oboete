@@ -21,7 +21,7 @@ i18n-embed = { version = "0.16", features = [
 i18n-embed-fl = "0.10"
 open = "5.3.3"
 rust-embed = "8.11.0"
-tokio = { version = "1.49.0", features = ["full"] }
+tokio = { version = "1.50.0", features = ["full"] }
 
 # Added by me
 sqlx = { version = "0.8.6", features = [
@@ -35,13 +35,12 @@ serde = { version = "1.0.228", features = ["derive"] }
 rand = "0.10.0" #needed for flashcard selection
 percent-encoding = "2.3.2" #needed for correct anki file importing
 ron = "0.12.0"
-uuid = { version = "1.21.0", features = ["v4"] }
+uuid = { version = "1.22.0", features = ["v4"] }
 anywho = "0.1.2"
 fsrs = "5.2.0"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic.git"
-branch = "iced-rebase"
 # See https://github.com/pop-os/libcosmic/blob/master/Cargo.toml for available features.
 features = [
     # Accessibility support
