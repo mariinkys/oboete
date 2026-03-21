@@ -2,10 +2,8 @@
 
 use cosmic::{
     iced::{
-        Background, Border, Color, Element, Length, Padding, Point, Rectangle, Size, Vector,
-        alignment::{Horizontal, Vertical},
-        event::{self, Event},
-        mouse, overlay,
+        Background, Border, Color, Element, Length, Padding, Point, Rectangle, Size,
+        alignment::Vertical, event::Event, mouse,
     },
     iced_core::{
         Clipboard, Layout, Renderer as IcedRenderer, Shell, layout, renderer, text::Renderer,
@@ -106,7 +104,7 @@ impl<'a, Message: 'static + Clone> Widget<Message, cosmic::Theme, cosmic::Render
     }
 
     fn layout(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         _renderer: &cosmic::Renderer,
         limits: &layout::Limits,
@@ -116,8 +114,8 @@ impl<'a, Message: 'static + Clone> Widget<Message, cosmic::Theme, cosmic::Render
         let estimated_text_width = self.text.len() as f32 * estimated_char_width;
         let estimated_text_height = self.font_size * 1.5;
 
-        let width = estimated_text_width + self.padding.horizontal();
-        let height = estimated_text_height + self.padding.vertical();
+        let width = estimated_text_width + self.padding.x();
+        let height = estimated_text_height + self.padding.y();
 
         let size = limits.resolve(self.width, self.height, Size::new(width, height));
 
@@ -125,27 +123,26 @@ impl<'a, Message: 'static + Clone> Widget<Message, cosmic::Theme, cosmic::Render
     }
 
     fn operate(
-        &self,
+        &mut self,
         _tree: &mut Tree,
         layout: Layout<'_>,
         _renderer: &cosmic::Renderer,
         operation: &mut dyn Operation<()>,
     ) {
-        operation.container(None, layout.bounds(), &mut |_operation| {});
+        operation.container(None, layout.bounds());
     }
 
-    fn on_event(
+    fn update(
         &mut self,
         _tree: &mut Tree,
-        _event: Event,
+        _event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &cosmic::Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> event::Status {
-        event::Status::Ignored
+    ) {
     }
 
     fn mouse_interaction(
@@ -177,6 +174,7 @@ impl<'a, Message: 'static + Clone> Widget<Message, cosmic::Theme, cosmic::Render
                 bounds,
                 border: Border::default().rounded(bounds.height / 2.0),
                 shadow: cosmic::iced::Shadow::default(),
+                snap: true,
             },
             Background::Color(self.color),
         );
@@ -192,25 +190,16 @@ impl<'a, Message: 'static + Clone> Widget<Message, cosmic::Theme, cosmic::Render
                 size: cosmic::iced::Pixels(self.font_size),
                 line_height: cosmic::iced_core::text::LineHeight::default(),
                 font: cosmic::font::Font::default(),
-                horizontal_alignment: Horizontal::Center,
-                vertical_alignment: Vertical::Center,
+                align_x: cosmic::iced_core::text::Alignment::Center,
+                align_y: Vertical::Center,
                 shaping: cosmic::iced::advanced::text::Shaping::Basic,
                 wrapping: cosmic::iced_core::text::Wrapping::None,
+                ellipsize: cosmic::iced_core::text::Ellipsize::None,
             },
             text_center,
             self.text_color,
             bounds,
         );
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        _tree: &'b mut Tree,
-        _layout: Layout<'_>,
-        _renderer: &cosmic::Renderer,
-        _translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, cosmic::Theme, cosmic::Renderer>> {
-        None
     }
 }
 

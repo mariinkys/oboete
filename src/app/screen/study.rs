@@ -572,7 +572,6 @@ pub enum Hotkey {
 fn handle_event(event: event::Event, _: event::Status, _: iced::window::Id) -> Option<Message> {
     match event {
         event::Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => match key {
-            Key::Named(Named::Space) => Some(Message::Hotkey(Hotkey::Space)),
             Key::Named(Named::Escape) => Some(Message::Hotkey(Hotkey::Esc)),
 
             Key::Character(c) => match c.as_str() {
@@ -580,6 +579,7 @@ fn handle_event(event: event::Event, _: event::Status, _: iced::window::Id) -> O
                 "2" => Some(Message::Hotkey(Hotkey::Two)),
                 "3" => Some(Message::Hotkey(Hotkey::Three)),
                 "4" => Some(Message::Hotkey(Hotkey::Four)),
+                " " => Some(Message::Hotkey(Hotkey::Space)),
                 _ => None,
             },
 

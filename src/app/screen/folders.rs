@@ -8,7 +8,7 @@ use cosmic::iced::{Alignment, Length, Subscription};
 use cosmic::iced_core::text::Wrapping;
 use cosmic::iced_widget::{column, row};
 use cosmic::widget::{
-    Row, Space, button, container, list, scrollable, settings, slider, text, text_input,
+    Row, button, container, list, scrollable, settings, slider, text, text_input,
 };
 use cosmic::{Element, Task, theme};
 use sqlx::{Pool, Sqlite};
@@ -245,13 +245,11 @@ impl FoldersScreen {
             return text("Error").into(); // It's theoretically impossible to be here.
         };
 
-        let edit_button = Row::new()
-            .push(Space::new(Length::Fill, Length::Shrink))
-            .push(
-                button::text(fl!("edit"))
-                    .on_press_maybe((!edit_folder.name.is_empty()).then_some(Message::EditFolder))
-                    .class(theme::Button::Suggested),
-            );
+        let edit_button = Row::new().push(cosmic::widget::space::horizontal()).push(
+            button::text(fl!("edit"))
+                .on_press_maybe((!edit_folder.name.is_empty()).then_some(Message::EditFolder))
+                .class(theme::Button::Suggested),
+        );
 
         let settings = settings::view_column(vec![
             settings::section()

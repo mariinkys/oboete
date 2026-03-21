@@ -9,9 +9,7 @@ use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::{Alignment, ContentFit, Length, Subscription};
 use cosmic::iced_core::text::Wrapping;
 use cosmic::iced_widget::{column, pick_list, row, stack};
-use cosmic::widget::{
-    Row, Space, button, container, image, list, scrollable, settings, text, text_input,
-};
+use cosmic::widget::{Row, button, container, image, list, scrollable, settings, text, text_input};
 use cosmic::{Element, Task, theme};
 use percent_encoding::percent_decode;
 use sqlx::{Pool, Sqlite};
@@ -447,7 +445,7 @@ impl FlashcardsScreen {
                     .into(),
             ]),
             row![
-                Space::new(Length::Fill, Length::Shrink),
+                cosmic::widget::space::horizontal(),
                 button::text(fl!("import-button"))
                     .on_press_maybe(options.is_valid().then_some(Message::FolderOptionsInput(
                         FolderOptionsInput::CustomImport
@@ -470,13 +468,11 @@ impl FlashcardsScreen {
                     )
                     .into(),
             ]),
-            Row::new()
-                .push(Space::new(Length::Fill, Length::Shrink))
-                .push(
-                    button::text(fl!("import-button"))
-                        .on_press(Message::FolderOptionsInput(FolderOptionsInput::AnkiImport))
-                        .class(theme::Button::Suggested),
-                ),
+            Row::new().push(cosmic::widget::space::horizontal()).push(
+                button::text(fl!("import-button"))
+                    .on_press(Message::FolderOptionsInput(FolderOptionsInput::AnkiImport))
+                    .class(theme::Button::Suggested),
+            ),
             // RESET SECTION
             column![
                 settings::view_column(vec![
@@ -726,7 +722,7 @@ impl FlashcardsScreen {
                     )
                     .into(),
             ]),
-            row![Space::new(Length::Fill, Length::Shrink), add_edit_button],
+            row![cosmic::widget::space::horizontal(), add_edit_button],
             settings::view_column(vec![
                 settings::section()
                     .title(fl!("reset-flashcard-title"))
