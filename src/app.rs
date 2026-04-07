@@ -163,6 +163,7 @@ impl cosmic::Application for AppModel {
             .links([
                 (fl!("repository"), REPOSITORY),
                 (fl!("support"), &format!("{}/issues", REPOSITORY)),
+                (fl!("donations"), "https://buymeacoffee.com/mariinkys"),
             ])
             .license(env!("CARGO_PKG_LICENSE"))
             .author("mariinkys")

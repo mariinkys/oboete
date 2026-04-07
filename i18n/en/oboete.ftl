@@ -6,6 +6,7 @@ backup = Backup
 import = Import Backup
 repository = Repository
 support = Support
+donations = Donations
 loading = Loading...
 
 <#-- Appearance -->

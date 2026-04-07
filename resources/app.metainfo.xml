@@ -21,7 +21,8 @@
       study and memorize information effectively. Whether you're learning a new language,
       studying for exams, or just trying to remember important facts, Oboete provides an
       intuitive platform for creating, organizing, and reviewing flashcards.</p>
-    <p xml:lang="cs"
+    <p
+            xml:lang="cs"
         >Oboete je jednoduchá a efektivní aplikace pro studijní kartičky navržená tak, aby pomáhala
       uživatelům účinně studovat a zapamatovávat si informace. Ať už se učíte nový jazyk,
       připravujete se na zkoušky nebo si jen potřebujete zapamatovat důležitá fakta,
@@ -35,7 +36,9 @@
       <li>Works out of the box</li>
       <li xml:lang="cs">Funguje ihned po spuštění</li>
       <li>Can import flashcards from other sources such as Anki</li>
-      <li xml:lang="cs">Umožňuje import kartiček z jiných zdrojů, například Anki</li>
+      <li
+                xml:lang="cs"
+            >Umožňuje import kartiček z jiných zdrojů, například Anki</li>
       <li>Does NOT sync to the cloud</li>
       <li xml:lang="cs">Nesynchronizuje data do cloudu</li>
       <li>Image and FSRS support</li>
@@ -44,8 +47,9 @@
     <p
         >This app has been developed with libcosmic for the COSMIC™ desktop, and issues may occur on
       other platforms</p>
-    <p xml:lang="cs"
-        >Tato aplikace byla vyvinuta pomocí libcosmic pro prostředí COSMIC™. Na jiných platformách 
+    <p
+            xml:lang="cs"
+        >Tato aplikace byla vyvinuta pomocí libcosmic pro prostředí COSMIC™. Na jiných platformách
       mohou nastat problémy.</p>
   </description>
 
@@ -131,7 +135,7 @@
     <keyword>Japanese</keyword>
     <keyword>Spaced Repetition</keyword>
     <keyword>Anki</keyword>
-    
+
     <keyword xml:lang="cs">Kartičky</keyword>
     <keyword xml:lang="cs">Studium</keyword>
     <keyword xml:lang="cs">Paměť</keyword>
@@ -144,12 +148,23 @@
   </keywords>
 
   <releases>
-  <release version="0.2.3" date="2026-02-05">
-    <description>
-      <p>Improved mobile support</p>
-      <p>Updated dependencies</p>
-    </description>
-  </release>
+    <release version="0.2.4" date="2026-04-08">
+        <description>
+            <p>Basic IME support</p>
+            <p>Fixed RTL text issues</p>
+            <p>Improved theme detection</p>
+            <p>Improved word wrapping</p>
+            <p>Fixed configuration saving issues</p>
+            <p>Added Czech translation</p>
+            <p>Updated dependencies</p>
+        </description>
+    </release>
+    <release version="0.2.3" date="2026-02-05">
+        <description>
+            <p>Improved mobile support</p>
+            <p>Updated dependencies</p>
+        </description>
+    </release>
     <release version="0.2.2" date="2026-01-09">
       <description>
         <p>Better Flatpak integration via libcosmic xdg-portal</p>

@@ -26,9 +26,6 @@
 
 This project is related to my [other flashcard project](https://github.com/mariinkys/delphinus), if you want Chinese or Japanese flashcards you can [check it out](https://github.com/mariinkys/delphinus)!
 
-> [!WARNING]
-> Right now RTL languages are not well supported, please take a look at [#6](https://github.com/mariinkys/oboete/issues/6) for more information
-
 ## Anki Importing Support
 
 Please Look at: [ANKI_IMPORTING](./info/ANKI_IMPORTING.md)
