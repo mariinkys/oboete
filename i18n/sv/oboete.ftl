@@ -1,12 +1,14 @@
 cancel = Avbryt
 save = Spara
 empty-page = Tom
-empty-page-noset = Försök att skapa en studieuppsättning
+empty-page-noset = Ingenting att se här...
 about-anki-importing = OM ANKI IMPORTERING
 backup = Säkerhetskopiering
 import = Importera säkerhetskopia
-repository = Förråd
+repository = Källkod
 support = Support
+donations = Donationer
+loading = Laddar...
 
 <#-- Utseende -->
 appearance = Utseende
@@ -21,9 +23,9 @@ settings = Inställningar
 <#-- Program menyraden -->
 file = Fil
 new-studyset = Ny studieuppsättning
-edit = Editera
+edit = Redigera
 rename-studyset = Redigera studieuppsättning
-delete-studyset = Visa studieuppsättning
+delete-studyset = Radera studieuppsättning
 view = Visa
 about = Om
 
@@ -31,12 +33,10 @@ about = Om
 folders = Katalog
 flashcards = Flashkort
 study = Studera
-new = Ny
-options = Alternativ
 
 <#-- Ny studieuppsättning dialogruta -->
 create-studyset = Skapa studieuppsättning
-studyset-name = Studieuppsättning Namn
+studyset-name = Studieuppsättning namn
 
 <#-- Ta bort studieuppsättning dialogruta -->
 confirm-delete = Bekräfta radering
@@ -44,25 +44,37 @@ ok = Ok
 
 <#-- Ny katalog dialogruta -->
 create-folder = Skapa katalog
-rename-folder = Byt namn på katalog
 folder-name = Katalognamn
 
 <#-- Kataloginformation Kontextsida -->
 folder-details = Katalogdetaljer
+current-retention-rate = Nuvarande retentionsgrad
+retention-rate = Retentionsgrad
+
+<#-- Dialogrutan för katalogborttagning -->
+delete-folder = Ta bort katalog
 
 <#-- Flashkort sida -->
+empty-flashcards-page = Skapa några flashkort för att komma igång...
+none-status = Inte pluggat
+bad-status = Dåligt
 ok-status = Ok
 good-status = Bra
-bad-status = Dålig
+easy-status = Enkelt
 
 <#-- Flashkort skapa/editera Kontextsida -->
 flashcard-front-title = Flashkort fram
 flashcard-back-title = Flashkort bak
 flashcard-front-placeholder = Innehåll på framsidan
 flashcard-back-placeholder = Innehåll på baksidan
+select-image = Välj en bild
+browse = Bläddra
 create = Skapa
+front-image-alt = Alternativ text för bild på framsidan
+back-image-alt = Alternativ text för bild på baksidan
 reset-flashcard-title = Återställ Flashkort status
 reset-flashcard-button = Återställ
+current-flashcard-status = Nuvarande status
 
 <#-- Flashkort alternativ Kontextsida -->
 flashcard-options = Flashkort alternativ
@@ -81,3 +93,12 @@ import-anki-button = Välj Anki fil
 export-folder-flashcards-title = Exportera katalogen Flashkort
 export-folder-flashcards-button = Exportera
 export-folder-flashcards-anki-button = Exportera Anki
+
+
+<#-- Dialogruta för borttagning av flashkort -->
+delete-flashcard = Radera flashkort
+
+<#-- Studiesida -->
+fsrs-mode = FSRS-läge - Förfallna kort - { $due } av { $total }
+study-mode =  Studieläge - Kort { $number } av { $total }
+space-key = Mellanslag
