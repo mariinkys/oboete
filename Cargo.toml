@@ -13,15 +13,15 @@ path = "src/main.rs"
 name = "oboete"
 
 [dependencies]
-futures-util = "0.3.32"
+futures-util = "0.3.33"
 i18n-embed = { version = "0.16", features = [
     "fluent-system",
     "desktop-requester",
 ] }
-i18n-embed-fl = "0.10"
-open = "5.3.6"
-rust-embed = "8.11.0"
-tokio = { version = "1.52.3", features = ["full"] }
+i18n-embed-fl = "0.10.1"
+open = "5.4.1"
+rust-embed = "8.12.0"
+tokio = { version = "1.53.1", features = ["full"] }
 
 # Added by me
 sqlx = { version = "0.9.0", features = [
@@ -29,13 +29,13 @@ sqlx = { version = "0.9.0", features = [
     "runtime-tokio",
     "tls-rustls",
 ] }
-futures = "0.3.32"
+futures = "0.3.33"
 dirs = "6.0.0"
-serde = { version = "1.0.228", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
 rand = "0.10.2" #needed for flashcard selection
 percent-encoding = "2.3.2" #needed for correct anki file importing
 ron = "0.12.2"
-uuid = { version = "1.23.4", features = ["v4"] }
+uuid = { version = "1.24.0", features = ["v4"] }
 anywho = "0.1.2"
 fsrs = "6.6.1"
 
