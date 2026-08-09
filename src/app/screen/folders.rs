@@ -297,7 +297,7 @@ fn header_view<'a>(spacing: Spacing, folders: &'a [Folder]) -> Element<'a, Messa
         .on_press(Message::OpenCreateFolderDialog);
 
     let title = if !folders.is_empty() {
-        format!("{} ({})", fl!("folders"), &folders.len())
+        format!("{} ({})", fl!("folders"), folders.len())
     } else {
         fl!("folders")
     };

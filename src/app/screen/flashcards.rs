@@ -768,7 +768,7 @@ fn header_view<'a>(spacing: Spacing, flashcards: &'a [Flashcard]) -> Element<'a,
         ));
 
     let title = if !flashcards.is_empty() {
-        format!("{} ({})", fl!("flashcards"), &flashcards.len())
+        format!("{} ({})", fl!("flashcards"), flashcards.len())
     } else {
         fl!("flashcards")
     };
