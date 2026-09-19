@@ -13,13 +13,13 @@ path = "src/main.rs"
 name = "oboete"
 
 [dependencies]
-futures-util = "0.3.33"
-i18n-embed = { version = "0.16", features = [
+futures-util = "0.3.34"
+i18n-embed = { version = "0.16.0", features = [
     "fluent-system",
     "desktop-requester",
 ] }
 i18n-embed-fl = "0.10.1"
-open = "5.4.1"
+open = "5.4.4"
 rust-embed = "8.12.0"
 tokio = { version = "1.53.1", features = ["full"] }
 
@@ -29,15 +29,15 @@ sqlx = { version = "0.9.0", features = [
     "runtime-tokio",
     "tls-rustls",
 ] }
-futures = "0.3.33"
-dirs = "6.0.0"
+futures = "0.3.34"
+dirs = "7.0.0"
 serde = { version = "1.0.229", features = ["derive"] }
 rand = "0.10.2" #needed for flashcard selection
 percent-encoding = "2.3.2" #needed for correct anki file importing
 ron = "0.12.2"
-uuid = { version = "1.24.0", features = ["v4"] }
+uuid = { version = "1.26.1", features = ["v4"] }
 anywho = "0.1.2"
-fsrs = "6.6.1"
+fsrs = "6.6.2"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic.git"

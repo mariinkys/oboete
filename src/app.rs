@@ -95,7 +95,7 @@ pub enum Message {
     /// Callback after clicking something in the app menu
     MenuAction(app_menu::MenuAction),
     /// Needed for responsive menu bar
-    Surface(surface::Action),
+    Surface(surface::Action<Message>),
     /// Asks to execute various actions related to the application dialogs
     DialogAction(dialogs::DialogAction),
     /// Executes the appropiate cosmic binding on keyboard shortcut
@@ -443,7 +443,7 @@ impl cosmic::Application for AppModel {
                 }
             }
             Message::Surface(a) => {
-                cosmic::task::message(cosmic::Action::Cosmic(cosmic::app::Action::Surface(a)))
+                cosmic::task::message(cosmic::Action::Surface(a))
             }
             Message::DialogAction(action) => {
                 let State::Ready { database, .. } = &mut self.state else {
