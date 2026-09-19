@@ -3670,7 +3670,7 @@ dependencies = [
 
 [[package]]
 name = "oboete"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "anywho",
  "dirs 7.0.0",
