@@ -19,9 +19,9 @@ i18n-embed = { version = "0.16.0", features = [
     "desktop-requester",
 ] }
 i18n-embed-fl = "0.10.1"
-open = "5.4.4"
-rust-embed = "8.12.0"
-tokio = { version = "1.53.1", features = ["full"] }
+open = "5.4.5"
+rust-embed = "8.13.0"
+tokio = { version = "1.54.1", features = ["full"] }
 
 # Added by me
 sqlx = { version = "0.9.0", features = [
@@ -32,10 +32,10 @@ sqlx = { version = "0.9.0", features = [
 futures = "0.3.34"
 dirs = "7.0.0"
 serde = { version = "1.0.229", features = ["derive"] }
-rand = "0.10.2" #needed for flashcard selection
+rand = "0.10.3" #needed for flashcard selection
 percent-encoding = "2.3.2" #needed for correct anki file importing
 ron = "0.12.2"
-uuid = { version = "1.26.1", features = ["v4"] }
+uuid = { version = "1.29.0", features = ["v4"] }
 anywho = "0.1.2"
 fsrs = "6.6.2"
 
