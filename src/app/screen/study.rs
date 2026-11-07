@@ -4,11 +4,11 @@ use std::sync::Arc;
 
 use cosmic::cosmic_theme::Spacing;
 use cosmic::iced::alignment::{Horizontal, Vertical};
+use cosmic::iced::core::text::Wrapping;
 use cosmic::iced::keyboard::key::Named;
 use cosmic::iced::keyboard::{self, Key};
-use cosmic::iced::{self, Color, ContentFit, Font, Length, Subscription, event, window};
-use cosmic::iced::core::text::Wrapping;
 use cosmic::iced::widget::{column, row, stack};
+use cosmic::iced::{self, Color, ContentFit, Font, Length, Subscription, event, window};
 use cosmic::widget::{button, container, image, mouse_area, text, tooltip};
 use cosmic::{Element, Task, theme};
 use sqlx::{Pool, Sqlite};
@@ -34,6 +34,7 @@ enum State {
         current_index: usize, // Track position in due cards
         current_mode: PracticeMode,
         window_width: f32,
+        saving: bool,
     },
 }
 
@@ -78,7 +79,9 @@ pub enum Message {
     /// Update the currently styuding flashcard status
     UpdateFlashcardStatus(i32, FlashcardStatus),
     /// Callback after updating the currently studying flashcard, select a new card...
-    FlashcardStatusUpdated,
+    FlashcardStatusUpdated(Option<Box<Flashcard>>),
+    /// Callback if we fail to update the flashcard status
+    FlashcardStatusUpdateFailed(OboeteToast),
 }
 
 /// Allows us to talk with the parent screen
@@ -223,6 +226,7 @@ impl StudyScreen {
                                     current_index: 0,
                                     current_mode,
                                     window_width: 1200.,
+                                    saving: false,
                                 };
                             } else {
                                 return self.update(Message::Back, &Arc::clone(database));
@@ -257,11 +261,23 @@ impl StudyScreen {
                 let State::Ready {
                     studying_flashcard,
                     scheduler,
+                    current_mode,
+                    saving,
                     ..
-                } = &self.state
+                } = &mut self.state
                 else {
                     return Action::None;
                 };
+
+                if *saving {
+                    return Action::None;
+                }
+
+                if matches!(current_mode, PracticeMode::Study) {
+                    let requeue = (flashcard_status == FlashcardStatus::Bad)
+                        .then(|| Box::new(studying_flashcard.flashcard.clone()));
+                    return self.update(Message::FlashcardStatusUpdated(requeue), database);
+                }
 
                 let (new_memory_state, new_due_date) = match utils::update_fsrs_data(
                     &flashcard_status,
@@ -275,6 +291,17 @@ impl StudyScreen {
                     }
                 };
 
+                *saving = true;
+
+                let requeue = (flashcard_status == FlashcardStatus::Bad).then(|| {
+                    let mut flashcard = studying_flashcard.flashcard.clone();
+                    flashcard.status = flashcard_status;
+                    flashcard.fsrs_state = Some(new_memory_state.into());
+                    flashcard.due_date = Some(new_due_date);
+                    flashcard.last_reviewed = Some(utils::current_day());
+                    Box::new(flashcard)
+                });
+
                 Action::Run(Task::perform(
                     Flashcard::update_status(
                         Arc::clone(database),
@@ -283,25 +310,38 @@ impl StudyScreen {
                         new_memory_state.into(),
                         new_due_date,
                     ),
-                    |res| match res {
-                        Ok(_) => Message::FlashcardStatusUpdated,
+                    move |res| match res {
+                        Ok(_) => Message::FlashcardStatusUpdated(requeue),
                         Err(e) => {
                             eprintln!("{}", e);
-                            Message::AddToast(OboeteToast::new(e))
+                            Message::FlashcardStatusUpdateFailed(OboeteToast::new(e))
                         }
                     },
                 ))
             }
-            Message::FlashcardStatusUpdated => {
+            Message::FlashcardStatusUpdateFailed(toast) => {
+                if let State::Ready { saving, .. } = &mut self.state {
+                    *saving = false;
+                }
+                Action::AddToast(toast)
+            }
+            Message::FlashcardStatusUpdated(requeue) => {
                 let State::Ready {
                     flashcards,
                     current_index,
                     studying_flashcard,
+                    saving,
                     ..
                 } = &mut self.state
                 else {
                     return Action::None;
                 };
+
+                *saving = false;
+
+                if let Some(flashcard) = requeue {
+                    flashcards.push(*flashcard);
+                }
 
                 // Move to next card
                 let next_index = *current_index + 1;

@@ -229,9 +229,7 @@ impl Flashcard {
     pub fn is_due(&self) -> bool {
         match self.due_date {
             Some(due) => due <= current_day(),
-            // None => true, // New cards are always "due"
-            // Only never-reviewed cards (no FSRS state) are due
-            None => self.fsrs_state.is_none(),
+            None => true, // New cards are always "due"
         }
     }
 
@@ -241,9 +239,9 @@ impl Flashcard {
         folder_id: i32,
     ) -> Result<Vec<Flashcard>, anywho::Error> {
         let mut rows = sqlx::query(
-            "SELECT id, front, back, status, fsrs_state, due_date, last_reviewed 
-             FROM flashcards 
-             WHERE folder_id = $1 
+            "SELECT id, front, back, status, fsrs_state, due_date, last_reviewed
+             FROM flashcards
+             WHERE folder_id = $1
              ORDER BY id ASC",
         )
         .bind(folder_id)
@@ -289,9 +287,9 @@ impl Flashcard {
                 .await?;
 
         let mut rows = sqlx::query(
-            "SELECT id, front, back, status, fsrs_state, due_date, last_reviewed 
-             FROM flashcards 
-             WHERE folder_id = $1 
+            "SELECT id, front, back, status, fsrs_state, due_date, last_reviewed
+             FROM flashcards
+             WHERE folder_id = $1
              ORDER BY id ASC",
         )
         .bind(folder_id)
@@ -384,8 +382,8 @@ impl Flashcard {
         due_date: i32,
     ) -> Result<(), anywho::Error> {
         sqlx::query(
-            "UPDATE flashcards 
-             SET status = $1, fsrs_state = $2, due_date = $3, last_reviewed = $4 
+            "UPDATE flashcards
+             SET status = $1, fsrs_state = $2, due_date = $3, last_reviewed = $4
              WHERE id = $5",
         )
         .bind(status.to_id())
