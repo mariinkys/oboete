@@ -6,9 +6,9 @@ use cosmic::cosmic_theme::Spacing;
 use cosmic::dialog::ashpd::desktop::file_chooser::SelectedFiles;
 use cosmic::dialog::file_chooser::FileFilter;
 use cosmic::iced::alignment::{Horizontal, Vertical};
-use cosmic::iced::{Alignment, ContentFit, Length, Subscription};
 use cosmic::iced::core::text::Wrapping;
 use cosmic::iced::widget::{column, pick_list, row, stack};
+use cosmic::iced::{Alignment, ContentFit, Length, Subscription};
 use cosmic::widget::{Row, button, container, image, list, scrollable, settings, text, text_input};
 use cosmic::{Element, Task, theme};
 use percent_encoding::percent_decode;
@@ -874,12 +874,11 @@ fn apply_flashcard_add_edit_input(
                     if let Ok(result) = result {
                         result
                             .uris()
-                            .iter()
-                            .map(|file| file.path().to_string())
-                            .collect::<Vec<String>>()
                             .first()
-                            .cloned()
-                            .unwrap_or(String::new())
+                            .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
+                            .and_then(|url| url.to_file_path().ok())
+                            .map(|p| p.to_string_lossy().into_owned())
+                            .unwrap_or_default()
                     } else {
                         String::new()
                     }
@@ -951,12 +950,11 @@ fn apply_flashcard_add_edit_input(
                     if let Ok(result) = result {
                         result
                             .uris()
-                            .iter()
-                            .map(|file| file.path().to_string())
-                            .collect::<Vec<String>>()
                             .first()
-                            .cloned()
-                            .unwrap_or(String::new())
+                            .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
+                            .and_then(|url| url.to_file_path().ok())
+                            .map(|p| p.to_string_lossy().into_owned())
+                            .unwrap_or_default()
                     } else {
                         String::new()
                     }
@@ -1052,12 +1050,11 @@ fn apply_folder_options_input(
                     if let Ok(result) = result {
                         result
                             .uris()
-                            .iter()
-                            .map(|file| file.path().to_string())
-                            .collect::<Vec<String>>()
                             .first()
-                            .cloned()
-                            .unwrap_or(String::new())
+                            .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
+                            .and_then(|url| url.to_file_path().ok())
+                            .map(|p| p.to_string_lossy().into_owned())
+                            .unwrap_or_default()
                     } else {
                         String::new()
                     }
@@ -1107,12 +1104,11 @@ fn apply_folder_options_input(
                     if let Ok(result) = result {
                         result
                             .uris()
-                            .iter()
-                            .map(|file| file.path().to_string())
-                            .collect::<Vec<String>>()
                             .first()
-                            .cloned()
-                            .unwrap_or(String::new())
+                            .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
+                            .and_then(|url| url.to_file_path().ok())
+                            .map(|p| p.to_string_lossy().into_owned())
+                            .unwrap_or_default()
                     } else {
                         String::new()
                     }
@@ -1144,12 +1140,11 @@ fn apply_folder_options_input(
                     if let Ok(result) = result {
                         result
                             .uris()
-                            .iter()
-                            .map(|file| file.path().to_string())
-                            .collect::<Vec<String>>()
                             .first()
-                            .cloned()
-                            .unwrap_or(String::new())
+                            .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
+                            .and_then(|url| url.to_file_path().ok())
+                            .map(|p| p.to_string_lossy().into_owned())
+                            .unwrap_or_default()
                     } else {
                         String::new()
                     }

@@ -14,9 +14,9 @@ use cosmic::app::context_drawer;
 use cosmic::dialog::ashpd::desktop::file_chooser::SelectedFiles;
 use cosmic::dialog::file_chooser::FileFilter;
 use cosmic::iced::alignment::{Horizontal, Vertical};
-use cosmic::iced::{Event, Length, Subscription};
 use cosmic::iced::core::keyboard::{Key, Modifiers};
 use cosmic::iced::widget::center;
+use cosmic::iced::{Event, Length, Subscription};
 use cosmic::prelude::*;
 use cosmic::surface;
 use cosmic::widget::menu::Action;
@@ -389,12 +389,11 @@ impl cosmic::Application for AppModel {
                             if let Ok(result) = result {
                                 result
                                     .uris()
-                                    .iter()
-                                    .map(|file| file.path().to_string())
-                                    .collect::<Vec<String>>()
                                     .first()
-                                    .cloned()
-                                    .unwrap_or(String::new())
+                                    .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
+                                    .and_then(|url| url.to_file_path().ok())
+                                    .map(|p| p.to_string_lossy().into_owned())
+                                    .unwrap_or_default()
                             } else {
                                 String::new()
                             }
@@ -418,12 +417,11 @@ impl cosmic::Application for AppModel {
                             if let Ok(result) = result {
                                 result
                                     .uris()
-                                    .iter()
-                                    .map(|file| file.path().to_string())
-                                    .collect::<Vec<String>>()
                                     .first()
-                                    .cloned()
-                                    .unwrap_or(String::new())
+                                    .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
+                                    .and_then(|url| url.to_file_path().ok())
+                                    .map(|p| p.to_string_lossy().into_owned())
+                                    .unwrap_or_default()
                             } else {
                                 String::new()
                             }
@@ -442,9 +440,7 @@ impl cosmic::Application for AppModel {
                     }
                 }
             }
-            Message::Surface(a) => {
-                cosmic::task::message(cosmic::Action::Surface(a))
-            }
+            Message::Surface(a) => cosmic::task::message(cosmic::Action::Surface(a)),
             Message::DialogAction(action) => {
                 let State::Ready { database, .. } = &mut self.state else {
                     return Task::none();
