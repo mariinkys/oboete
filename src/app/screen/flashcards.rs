@@ -5,10 +5,12 @@ use std::sync::Arc;
 
 use cosmic::cosmic_theme::Spacing;
 use cosmic::iced::alignment::{Horizontal, Vertical};
-use cosmic::iced::core::text::Wrapping;
+use cosmic::iced::core::text::{Ellipsize, EllipsizeHeightLimit, Wrapping};
 use cosmic::iced::widget::{column, pick_list, row, stack};
 use cosmic::iced::{Alignment, ContentFit, Length, Subscription};
-use cosmic::widget::{Row, button, container, image, list, scrollable, settings, text, text_input};
+use cosmic::widget::{
+    Row, button, container, image, list, scrollable, settings, text, text_editor, text_input,
+};
 use cosmic::{Element, Task, theme};
 use sqlx::{Pool, Sqlite};
 
@@ -16,6 +18,7 @@ use crate::app::context_page::ContextPage;
 use crate::app::core::models::flashcard::{Flashcard, FlashcardField, FlashcardStatus, Side};
 use crate::app::core::utils::file_dialogs::{self, FileKind};
 use crate::app::core::utils::{self, OboeteToast};
+use crate::app::widgets::multiline_input::multiline_input;
 use crate::app::widgets::pill::pill;
 use crate::{fl, icons};
 
@@ -30,6 +33,7 @@ enum State {
     Loading,
     Ready {
         add_edit_flashcard: Box<Flashcard>,
+        editors: Box<[text_editor::Content; 2]>,
         flashcards: Vec<Flashcard>,
         options: FolderOptions,
     },
@@ -74,7 +78,7 @@ pub enum Message {
 #[derive(Debug, Clone)]
 pub enum AddEditFlashcardInput {
     FieldTypeChanged(Side, FlashcardField),
-    TextInput(Side, String),
+    EditorAction(Side, text_editor::Action),
     SelectImage(Side),
     ImageSelected(Side, Option<PathBuf>),
     DeleteSelectedImage(Side),
@@ -84,7 +88,7 @@ pub enum AddEditFlashcardInput {
 /// Represents the different inputs the user can perfrom on the folder options [`ContextPage`]
 #[derive(Debug, Clone)]
 pub enum FolderOptionsInput {
-    ImportContentInput(String),
+    ImportContentAction(text_editor::Action),
     BetweenCardsInput(String),
     BetweenTermsInput(String),
     CustomImport,
@@ -116,6 +120,7 @@ pub enum Action {
 #[derive(Debug, Default)]
 struct FolderOptions {
     import_content: String,
+    import_editor: text_editor::Content,
     between_cards: String,
     between_terms: String,
 }
@@ -123,7 +128,7 @@ struct FolderOptions {
 impl FolderOptions {
     /// Returns true if the folder options can be submitted to perform an action on the database
     pub fn is_valid(&self) -> bool {
-        !self.import_content.is_empty()
+        !self.import_content.trim().is_empty()
             && !self.between_cards.is_empty()
             && !self.between_terms.is_empty()
     }
@@ -205,6 +210,7 @@ impl FlashcardsScreen {
 
                         self.state = State::Ready {
                             flashcards,
+                            editors: editors_for(&add_edit_flashcard),
                             add_edit_flashcard: Box::from(add_edit_flashcard),
                             options: FolderOptions::default(),
                         };
@@ -220,12 +226,15 @@ impl FlashcardsScreen {
             Message::OpenContextPage(context_page, flashcard) => {
                 if let Some(flashcard) = flashcard {
                     let State::Ready {
-                        add_edit_flashcard, ..
+                        add_edit_flashcard,
+                        editors,
+                        ..
                     } = &mut self.state
                     else {
                         return Action::None;
                     };
 
+                    *editors = editors_for(&flashcard);
                     *add_edit_flashcard = Box::from(flashcard);
                 }
 
@@ -285,13 +294,15 @@ impl FlashcardsScreen {
             }
             Message::AddEditFlashcardInput(input) => {
                 let State::Ready {
-                    add_edit_flashcard, ..
+                    add_edit_flashcard,
+                    editors,
+                    ..
                 } = &mut self.state
                 else {
                     return Action::None;
                 };
 
-                apply_flashcard_add_edit_input(input, add_edit_flashcard)
+                apply_flashcard_add_edit_input(input, add_edit_flashcard, editors)
             }
             Message::ResetFlashcardStatus(flashcard_id) => Action::Run(Task::perform(
                 Flashcard::reset_single_status(Arc::clone(database), flashcard_id),
@@ -378,18 +389,17 @@ impl FlashcardsScreen {
                             })
                             .into(),
                             text::body(fl!("import-content-title")).into(),
-                            text_input(fl!("import-content-placeholder"), &options.import_content)
-                                .on_input(|x| {
+                            multiline_input(
+                                &options.import_editor,
+                                fl!("import-content-placeholder"),
+                                120.,
+                                320.,
+                                |action| {
                                     Message::FolderOptionsInput(
-                                        FolderOptionsInput::ImportContentInput(x),
+                                        FolderOptionsInput::ImportContentAction(action),
                                     )
-                                })
-                                .on_paste(|x| {
-                                    Message::FolderOptionsInput(
-                                        FolderOptionsInput::ImportContentInput(x),
-                                    )
-                                })
-                                .into(),
+                                },
+                            ),
                         ])
                         .spacing(spacing.space_xxs),
                     )
@@ -467,7 +477,9 @@ impl FlashcardsScreen {
     /// View of the upsert flashcard [`ContextPage`] of the application
     pub fn add_edit_contextpage<'a>(&'a self, spacing: Spacing) -> Element<'a, Message> {
         let State::Ready {
-            add_edit_flashcard, ..
+            add_edit_flashcard,
+            editors,
+            ..
         } = &self.state
         else {
             return text("Error").into(); // It's theoretically impossible to be here.
@@ -491,8 +503,18 @@ impl FlashcardsScreen {
                 .class(theme::Button::Suggested)
         };
 
-        let front_input = flashcard_field_view(spacing, Side::Front, &add_edit_flashcard.front);
-        let back_input = flashcard_field_view(spacing, Side::Back, &add_edit_flashcard.back);
+        let front_input = flashcard_field_view(
+            spacing,
+            Side::Front,
+            &add_edit_flashcard.front,
+            &editors[Side::Front.index()],
+        );
+        let back_input = flashcard_field_view(
+            spacing,
+            Side::Back,
+            &add_edit_flashcard.back,
+            &editors[Side::Back.index()],
+        );
 
         let current_status_content: Element<Message> =
             if add_edit_flashcard.status == FlashcardStatus::None {
@@ -593,7 +615,7 @@ fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'
         let mut flashcards_list = list::list_column().style(theme::Container::Card);
 
         for flashcard in flashcards {
-            let front_text = flashcard.front.display_text();
+            let front_text = first_line_preview(flashcard.front.display_text());
 
             flashcards_list = flashcards_list.add(
                 row![
@@ -608,7 +630,8 @@ fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'
                         .align_y(Vertical::Center)
                         .align_x(Horizontal::Left)
                         .width(Length::Fill)
-                        .wrapping(Wrapping::WordOrGlyph),
+                        .wrapping(Wrapping::WordOrGlyph)
+                        .ellipsize(Ellipsize::End(EllipsizeHeightLimit::Lines(1))),
                     container(
                         pill(flashcard.status.to_string()).color(flashcard.status.get_color())
                     )
@@ -636,11 +659,23 @@ fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'
     .into()
 }
 
+/// First non-empty line of the given text, with an ellipsis if the text has more lines
+fn first_line_preview(text: &str) -> String {
+    let mut lines = text.lines().map(str::trim).filter(|line| !line.is_empty());
+    let first = lines.next().unwrap_or_default();
+    if lines.next().is_some() {
+        format!("{first}…")
+    } else {
+        first.to_string()
+    }
+}
+
 /// View of the editor of one [`Side`] of the upsert flashcard [`ContextPage`]
 fn flashcard_field_view<'a>(
     spacing: Spacing,
     side: Side,
     field: &'a FlashcardField,
+    editor: &'a text_editor::Content,
 ) -> Element<'a, Message> {
     let (title, placeholder, alt_placeholder) = match side {
         Side::Front => (
@@ -665,11 +700,9 @@ fn flashcard_field_view<'a>(
         .align_y(Alignment::Center);
 
     let content = match field {
-        FlashcardField::Text(text) => text_input(placeholder, text)
-            .on_input(move |input| {
-                Message::AddEditFlashcardInput(AddEditFlashcardInput::TextInput(side, input))
-            })
-            .into(),
+        FlashcardField::Text(_) => multiline_input(editor, placeholder, 72., 200., move |action| {
+            Message::AddEditFlashcardInput(AddEditFlashcardInput::EditorAction(side, action))
+        }),
         FlashcardField::Image { path, alt_text } => {
             let image_input: Element<Message> = if path.is_empty() {
                 row![
@@ -733,13 +766,21 @@ fn flashcard_field_view<'a>(
 fn apply_flashcard_add_edit_input(
     input: AddEditFlashcardInput,
     flashcard: &mut Flashcard,
+    editors: &mut [text_editor::Content; 2],
 ) -> Action {
     match input {
         AddEditFlashcardInput::FieldTypeChanged(side, flashcard_field) => {
+            editors[side.index()] = editor_for(&flashcard_field);
             *flashcard.field_mut(side) = flashcard_field;
         }
-        AddEditFlashcardInput::TextInput(side, input) => {
-            *flashcard.field_mut(side) = FlashcardField::Text(input);
+        AddEditFlashcardInput::EditorAction(side, action) => {
+            let editor = &mut editors[side.index()];
+            let is_edit = action.is_edit();
+            editor.perform(action);
+            if is_edit {
+                *flashcard.field_mut(side) =
+                    FlashcardField::Text(editor.text().replace("\r\n", "\n"));
+            }
         }
         AddEditFlashcardInput::SelectImage(side) => {
             return Action::Run(Task::perform(
@@ -781,6 +822,19 @@ fn apply_flashcard_add_edit_input(
     Action::None
 }
 
+/// Multi-line editor content for the given [`FlashcardField`]
+fn editor_for(field: &FlashcardField) -> text_editor::Content {
+    match field {
+        FlashcardField::Text(t) => text_editor::Content::with_text(t),
+        FlashcardField::Image { .. } => text_editor::Content::new(),
+    }
+}
+
+/// Multi-line editor contents for both sides of the given [`Flashcard`]
+fn editors_for(flashcard: &Flashcard) -> Box<[text_editor::Content; 2]> {
+    Box::new(Side::ALL.map(|side| editor_for(flashcard.field(side))))
+}
+
 /// Copies the images of the [`Flashcard`] into the Oboete data path, if `skip_saved` images that are already there are left untouched
 fn save_flashcard_images(flashcard: &mut Flashcard, skip_saved: bool) -> Result<(), anywho::Error> {
     for side in Side::ALL {
@@ -803,8 +857,12 @@ fn apply_folder_options_input(
     flashcards: &[Flashcard],
 ) -> Action {
     match input {
-        FolderOptionsInput::ImportContentInput(input) => {
-            options.import_content = input;
+        FolderOptionsInput::ImportContentAction(action) => {
+            let is_edit = action.is_edit();
+            options.import_editor.perform(action);
+            if is_edit {
+                options.import_content = options.import_editor.text().replace("\r\n", "\n");
+            }
         }
         FolderOptionsInput::BetweenCardsInput(input) => {
             options.between_cards = input;

@@ -196,7 +196,7 @@ impl FlashcardField {
     /// Returns true if [`FlashcardField`] is ready for database submission
     pub fn is_valid(&self) -> bool {
         match self {
-            FlashcardField::Text(t) => !t.is_empty(),
+            FlashcardField::Text(t) => !t.trim().is_empty(),
             FlashcardField::Image { path, alt_text } => !path.is_empty() && !alt_text.is_empty(),
         }
     }
@@ -211,6 +211,13 @@ pub enum Side {
 
 impl Side {
     pub const ALL: [Side; 2] = [Side::Front, Side::Back];
+
+    pub fn index(self) -> usize {
+        match self {
+            Side::Front => 0,
+            Side::Back => 1,
+        }
+    }
 }
 
 /// Wrapper of the library MemoryState that implements [`Serialize`] and [`Deserialize`] to get saved as ron in the database
@@ -274,9 +281,9 @@ impl Flashcard {
         folder_id: i32,
     ) -> Result<Vec<Flashcard>, anywho::Error> {
         let mut rows = sqlx::query(
-            "SELECT id, front, back, status, fsrs_state, due_date, last_reviewed 
-             FROM flashcards 
-             WHERE folder_id = $1 
+            "SELECT id, front, back, status, fsrs_state, due_date, last_reviewed
+             FROM flashcards
+             WHERE folder_id = $1
              ORDER BY id ASC",
         )
         .bind(folder_id)
@@ -322,9 +329,9 @@ impl Flashcard {
                 .await?;
 
         let mut rows = sqlx::query(
-            "SELECT id, front, back, status, fsrs_state, due_date, last_reviewed 
-             FROM flashcards 
-             WHERE folder_id = $1 
+            "SELECT id, front, back, status, fsrs_state, due_date, last_reviewed
+             FROM flashcards
+             WHERE folder_id = $1
              ORDER BY id ASC",
         )
         .bind(folder_id)
@@ -417,8 +424,8 @@ impl Flashcard {
         due_date: i32,
     ) -> Result<(), anywho::Error> {
         sqlx::query(
-            "UPDATE flashcards 
-             SET status = $1, fsrs_state = $2, due_date = $3, last_reviewed = $4 
+            "UPDATE flashcards
+             SET status = $1, fsrs_state = $2, due_date = $3, last_reviewed = $4
              WHERE id = $5",
         )
         .bind(status.to_id())

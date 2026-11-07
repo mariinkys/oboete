@@ -8,8 +8,8 @@ use cosmic::iced::core::text::Wrapping;
 use cosmic::iced::keyboard::key::Named;
 use cosmic::iced::keyboard::{self, Key};
 use cosmic::iced::widget::{column, row, stack};
-use cosmic::iced::{self, Color, ContentFit, Font, Length, Subscription, event, window};
-use cosmic::widget::{button, container, image, mouse_area, text, tooltip};
+use cosmic::iced::{self, Color, ContentFit, Font, Length, Size, Subscription, event, window};
+use cosmic::widget::{button, container, image, mouse_area, scrollable, text, tooltip};
 use cosmic::{Element, Task, theme};
 use sqlx::{Pool, Sqlite};
 
@@ -33,7 +33,7 @@ enum State {
         studying_flashcard: StudyingFlashcard,
         current_index: usize, // Track position in due cards
         current_mode: PracticeMode,
-        window_width: f32,
+        window_size: Size,
         saving: bool,
     },
 }
@@ -67,7 +67,7 @@ pub enum Message {
     /// Hotkey (Subscription) pressed
     Hotkey(Hotkey),
     /// Callback when the app window is resized
-    WindowResized(f32),
+    WindowResized(Size),
 
     /// Load the flashcards into state
     LoadFlashcards,
@@ -80,7 +80,6 @@ pub enum Message {
     UpdateFlashcardStatus(i32, FlashcardStatus),
     /// Callback after updating the currently studying flashcard, select a new card...
     FlashcardStatusUpdated(Option<Box<Flashcard>>),
-    /// Callback if we fail to update the flashcard status
     FlashcardStatusUpdateFailed(OboeteToast),
 }
 
@@ -116,7 +115,7 @@ impl StudyScreen {
                 flashcards,
                 current_index,
                 current_mode,
-                window_width,
+                window_size,
                 ..
             } => {
                 let spacing = theme::active().cosmic().spacing;
@@ -126,7 +125,7 @@ impl StudyScreen {
                     current_mode,
                     flashcards,
                     current_index,
-                    window_width,
+                    window_size,
                 );
                 let buttons = study_buttons_view(spacing, studying_flashcard);
 
@@ -188,9 +187,9 @@ impl StudyScreen {
                 }
                 Action::None
             }
-            Message::WindowResized(width) => {
-                if let State::Ready { window_width, .. } = &mut self.state {
-                    *window_width = width;
+            Message::WindowResized(size) => {
+                if let State::Ready { window_size, .. } = &mut self.state {
+                    *window_size = size;
                 }
                 Action::None
             }
@@ -225,7 +224,7 @@ impl StudyScreen {
                                     },
                                     current_index: 0,
                                     current_mode,
-                                    window_width: 1200.,
+                                    window_size: Size::new(1200., 800.),
                                     saving: false,
                                 };
                             } else {
@@ -369,7 +368,7 @@ impl StudyScreen {
     pub fn subscription(&self) -> Subscription<Message> {
         Subscription::batch([
             event::listen_with(handle_event),
-            window::resize_events().map(|(_id, size)| Message::WindowResized(size.width)),
+            window::resize_events().map(|(_id, size)| Message::WindowResized(size)),
         ])
     }
 }
@@ -380,18 +379,11 @@ fn study_view<'a>(
     practice_mode: &'a PracticeMode,
     flashcards: &'a [Flashcard],
     current_index: &usize,
-    window_width: &'a f32,
+    window_size: &'a Size,
 ) -> Element<'a, Message> {
-    // calculate text size based on window width
-    let text_size = (window_width / 15.0).clamp(30.0, 75.0);
-
     let flashcard_content: Element<Message> = match studying_flashcard.flashcard_side {
         FlashcardSide::Front => match &studying_flashcard.flashcard.front {
-            FlashcardField::Text(t) => {
-                container(text(t).size(text_size).wrapping(Wrapping::WordOrGlyph))
-                    .center(Length::Fill)
-                    .into()
-            }
+            FlashcardField::Text(t) => card_text(t, window_size),
             FlashcardField::Image { path, alt_text } => container(
                 container(tooltip(
                     container(image(path).content_fit(ContentFit::Contain)).padding(15),
@@ -407,11 +399,7 @@ fn study_view<'a>(
             .into(),
         },
         FlashcardSide::Back => match &studying_flashcard.flashcard.back {
-            FlashcardField::Text(t) => {
-                container(text(t).size(text_size).wrapping(Wrapping::WordOrGlyph))
-                    .center(Length::Fill)
-                    .into()
-            }
+            FlashcardField::Text(t) => card_text(t, window_size),
             FlashcardField::Image { path, alt_text } => container(
                 container(tooltip(
                     container(image(path).content_fit(ContentFit::Contain)).padding(15),
@@ -539,6 +527,97 @@ fn study_buttons_view<'a>(
 //
 // HELPERS
 //
+
+const CARD_MIN_TEXT_SIZE: f32 = 18.0;
+const CARD_LINE_HEIGHT: f32 = 1.3;
+const CARD_GLYPH_WIDTH: f32 = 0.6;
+const CARD_HORIZONTAL_MARGIN: f32 = 20.0;
+const CARD_VERTICAL_MARGIN: f32 = 44.0;
+
+/// Text of a card ready to be shown, without surrounding whitespace and with runs of empty lines collapsed into one
+fn tidy_card_text(text: &str) -> String {
+    let mut lines: Vec<&str> = Vec::new();
+    for line in text.trim().lines() {
+        let line = line.trim_end();
+        if line.is_empty() && lines.last().is_some_and(|last| last.is_empty()) {
+            continue;
+        }
+        lines.push(line);
+    }
+    lines.join("\n")
+}
+
+/// Font size for the text of a card, the biggest size at which the text, counting wrapped lines, fits on the card
+fn card_text_size(text: &str, window_size: &Size) -> f32 {
+    let base = (window_size.width / 15.0).clamp(30.0, 75.0);
+    let available_width = (window_size.width - 30.0 - 2.0 * CARD_HORIZONTAL_MARGIN).max(100.0);
+    let available_height = (window_size.height - 102.0 - 2.0 * CARD_VERTICAL_MARGIN).max(100.0);
+
+    let mut size = base;
+    while size > CARD_MIN_TEXT_SIZE {
+        let chars_per_line = ((available_width / (size * CARD_GLYPH_WIDTH)) as usize).max(1);
+        let visual_lines: usize = text
+            .lines()
+            .map(|line| line.chars().count().div_ceil(chars_per_line).max(1))
+            .sum();
+
+        if visual_lines.max(1) as f32 * size * CARD_LINE_HEIGHT <= available_height {
+            return size;
+        }
+        size -= 2.0;
+    }
+    CARD_MIN_TEXT_SIZE
+}
+
+/// View of the text of a card, multi-line text is left-aligned inside a centered block and scrolls if it doesn't fit
+fn card_text<'a>(t: &str, window_size: &Size) -> Element<'a, Message> {
+    let t = tidy_card_text(t);
+    let size = card_text_size(&t, window_size);
+    let alignment = if t.lines().count() > 1 {
+        Horizontal::Left
+    } else {
+        Horizontal::Center
+    };
+
+    container(
+        scrollable(
+            container(
+                text(t)
+                    .size(size)
+                    .line_height(CARD_LINE_HEIGHT)
+                    .wrapping(Wrapping::WordOrGlyph)
+                    .align_x(alignment),
+            )
+            .center_x(Length::Fill)
+            .padding([0.0, CARD_HORIZONTAL_MARGIN]),
+        )
+        .height(Length::Shrink),
+    )
+    .padding([CARD_VERTICAL_MARGIN, 0.0])
+    .center(Length::Fill)
+    .into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tidy_card_text_collapses_empty_lines_and_trims() {
+        assert_eq!(tidy_card_text("\n\n a\n\n\n\n\nb  \n\n"), "a\n\nb");
+        assert_eq!(tidy_card_text("one line"), "one line");
+    }
+
+    #[test]
+    fn card_text_size_counts_wrapped_lines() {
+        let window = Size::new(1200.0, 800.0);
+        assert_eq!(card_text_size("short", &window), 75.0);
+        let long_word = "f".repeat(300);
+        assert!(card_text_size(&long_word, &window) < 75.0);
+        let huge = "f".repeat(20_000);
+        assert_eq!(card_text_size(&huge, &window), CARD_MIN_TEXT_SIZE);
+    }
+}
 
 /// Given the current [`FlashcardStatus`] gives back the appropiate [`theme::Button`]
 fn button_style(status: FlashcardStatus) -> theme::Button {
