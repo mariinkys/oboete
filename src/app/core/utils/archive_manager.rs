@@ -1,6 +1,7 @@
 use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Row, Sqlite};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::app::core::models::{
@@ -29,7 +30,7 @@ struct BackupFolder {
 /// Backup all of the data of the application into a .ron file that get's saved on the given path
 pub async fn backup_oboete(
     pool: Arc<Pool<Sqlite>>,
-    file_path: String,
+    file_path: PathBuf,
 ) -> Result<(), anywho::Error> {
     let mut rows = sqlx::query(
         r#"
@@ -151,7 +152,7 @@ pub async fn backup_oboete(
 /// Import all of the data into the application from a .ron file that's on the given path
 pub async fn import_oboete(
     pool: Arc<Pool<Sqlite>>,
-    file_path: String,
+    file_path: PathBuf,
 ) -> Result<(), anywho::Error> {
     let ron_string = tokio::fs::read_to_string(file_path).await?;
     let backup_data: BackupData = ron::from_str(&ron_string)?;

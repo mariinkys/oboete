@@ -4,6 +4,7 @@ use crate::app::app_menu::MenuAction;
 use crate::app::context_page::ContextPage;
 use crate::app::core::models::studyset::StudySet;
 use crate::app::core::utils::OboeteToast;
+use crate::app::core::utils::file_dialogs::{self, FileKind};
 use crate::app::core::{init_database, utils};
 use crate::app::dialogs::{DialogPage, DialogState};
 use crate::app::screen::{Screen, flashcards, folders, study};
@@ -11,8 +12,6 @@ use crate::config::{AppTheme, OboeteConfig};
 use crate::key_binds::key_binds;
 use crate::{fl, icons};
 use cosmic::app::context_drawer;
-use cosmic::dialog::ashpd::desktop::file_chooser::SelectedFiles;
-use cosmic::dialog::file_chooser::FileFilter;
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::core::keyboard::{Key, Modifiers};
 use cosmic::iced::widget::center;
@@ -24,6 +23,7 @@ use cosmic::widget::{self, about::About, menu, nav_bar};
 use cosmic::widget::{ToastId, Toasts, segmented_button, text, toaster};
 use sqlx::{Pool, Sqlite};
 use std::collections::{HashMap, VecDeque};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 pub mod app_menu;
@@ -126,9 +126,9 @@ pub enum Message {
     OpenStudy(i32),
 
     /// Callback after asking to perform an app-wide backup
-    ComleteBackup(String),
+    CompleteBackup(Option<PathBuf>),
     /// Callback after asking to perform an import
-    CompleteImport(String),
+    CompleteImport(Option<PathBuf>),
 }
 
 /// Create a COSMIC application from the app model
@@ -375,57 +375,12 @@ impl cosmic::Application for AppModel {
                         dialogs::DialogAction::OpenNewStudySetDialog,
                     )),
                     MenuAction::Backup => Task::perform(
-                        async move {
-                            let result = SelectedFiles::save_file()
-                                .title("Save Backup")
-                                .accept_label("Save")
-                                .modal(true)
-                                .filter(FileFilter::new("RON File").glob("*.ron"))
-                                .send()
-                                .await
-                                .unwrap()
-                                .response();
-
-                            if let Ok(result) = result {
-                                result
-                                    .uris()
-                                    .first()
-                                    .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
-                                    .and_then(|url| url.to_file_path().ok())
-                                    .map(|p| p.to_string_lossy().into_owned())
-                                    .unwrap_or_default()
-                            } else {
-                                String::new()
-                            }
-                        },
-                        Message::ComleteBackup,
+                        file_dialogs::save_file(fl!("backup"), FileKind::Backup),
+                        Message::CompleteBackup,
                     )
                     .map(cosmic::action::app),
                     MenuAction::Import => Task::perform(
-                        async move {
-                            let result = SelectedFiles::open_file()
-                                .title("Import Backup")
-                                .accept_label("Open")
-                                .modal(true)
-                                .multiple(false)
-                                .filter(FileFilter::new("RON File").glob("*.ron"))
-                                .send()
-                                .await
-                                .unwrap()
-                                .response();
-
-                            if let Ok(result) = result {
-                                result
-                                    .uris()
-                                    .first()
-                                    .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
-                                    .and_then(|url| url.to_file_path().ok())
-                                    .map(|p| p.to_string_lossy().into_owned())
-                                    .unwrap_or_default()
-                            } else {
-                                String::new()
-                            }
-                        },
+                        file_dialogs::open_file(fl!("import"), FileKind::Backup),
                         Message::CompleteImport,
                     )
                     .map(cosmic::action::app),
@@ -659,8 +614,11 @@ impl cosmic::Application for AppModel {
                 task.map(|msg| cosmic::action::app(Message::Study(msg)))
             }
 
-            Message::ComleteBackup(file_path) => {
+            Message::CompleteBackup(file_path) => {
                 let State::Ready { database, .. } = &mut self.state else {
+                    return Task::none();
+                };
+                let Some(file_path) = file_path else {
                     return Task::none();
                 };
 
@@ -677,6 +635,9 @@ impl cosmic::Application for AppModel {
             }
             Message::CompleteImport(file_path) => {
                 let State::Ready { database, .. } = &mut self.state else {
+                    return Task::none();
+                };
+                let Some(file_path) = file_path else {
                     return Task::none();
                 };
 

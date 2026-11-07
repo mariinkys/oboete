@@ -7,7 +7,6 @@ use std::{
 };
 
 use fsrs::MemoryState;
-use percent_encoding::percent_decode_str;
 
 use crate::app::core::{
     models::flashcard::{Flashcard, FlashcardField, FlashcardStatus},
@@ -40,12 +39,8 @@ pub fn parse_import_content(
 }
 
 /// Given a path to an anki export file parses it to Flashcards in Oboete
-pub fn parse_ankifile(file_path: &str) -> Result<Vec<Flashcard>, anywho::Error> {
-    let decoded_path = percent_decode_str(file_path)
-        .decode_utf8_lossy()
-        .to_string();
-    let path = Path::new(&decoded_path);
-    let file = File::open(path)?;
+pub fn parse_ankifile(file_path: &Path) -> Result<Vec<Flashcard>, anywho::Error> {
+    let file = File::open(file_path)?;
     let reader = io::BufReader::new(file);
 
     let mut flashcards = Vec::new();
@@ -72,27 +67,16 @@ pub fn parse_ankifile(file_path: &str) -> Result<Vec<Flashcard>, anywho::Error> 
 }
 
 /// Given a path to save the file and a Vec<Flashcard> creates a file with the flashcards data
-pub fn export_flashcards(file_path: &str, flashcards: &[Flashcard]) -> Result<(), anywho::Error> {
+pub fn export_flashcards(file_path: &Path, flashcards: &[Flashcard]) -> Result<(), anywho::Error> {
     let mut file = File::create(file_path)?;
 
     for flashcard in flashcards {
-        let front = match &flashcard.front {
-            FlashcardField::Text(t) => t,
-            FlashcardField::Image {
-                path: _path,
-                alt_text,
-            } => alt_text,
-        };
-
-        let back = match &flashcard.back {
-            FlashcardField::Text(t) => t,
-            FlashcardField::Image {
-                path: _path,
-                alt_text,
-            } => alt_text,
-        };
-
-        writeln!(file, "{}\\#*#\\{}", front, back)?;
+        writeln!(
+            file,
+            "{}\\#*#\\{}",
+            flashcard.front.display_text(),
+            flashcard.back.display_text()
+        )?;
         writeln!(file, "/#")?;
     }
 
@@ -101,34 +85,28 @@ pub fn export_flashcards(file_path: &str, flashcards: &[Flashcard]) -> Result<()
 
 /// Given a path to save the file and a Vec<Flashcard> creates a file compatible with Anki to import the flashcards
 pub fn export_flashcards_anki(
-    file_path: &str,
+    file_path: &Path,
     flashcards: &[Flashcard],
 ) -> Result<(), anywho::Error> {
-    let correct_file_path = format!("{file_path}.txt");
-    let mut file = File::create(correct_file_path)?;
+    let mut file = if file_path.extension().is_some_and(|ext| ext == "txt") {
+        File::create(file_path)?
+    } else {
+        let mut with_extension = file_path.as_os_str().to_owned();
+        with_extension.push(".txt");
+        File::create(with_extension)?
+    };
 
     writeln!(file, "#separator:tab")?;
     writeln!(file, "#html:false")?;
     writeln!(file)?; //adds a \n before the flashcards
 
     for flashcard in flashcards {
-        let front = match &flashcard.front {
-            FlashcardField::Text(t) => t,
-            FlashcardField::Image {
-                path: _path,
-                alt_text,
-            } => alt_text,
-        };
-
-        let back = match &flashcard.back {
-            FlashcardField::Text(t) => t,
-            FlashcardField::Image {
-                path: _path,
-                alt_text,
-            } => alt_text,
-        };
-
-        writeln!(file, "{}\t{}", front, back)?;
+        writeln!(
+            file,
+            "{}\t{}",
+            flashcard.front.display_text(),
+            flashcard.back.display_text()
+        )?;
     }
 
     Ok(())

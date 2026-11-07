@@ -1,5 +1,6 @@
 cancel = Cancel
 save = Save
+open = Open
 empty-page-noset = Nothing to see here...
 about-anki-importing = ABOUT ANKI IMPORTING
 backup = Backup

@@ -3875,7 +3875,6 @@ dependencies = [
  "i18n-embed-fl",
  "libcosmic",
  "open",
- "percent-encoding",
  "rand 0.10.3",
  "ron",
  "rust-embed",

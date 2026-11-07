@@ -1,21 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use cosmic::cosmic_theme::Spacing;
-use cosmic::dialog::ashpd::desktop::file_chooser::SelectedFiles;
-use cosmic::dialog::file_chooser::FileFilter;
 use cosmic::iced::alignment::{Horizontal, Vertical};
 use cosmic::iced::core::text::Wrapping;
 use cosmic::iced::widget::{column, pick_list, row, stack};
 use cosmic::iced::{Alignment, ContentFit, Length, Subscription};
 use cosmic::widget::{Row, button, container, image, list, scrollable, settings, text, text_input};
 use cosmic::{Element, Task, theme};
-use percent_encoding::percent_decode;
 use sqlx::{Pool, Sqlite};
 
 use crate::app::context_page::ContextPage;
-use crate::app::core::models::flashcard::{Flashcard, FlashcardField, FlashcardStatus};
+use crate::app::core::models::flashcard::{Flashcard, FlashcardField, FlashcardStatus, Side};
+use crate::app::core::utils::file_dialogs::{self, FileKind};
 use crate::app::core::utils::{self, OboeteToast};
 use crate::app::widgets::pill::pill;
 use crate::{fl, icons};
@@ -74,19 +73,12 @@ pub enum Message {
 /// Represents the different inputs the user can perfrom on the flashcard upsert [`ContextPage`]
 #[derive(Debug, Clone)]
 pub enum AddEditFlashcardInput {
-    FrontFieldTypeChanged(FlashcardField),
-    FrontTextInput(String),
-    FrontSelectImage,
-    FrontImageSelected(String),
-    DeleteFrontSelectedImage,
-    FrontAltTextInput(String),
-
-    BackFieldTypeChanged(FlashcardField),
-    BackTextInput(String),
-    BackSelectImage,
-    BackImageSelected(String),
-    DeleteBackSelectedImage,
-    BackAltTextInput(String),
+    FieldTypeChanged(Side, FlashcardField),
+    TextInput(Side, String),
+    SelectImage(Side),
+    ImageSelected(Side, Option<PathBuf>),
+    DeleteSelectedImage(Side),
+    AltTextInput(Side, String),
 }
 
 /// Represents the different inputs the user can perfrom on the folder options [`ContextPage`]
@@ -98,14 +90,14 @@ pub enum FolderOptionsInput {
     CustomImport,
 
     AnkiImport,
-    CompleteAnkiImport(String),
+    CompleteAnkiImport(Option<PathBuf>),
 
     ResetAllStatus,
 
     Export,
-    CompleteExport(String),
+    CompleteExport(Option<PathBuf>),
     ExportAnki,
-    CompleteAnkiExport(String),
+    CompleteAnkiExport(Option<PathBuf>),
 }
 
 /// Allows us to talk with the parent screen
@@ -248,32 +240,9 @@ impl FlashcardsScreen {
                     return Action::None;
                 };
 
-                #[allow(clippy::collapsible_if)]
-                if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.front {
-                    // If the image path is not in the Oboete data path we know it has not been modified so we don't need to save the image again
-                    if !utils::check_path(path) {
-                        let new_path = utils::save_image(path);
-                        match new_path {
-                            Ok(new_path) => *path = new_path,
-                            Err(e) => {
-                                return Action::AddToast(OboeteToast::new(e));
-                            }
-                        }
-                    }
-                }
-
-                #[allow(clippy::collapsible_if)]
-                if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.back {
-                    // If the image path is not in the Oboete data path we know it has not been modified so we don't need to save the image again
-                    if !utils::check_path(path) {
-                        let new_path = utils::save_image(path);
-                        match new_path {
-                            Ok(new_path) => *path = new_path,
-                            Err(e) => {
-                                return Action::AddToast(OboeteToast::new(e));
-                            }
-                        }
-                    }
+                // If the image path is not in the Oboete data path we know it has not been modified so we don't need to save the image again
+                if let Err(e) = save_flashcard_images(add_edit_flashcard, true) {
+                    return Action::AddToast(OboeteToast::new(e));
                 }
 
                 Action::Run(Task::perform(
@@ -295,26 +264,8 @@ impl FlashcardsScreen {
                     return Action::None;
                 };
 
-                // save the front flashcard image if any
-                if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.front {
-                    let new_path = utils::save_image(path);
-                    match new_path {
-                        Ok(new_path) => *path = new_path,
-                        Err(e) => {
-                            return Action::AddToast(OboeteToast::new(e));
-                        }
-                    }
-                }
-
-                // save the back flashcard image if any
-                if let FlashcardField::Image { path, .. } = &mut add_edit_flashcard.back {
-                    let new_path = utils::save_image(path);
-                    match new_path {
-                        Ok(new_path) => *path = new_path,
-                        Err(e) => {
-                            return Action::AddToast(OboeteToast::new(e));
-                        }
-                    }
+                if let Err(e) = save_flashcard_images(add_edit_flashcard, false) {
+                    return Action::AddToast(OboeteToast::new(e));
                 }
 
                 Action::Run(Task::perform(
@@ -540,153 +491,8 @@ impl FlashcardsScreen {
                 .class(theme::Button::Suggested)
         };
 
-        let front_input = {
-            let type_selector =
-                pick_list(FlashcardField::ALL, Some(&add_edit_flashcard.front), |x| {
-                    Message::AddEditFlashcardInput(AddEditFlashcardInput::FrontFieldTypeChanged(x))
-                })
-                .width(Length::Shrink);
-
-            let header = row![
-                text::body(fl!("flashcard-front-title")).width(Length::Fill),
-                type_selector,
-            ]
-            .spacing(spacing.space_s)
-            .align_y(Alignment::Center);
-
-            let content = match &add_edit_flashcard.front {
-                FlashcardField::Text(text) => text_input(fl!("flashcard-front-placeholder"), text)
-                    .on_input(|input| {
-                        Message::AddEditFlashcardInput(AddEditFlashcardInput::FrontTextInput(input))
-                    })
-                    .into(),
-                FlashcardField::Image { path, alt_text } => {
-                    let image_input: Element<Message> = if path.is_empty() {
-                        row![
-                            text::body(fl!("select-image")).width(Length::Fill),
-                            button::text(fl!("browse"))
-                                .on_press(Message::AddEditFlashcardInput(
-                                    AddEditFlashcardInput::FrontSelectImage
-                                ))
-                                .class(theme::Button::Standard)
-                                .width(Length::Shrink)
-                        ]
-                        .align_y(Alignment::Center)
-                        .into()
-                    } else {
-                        container(stack![
-                            container(image(path).content_fit(ContentFit::Contain))
-                                .center_x(Length::Fill)
-                                .max_height(250.),
-                            container(
-                                button::icon(icons::get_handle("user-trash-full-symbolic", 18))
-                                    .class(theme::Button::Destructive)
-                                    .on_press(Message::AddEditFlashcardInput(
-                                        AddEditFlashcardInput::DeleteFrontSelectedImage,
-                                    ))
-                                    .padding(8)
-                            )
-                            .padding(10)
-                            .align_x(Horizontal::Right)
-                            .align_y(Vertical::Bottom)
-                            .width(Length::Fill)
-                            .height(Length::Fill)
-                        ])
-                        .into()
-                    };
-
-                    cosmic::widget::column::with_children(vec![
-                        image_input,
-                        text_input(fl!("front-image-alt"), alt_text)
-                            .on_input(|input| {
-                                Message::AddEditFlashcardInput(
-                                    AddEditFlashcardInput::FrontAltTextInput(input),
-                                )
-                            })
-                            .into(),
-                    ])
-                    .spacing(spacing.space_xxs)
-                    .into()
-                }
-            };
-
-            cosmic::widget::column::with_children(vec![header.into(), content])
-                .spacing(spacing.space_xxs)
-        };
-
-        let back_input = {
-            let type_selector =
-                pick_list(FlashcardField::ALL, Some(&add_edit_flashcard.back), |x| {
-                    Message::AddEditFlashcardInput(AddEditFlashcardInput::BackFieldTypeChanged(x))
-                })
-                .width(Length::Shrink);
-
-            let header = row![
-                text::body(fl!("flashcard-back-title")).width(Length::Fill),
-                type_selector
-            ]
-            .spacing(spacing.space_s)
-            .align_y(Alignment::Center);
-
-            let content = match &add_edit_flashcard.back {
-                FlashcardField::Text(text) => text_input(fl!("flashcard-back-placeholder"), text)
-                    .on_input(|input| {
-                        Message::AddEditFlashcardInput(AddEditFlashcardInput::BackTextInput(input))
-                    })
-                    .into(),
-                FlashcardField::Image { path, alt_text } => {
-                    let image_input: Element<Message> = if path.is_empty() {
-                        row![
-                            text::body(fl!("select-image")).width(Length::Fill),
-                            button::text(fl!("browse"))
-                                .on_press(Message::AddEditFlashcardInput(
-                                    AddEditFlashcardInput::BackSelectImage
-                                ))
-                                .class(theme::Button::Standard)
-                                .width(Length::Shrink)
-                        ]
-                        .align_y(Alignment::Center)
-                        .into()
-                    } else {
-                        container(stack![
-                            container(image(path).content_fit(ContentFit::Contain))
-                                .center_x(Length::Fill)
-                                .max_height(250.),
-                            container(
-                                button::icon(icons::get_handle("user-trash-full-symbolic", 18))
-                                    .class(theme::Button::Destructive)
-                                    .on_press(Message::AddEditFlashcardInput(
-                                        AddEditFlashcardInput::DeleteBackSelectedImage,
-                                    ))
-                                    .padding(8)
-                            )
-                            .padding(10)
-                            .align_x(Horizontal::Right)
-                            .align_y(Vertical::Bottom)
-                            .width(Length::Fill)
-                            .height(Length::Fill)
-                        ])
-                        .into()
-                    };
-
-                    cosmic::widget::column::with_children(vec![
-                        image_input,
-                        text_input(fl!("back-image-alt"), alt_text)
-                            .on_input(|input| {
-                                Message::AddEditFlashcardInput(
-                                    AddEditFlashcardInput::BackAltTextInput(input),
-                                )
-                            })
-                            .into(),
-                    ])
-                    .spacing(spacing.space_xxs)
-                    .into()
-                }
-            };
-
-            cosmic::widget::column::with_children(vec![header.into(), content])
-                .spacing(spacing.space_xxs)
-        };
+        let front_input = flashcard_field_view(spacing, Side::Front, &add_edit_flashcard.front);
+        let back_input = flashcard_field_view(spacing, Side::Back, &add_edit_flashcard.back);
 
         let current_status_content: Element<Message> =
             if add_edit_flashcard.status == FlashcardStatus::None {
@@ -714,11 +520,8 @@ impl FlashcardsScreen {
                 settings::section()
                     .title(fl!("flashcard-options"))
                     .add(
-                        cosmic::widget::column::with_children(vec![
-                            front_input.into(),
-                            back_input.into(),
-                        ])
-                        .spacing(spacing.space_s)
+                        cosmic::widget::column::with_children(vec![front_input, back_input])
+                            .spacing(spacing.space_s)
                     )
                     .into(),
             ]),
@@ -790,10 +593,7 @@ fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'
         let mut flashcards_list = list::list_column().style(theme::Container::Card);
 
         for flashcard in flashcards {
-            let front_text = match &flashcard.front {
-                FlashcardField::Text(t) => t,
-                FlashcardField::Image { alt_text, .. } => alt_text,
-            };
+            let front_text = flashcard.front.display_text();
 
             flashcards_list = flashcards_list.add(
                 row![
@@ -836,6 +636,95 @@ fn folders_view<'a>(spacing: &Spacing, flashcards: &'a [Flashcard]) -> Element<'
     .into()
 }
 
+/// View of the editor of one [`Side`] of the upsert flashcard [`ContextPage`]
+fn flashcard_field_view<'a>(
+    spacing: Spacing,
+    side: Side,
+    field: &'a FlashcardField,
+) -> Element<'a, Message> {
+    let (title, placeholder, alt_placeholder) = match side {
+        Side::Front => (
+            fl!("flashcard-front-title"),
+            fl!("flashcard-front-placeholder"),
+            fl!("front-image-alt"),
+        ),
+        Side::Back => (
+            fl!("flashcard-back-title"),
+            fl!("flashcard-back-placeholder"),
+            fl!("back-image-alt"),
+        ),
+    };
+
+    let type_selector = pick_list(FlashcardField::ALL, Some(field), move |x| {
+        Message::AddEditFlashcardInput(AddEditFlashcardInput::FieldTypeChanged(side, x))
+    })
+    .width(Length::Shrink);
+
+    let header = row![text::body(title).width(Length::Fill), type_selector]
+        .spacing(spacing.space_s)
+        .align_y(Alignment::Center);
+
+    let content = match field {
+        FlashcardField::Text(text) => text_input(placeholder, text)
+            .on_input(move |input| {
+                Message::AddEditFlashcardInput(AddEditFlashcardInput::TextInput(side, input))
+            })
+            .into(),
+        FlashcardField::Image { path, alt_text } => {
+            let image_input: Element<Message> = if path.is_empty() {
+                row![
+                    text::body(fl!("select-image")).width(Length::Fill),
+                    button::text(fl!("browse"))
+                        .on_press(Message::AddEditFlashcardInput(
+                            AddEditFlashcardInput::SelectImage(side)
+                        ))
+                        .class(theme::Button::Standard)
+                        .width(Length::Shrink)
+                ]
+                .align_y(Alignment::Center)
+                .into()
+            } else {
+                container(stack![
+                    container(image(path).content_fit(ContentFit::Contain))
+                        .center_x(Length::Fill)
+                        .max_height(250.),
+                    container(
+                        button::icon(icons::get_handle("user-trash-full-symbolic", 18))
+                            .class(theme::Button::Destructive)
+                            .on_press(Message::AddEditFlashcardInput(
+                                AddEditFlashcardInput::DeleteSelectedImage(side),
+                            ))
+                            .padding(8)
+                    )
+                    .padding(10)
+                    .align_x(Horizontal::Right)
+                    .align_y(Vertical::Bottom)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                ])
+                .into()
+            };
+
+            cosmic::widget::column::with_children(vec![
+                image_input,
+                text_input(alt_placeholder, alt_text)
+                    .on_input(move |input| {
+                        Message::AddEditFlashcardInput(AddEditFlashcardInput::AltTextInput(
+                            side, input,
+                        ))
+                    })
+                    .into(),
+            ])
+            .spacing(spacing.space_xxs)
+            .into()
+        }
+    };
+
+    cosmic::widget::column::with_children(vec![header.into(), content])
+        .spacing(spacing.space_xxs)
+        .into()
+}
+
 //
 // HELPERS
 //
@@ -846,158 +735,63 @@ fn apply_flashcard_add_edit_input(
     flashcard: &mut Flashcard,
 ) -> Action {
     match input {
-        AddEditFlashcardInput::FrontFieldTypeChanged(flashcard_field) => {
-            flashcard.front = flashcard_field;
+        AddEditFlashcardInput::FieldTypeChanged(side, flashcard_field) => {
+            *flashcard.field_mut(side) = flashcard_field;
         }
-        AddEditFlashcardInput::FrontTextInput(input) => {
-            flashcard.front = FlashcardField::Text(input);
+        AddEditFlashcardInput::TextInput(side, input) => {
+            *flashcard.field_mut(side) = FlashcardField::Text(input);
         }
-        AddEditFlashcardInput::FrontSelectImage => {
+        AddEditFlashcardInput::SelectImage(side) => {
             return Action::Run(Task::perform(
-                async move {
-                    let result = SelectedFiles::open_file()
-                        .title("Select Image")
-                        .accept_label("Open")
-                        .modal(true)
-                        .multiple(false)
-                        .filter(
-                            FileFilter::new("Image Files")
-                                .glob("*.png")
-                                .glob("*.jpeg")
-                                .glob("*.jpg"),
-                        )
-                        .send()
-                        .await
-                        .unwrap()
-                        .response();
-
-                    if let Ok(result) = result {
-                        result
-                            .uris()
-                            .first()
-                            .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
-                            .and_then(|url| url.to_file_path().ok())
-                            .map(|p| p.to_string_lossy().into_owned())
-                            .unwrap_or_default()
-                    } else {
-                        String::new()
-                    }
-                },
-                |res| {
-                    Message::AddEditFlashcardInput(AddEditFlashcardInput::FrontImageSelected(res))
+                file_dialogs::open_file(fl!("select-image"), FileKind::Image),
+                move |res| {
+                    Message::AddEditFlashcardInput(AddEditFlashcardInput::ImageSelected(side, res))
                 },
             ));
         }
-        AddEditFlashcardInput::FrontImageSelected(selected_path) =>
-        {
-            #[allow(clippy::collapsible_if)]
-            if !selected_path.is_empty() {
-                if let FlashcardField::Image { path, .. } = &mut flashcard.front {
-                    *path = percent_decode(selected_path.as_bytes())
-                        .decode_utf8_lossy()
-                        .to_string();
-                };
+        AddEditFlashcardInput::ImageSelected(side, selected_path) => {
+            if let (Some(selected_path), FlashcardField::Image { path, .. }) =
+                (selected_path, flashcard.field_mut(side))
+            {
+                *path = selected_path.to_string_lossy().into_owned();
             }
         }
-        AddEditFlashcardInput::DeleteFrontSelectedImage => {
-            #[allow(clippy::collapsible_if)]
-            if let FlashcardField::Image { path, .. } = &mut flashcard.front {
-                if flashcard.id.is_some() && utils::check_path(path) {
-                    let path_clone = path.clone();
-                    *path = String::new();
-                    return Action::Run(Task::perform(utils::delete_image(path_clone), |res| {
-                        match res {
+        AddEditFlashcardInput::DeleteSelectedImage(side) => {
+            let has_id = flashcard.id.is_some();
+            if let FlashcardField::Image { path, .. } = flashcard.field_mut(side) {
+                let old_path = std::mem::take(path);
+                if has_id && utils::check_path(&old_path) {
+                    return Action::Run(Task::perform(
+                        utils::delete_image(old_path),
+                        |res| match res {
                             Ok(_) => Message::None,
                             Err(e) => Message::AddToast(OboeteToast::new(e)),
-                        }
-                    }));
-                } else {
-                    *path = String::new();
+                        },
+                    ));
                 }
-            };
-        }
-        AddEditFlashcardInput::FrontAltTextInput(input) => {
-            if let FlashcardField::Image { alt_text, .. } = &mut flashcard.front {
-                *alt_text = input;
-            };
-        }
-
-        AddEditFlashcardInput::BackFieldTypeChanged(flashcard_field) => {
-            flashcard.back = flashcard_field;
-        }
-        AddEditFlashcardInput::BackTextInput(input) => {
-            flashcard.back = FlashcardField::Text(input);
-        }
-        AddEditFlashcardInput::BackSelectImage => {
-            return Action::Run(Task::perform(
-                async move {
-                    let result = SelectedFiles::open_file()
-                        .title("Select Image")
-                        .accept_label("Open")
-                        .modal(true)
-                        .multiple(false)
-                        .filter(
-                            FileFilter::new("Image Files")
-                                .glob("*.png")
-                                .glob("*.jpeg")
-                                .glob("*.jpg"),
-                        )
-                        .send()
-                        .await
-                        .unwrap()
-                        .response();
-
-                    if let Ok(result) = result {
-                        result
-                            .uris()
-                            .first()
-                            .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
-                            .and_then(|url| url.to_file_path().ok())
-                            .map(|p| p.to_string_lossy().into_owned())
-                            .unwrap_or_default()
-                    } else {
-                        String::new()
-                    }
-                },
-                |res| Message::AddEditFlashcardInput(AddEditFlashcardInput::BackImageSelected(res)),
-            ));
-        }
-        AddEditFlashcardInput::BackImageSelected(selected_path) =>
-        {
-            #[allow(clippy::collapsible_if)]
-            if !selected_path.is_empty() {
-                if let FlashcardField::Image { path, .. } = &mut flashcard.back {
-                    *path = percent_decode(selected_path.as_bytes())
-                        .decode_utf8_lossy()
-                        .to_string();
-                };
             }
         }
-        AddEditFlashcardInput::DeleteBackSelectedImage => {
-            #[allow(clippy::collapsible_if)]
-            if let FlashcardField::Image { path, .. } = &mut flashcard.back {
-                if flashcard.id.is_some() && utils::check_path(path) {
-                    let path_clone = path.clone();
-                    *path = String::new();
-                    return Action::Run(Task::perform(utils::delete_image(path_clone), |res| {
-                        match res {
-                            Ok(_) => Message::None,
-                            Err(e) => Message::AddToast(OboeteToast::new(e)),
-                        }
-                    }));
-                } else {
-                    *path = String::new();
-                }
-            };
-        }
-        AddEditFlashcardInput::BackAltTextInput(input) => {
-            if let FlashcardField::Image { alt_text, .. } = &mut flashcard.back {
+        AddEditFlashcardInput::AltTextInput(side, input) => {
+            if let FlashcardField::Image { alt_text, .. } = flashcard.field_mut(side) {
                 *alt_text = input;
-            };
+            }
         }
     }
 
     Action::None
+}
+
+/// Copies the images of the [`Flashcard`] into the Oboete data path, if `skip_saved` images that are already there are left untouched
+fn save_flashcard_images(flashcard: &mut Flashcard, skip_saved: bool) -> Result<(), anywho::Error> {
+    for side in Side::ALL {
+        if let FlashcardField::Image { path, .. } = flashcard.field_mut(side) {
+            if skip_saved && utils::check_path(path) {
+                continue;
+            }
+            *path = utils::save_image(path)?;
+        }
+    }
+    Ok(())
 }
 
 /// Given the [`FolderOptionsInput`] apply the appropiate state changes
@@ -1035,37 +829,16 @@ fn apply_folder_options_input(
 
         FolderOptionsInput::AnkiImport => {
             return Action::Run(Task::perform(
-                async move {
-                    let result = SelectedFiles::open_file()
-                        .title("Select Anki File")
-                        .accept_label("Open")
-                        .modal(true)
-                        .multiple(false)
-                        .filter(FileFilter::new("TXT File").glob("*.txt"))
-                        .send()
-                        .await
-                        .unwrap()
-                        .response();
-
-                    if let Ok(result) = result {
-                        result
-                            .uris()
-                            .first()
-                            .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
-                            .and_then(|url| url.to_file_path().ok())
-                            .map(|p| p.to_string_lossy().into_owned())
-                            .unwrap_or_default()
-                    } else {
-                        String::new()
-                    }
-                },
+                file_dialogs::open_file(fl!("import-anki-title"), FileKind::Text),
                 |res| Message::FolderOptionsInput(FolderOptionsInput::CompleteAnkiImport(res)),
             ));
         }
         FolderOptionsInput::CompleteAnkiImport(file_path) => {
-            let parsed_content_res = utils::parse_ankifile(&file_path);
+            let Some(file_path) = file_path else {
+                return Action::None;
+            };
 
-            if let Ok(content) = parsed_content_res {
+            if let Ok(content) = utils::parse_ankifile(&file_path) {
                 return Action::Run(Task::perform(
                     Flashcard::add_bulk(Arc::clone(database), content, folder_id),
                     |res| match res {
@@ -1090,35 +863,16 @@ fn apply_folder_options_input(
 
         FolderOptionsInput::Export => {
             return Action::Run(Task::perform(
-                async move {
-                    let result = SelectedFiles::save_file()
-                        .title("Save Export File")
-                        .accept_label("Save")
-                        .modal(true)
-                        .filter(FileFilter::new("TXT File").glob("*.txt"))
-                        .send()
-                        .await
-                        .unwrap()
-                        .response();
-
-                    if let Ok(result) = result {
-                        result
-                            .uris()
-                            .first()
-                            .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
-                            .and_then(|url| url.to_file_path().ok())
-                            .map(|p| p.to_string_lossy().into_owned())
-                            .unwrap_or_default()
-                    } else {
-                        String::new()
-                    }
-                },
+                file_dialogs::save_file(fl!("export-folder-flashcards-title"), FileKind::Text),
                 |res| Message::FolderOptionsInput(FolderOptionsInput::CompleteExport(res)),
             ));
         }
         FolderOptionsInput::CompleteExport(file_path) => {
-            let res = utils::export_flashcards(&file_path, flashcards);
-            if let Err(e) = res {
+            let Some(file_path) = file_path else {
+                return Action::None;
+            };
+
+            if let Err(e) = utils::export_flashcards(&file_path, flashcards) {
                 eprintln!("{}", e);
                 return Action::AddToast(OboeteToast::new(e));
             }
@@ -1126,35 +880,16 @@ fn apply_folder_options_input(
         }
         FolderOptionsInput::ExportAnki => {
             return Action::Run(Task::perform(
-                async move {
-                    let result = SelectedFiles::save_file()
-                        .title("Save Export File")
-                        .accept_label("Save")
-                        .modal(true)
-                        .filter(FileFilter::new("TXT File").glob("*.txt"))
-                        .send()
-                        .await
-                        .unwrap()
-                        .response();
-
-                    if let Ok(result) = result {
-                        result
-                            .uris()
-                            .first()
-                            .and_then(|uri| url::Url::parse(&uri.to_string()).ok())
-                            .and_then(|url| url.to_file_path().ok())
-                            .map(|p| p.to_string_lossy().into_owned())
-                            .unwrap_or_default()
-                    } else {
-                        String::new()
-                    }
-                },
+                file_dialogs::save_file(fl!("export-folder-flashcards-title"), FileKind::Text),
                 |res| Message::FolderOptionsInput(FolderOptionsInput::CompleteAnkiExport(res)),
             ));
         }
         FolderOptionsInput::CompleteAnkiExport(file_path) => {
-            let res = utils::export_flashcards_anki(&file_path, flashcards);
-            if let Err(e) = res {
+            let Some(file_path) = file_path else {
+                return Action::None;
+            };
+
+            if let Err(e) = utils::export_flashcards_anki(&file_path, flashcards) {
                 eprintln!("{}", e);
                 return Action::AddToast(OboeteToast::new(e));
             }

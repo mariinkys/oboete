@@ -10,7 +10,7 @@ use crate::{
         Message, StudySet,
         core::{
             models::{
-                flashcard::{Flashcard, FlashcardField},
+                flashcard::{Flashcard, FlashcardField, Side},
                 folder::Folder,
             },
             utils::{self, OboeteToast},
@@ -124,37 +124,12 @@ impl DialogPage {
                 Task::none()
             }
             DialogPage::DeleteFlashcard(flashcard) => {
-                let front_task = if let FlashcardField::Image { path, .. } = &flashcard.front {
-                    if !path.is_empty() && flashcard.id.is_some() {
-                        Task::perform(utils::delete_image(path.to_string()), |res| match res {
-                            Ok(_) => cosmic::action::none(),
-                            Err(e) => {
-                                eprintln!("{}", e);
-                                cosmic::action::app(Message::AddToast(OboeteToast::new(e)))
-                            }
-                        })
-                    } else {
-                        Task::none()
-                    }
+                let image_tasks = if flashcard.id.is_some() {
+                    Side::ALL.map(|side| delete_image_task(flashcard.field(side)))
                 } else {
-                    Task::none()
+                    [Task::none(), Task::none()]
                 };
-
-                let back_task = if let FlashcardField::Image { path, .. } = &flashcard.back {
-                    if !path.is_empty() && flashcard.id.is_some() {
-                        Task::perform(utils::delete_image(path.to_string()), |res| match res {
-                            Ok(_) => cosmic::action::none(),
-                            Err(e) => {
-                                eprintln!("{}", e);
-                                cosmic::action::app(Message::AddToast(OboeteToast::new(e)))
-                            }
-                        })
-                    } else {
-                        Task::none()
-                    }
-                } else {
-                    Task::none()
-                };
+                let [front_task, back_task] = image_tasks;
 
                 Task::perform(
                     Flashcard::delete(Arc::clone(database), flashcard.id.unwrap_or_default()),
@@ -173,120 +148,100 @@ impl DialogPage {
 
     /// View of the [`DialogPage`]
     pub fn display(&self, dialog_state: &DialogState) -> Option<Element<Message>> {
-        let spacing = theme::active().cosmic().spacing;
-
         let dialog = match &self {
-            DialogPage::NewStudySet(studyset_name) => widget::dialog()
-                .title(fl!("create-studyset"))
-                .primary_action(
-                    widget::button::suggested(fl!("save"))
-                        .on_press(Message::DialogAction(DialogAction::DialogComplete)),
-                )
-                .secondary_action(
-                    widget::button::standard(fl!("cancel"))
-                        .on_press(Message::DialogAction(DialogAction::DialogCancel)),
-                )
-                .control(
-                    widget::column::with_children(vec![
-                        widget::text::body(fl!("studyset-name")).into(),
-                        widget::text_input("", studyset_name.as_str())
-                            .id(dialog_state.dialog_text_input.clone())
-                            .on_input(move |name| {
-                                Message::DialogAction(DialogAction::DialogUpdate(
-                                    DialogPage::NewStudySet(name),
-                                ))
-                            })
-                            .on_submit(|_x| Message::DialogAction(DialogAction::DialogComplete))
-                            .into(),
-                    ])
-                    .spacing(spacing.space_xxs),
-                ),
-            DialogPage::RenameStudySet { to: studyset_name } => widget::dialog()
-                .title(fl!("rename-studyset"))
-                .primary_action(
-                    widget::button::suggested(fl!("save"))
-                        .on_press_maybe(Some(Message::DialogAction(DialogAction::DialogComplete))),
-                )
-                .secondary_action(
-                    widget::button::standard(fl!("cancel"))
-                        .on_press(Message::DialogAction(DialogAction::DialogCancel)),
-                )
-                .control(
-                    widget::column::with_children(vec![
-                        widget::text::body(fl!("studyset-name")).into(),
-                        widget::text_input("", studyset_name.as_str())
-                            .id(dialog_state.dialog_text_input.clone())
-                            .on_input(move |name| {
-                                Message::DialogAction(DialogAction::DialogUpdate(
-                                    DialogPage::RenameStudySet { to: name },
-                                ))
-                            })
-                            .on_submit(|_x| Message::DialogAction(DialogAction::DialogComplete))
-                            .into(),
-                    ])
-                    .spacing(spacing.space_xxs),
-                ),
-            DialogPage::DeleteStudySet => widget::dialog()
-                .title(fl!("delete-studyset"))
-                .body(fl!("confirm-delete"))
-                .primary_action(
-                    widget::button::suggested(fl!("ok"))
-                        .on_press_maybe(Some(Message::DialogAction(DialogAction::DialogComplete))),
-                )
-                .secondary_action(
-                    widget::button::standard(fl!("cancel"))
-                        .on_press(Message::DialogAction(DialogAction::DialogCancel)),
-                ),
-            DialogPage::DeleteFolder(_folder_id) => widget::dialog()
-                .title(fl!("delete-folder"))
-                .body(fl!("confirm-delete"))
-                .primary_action(
-                    widget::button::suggested(fl!("ok"))
-                        .on_press_maybe(Some(Message::DialogAction(DialogAction::DialogComplete))),
-                )
-                .secondary_action(
-                    widget::button::standard(fl!("cancel"))
-                        .on_press(Message::DialogAction(DialogAction::DialogCancel)),
-                ),
-            DialogPage::NewFolder(folder_name) => widget::dialog()
-                .title(fl!("create-folder"))
-                .primary_action(
-                    widget::button::suggested(fl!("save"))
-                        .on_press_maybe(Some(Message::DialogAction(DialogAction::DialogComplete))),
-                )
-                .secondary_action(
-                    widget::button::standard(fl!("cancel"))
-                        .on_press(Message::DialogAction(DialogAction::DialogCancel)),
-                )
-                .control(
-                    widget::column::with_children(vec![
-                        widget::text::body(fl!("folder-name")).into(),
-                        widget::text_input("", folder_name.as_str())
-                            .id(dialog_state.dialog_text_input.clone())
-                            .on_input(move |name| {
-                                Message::DialogAction(DialogAction::DialogUpdate(
-                                    DialogPage::NewFolder(name),
-                                ))
-                            })
-                            .on_submit(|_x| Message::DialogAction(DialogAction::DialogComplete))
-                            .into(),
-                    ])
-                    .spacing(spacing.space_xxs),
-                ),
-            DialogPage::DeleteFlashcard(_flashcard) => widget::dialog()
-                .title(fl!("delete-flashcard"))
-                .body(fl!("confirm-delete"))
-                .primary_action(
-                    widget::button::suggested(fl!("ok"))
-                        .on_press_maybe(Some(Message::DialogAction(DialogAction::DialogComplete))),
-                )
-                .secondary_action(
-                    widget::button::standard(fl!("cancel"))
-                        .on_press(Message::DialogAction(DialogAction::DialogCancel)),
-                ),
+            DialogPage::NewStudySet(studyset_name) => text_input_dialog(
+                fl!("create-studyset"),
+                fl!("studyset-name"),
+                studyset_name,
+                dialog_state,
+                DialogPage::NewStudySet,
+            ),
+            DialogPage::RenameStudySet { to: studyset_name } => text_input_dialog(
+                fl!("rename-studyset"),
+                fl!("studyset-name"),
+                studyset_name,
+                dialog_state,
+                |name| DialogPage::RenameStudySet { to: name },
+            ),
+            DialogPage::DeleteStudySet => confirm_dialog(fl!("delete-studyset")),
+            DialogPage::DeleteFolder(_folder_id) => confirm_dialog(fl!("delete-folder")),
+            DialogPage::NewFolder(folder_name) => text_input_dialog(
+                fl!("create-folder"),
+                fl!("folder-name"),
+                folder_name,
+                dialog_state,
+                DialogPage::NewFolder,
+            ),
+            DialogPage::DeleteFlashcard(_flashcard) => confirm_dialog(fl!("delete-flashcard")),
         };
 
         Some(dialog.into())
+    }
+}
+
+/// Dialog asking the user to confirm a deletion
+fn confirm_dialog<'a>(title: String) -> widget::Dialog<'a, Message> {
+    widget::dialog()
+        .title(title)
+        .body(fl!("confirm-delete"))
+        .primary_action(
+            widget::button::suggested(fl!("ok"))
+                .on_press(Message::DialogAction(DialogAction::DialogComplete)),
+        )
+        .secondary_action(
+            widget::button::standard(fl!("cancel"))
+                .on_press(Message::DialogAction(DialogAction::DialogCancel)),
+        )
+}
+
+/// Dialog with a single text input that gets saved on complete
+fn text_input_dialog<'a>(
+    title: String,
+    label: String,
+    value: &'a str,
+    dialog_state: &DialogState,
+    on_input: impl Fn(String) -> DialogPage + 'a,
+) -> widget::Dialog<'a, Message> {
+    let spacing = theme::active().cosmic().spacing;
+
+    widget::dialog()
+        .title(title)
+        .primary_action(
+            widget::button::suggested(fl!("save"))
+                .on_press(Message::DialogAction(DialogAction::DialogComplete)),
+        )
+        .secondary_action(
+            widget::button::standard(fl!("cancel"))
+                .on_press(Message::DialogAction(DialogAction::DialogCancel)),
+        )
+        .control(
+            widget::column::with_children(vec![
+                widget::text::body(label).into(),
+                widget::text_input("", value)
+                    .id(dialog_state.dialog_text_input.clone())
+                    .on_input(move |name| {
+                        Message::DialogAction(DialogAction::DialogUpdate(on_input(name)))
+                    })
+                    .on_submit(|_x| Message::DialogAction(DialogAction::DialogComplete))
+                    .into(),
+            ])
+            .spacing(spacing.space_xxs),
+        )
+}
+
+/// Task that deletes the image of the given [`FlashcardField`], if it has one
+fn delete_image_task(field: &FlashcardField) -> Task<cosmic::Action<Message>> {
+    match field {
+        FlashcardField::Image { path, .. } if !path.is_empty() => {
+            Task::perform(utils::delete_image(path.clone()), |res| match res {
+                Ok(_) => cosmic::action::none(),
+                Err(e) => {
+                    eprintln!("{}", e);
+                    cosmic::action::app(Message::AddToast(OboeteToast::new(e)))
+                }
+            })
+        }
+        _ => Task::none(),
     }
 }
 

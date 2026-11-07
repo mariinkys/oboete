@@ -33,7 +33,6 @@ futures = "0.3.34"
 dirs = "7.0.0"
 serde = { version = "1.0.229", features = ["derive"] }
 rand = "0.10.3" #needed for flashcard selection
-percent-encoding = "2.3.2" #needed for correct anki file importing
 ron = "0.12.3"
 uuid = { version = "1.29.1", features = ["v4"] }
 anywho = "0.1.3"
