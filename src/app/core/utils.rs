@@ -3,6 +3,7 @@
 const APP_ID: &str = "dev.mariinkys.Oboete";
 
 mod archive_manager;
+pub mod file_dialogs;
 mod flashcards;
 pub mod fsrs_scheduler;
 mod images;

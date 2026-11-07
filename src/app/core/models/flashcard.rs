@@ -165,6 +165,14 @@ impl std::fmt::Display for FlashcardField {
 }
 
 impl FlashcardField {
+    /// Text that represents the [`FlashcardField`], the alt text for images
+    pub fn display_text(&self) -> &str {
+        match self {
+            FlashcardField::Text(t) => t,
+            FlashcardField::Image { alt_text, .. } => alt_text,
+        }
+    }
+
     pub const ALL: &'static [Self] = &[
         Self::Text(String::new()),
         Self::Image {
@@ -188,8 +196,26 @@ impl FlashcardField {
     /// Returns true if [`FlashcardField`] is ready for database submission
     pub fn is_valid(&self) -> bool {
         match self {
-            FlashcardField::Text(t) => !t.is_empty(),
+            FlashcardField::Text(t) => !t.trim().is_empty(),
             FlashcardField::Image { path, alt_text } => !path.is_empty() && !alt_text.is_empty(),
+        }
+    }
+}
+
+/// One of the two sides of a [`Flashcard`]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Side {
+    Front,
+    Back,
+}
+
+impl Side {
+    pub const ALL: [Side; 2] = [Side::Front, Side::Back];
+
+    pub fn index(self) -> usize {
+        match self {
+            Side::Front => 0,
+            Side::Back => 1,
         }
     }
 }
@@ -225,11 +251,27 @@ impl Flashcard {
         self.front.is_valid() && self.back.is_valid()
     }
 
+    /// Returns the [`FlashcardField`] of the given [`Side`]
+    pub fn field(&self, side: Side) -> &FlashcardField {
+        match side {
+            Side::Front => &self.front,
+            Side::Back => &self.back,
+        }
+    }
+
+    /// Returns a mutable reference to the [`FlashcardField`] of the given [`Side`]
+    pub fn field_mut(&mut self, side: Side) -> &mut FlashcardField {
+        match side {
+            Side::Front => &mut self.front,
+            Side::Back => &mut self.back,
+        }
+    }
+
     // Check if card is due for review
     pub fn is_due(&self) -> bool {
         match self.due_date {
             Some(due) => due <= current_day(),
-            None => true, // New cards are always "due"
+            None => true,
         }
     }
 

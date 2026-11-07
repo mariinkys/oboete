@@ -1,5 +1,6 @@
 cancel = Cancelar
 save = Guardar
+open = Abrir
 empty-page = Vacio
 empty-page-noset = Prueba a crear una Unidad de Estudio
 about-anki-importing = ACERCA DE LA IMPORTACIÓN A ANKI
