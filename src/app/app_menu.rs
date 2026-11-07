@@ -34,15 +34,7 @@ impl menu::action::MenuAction for MenuAction {
     type Message = crate::app::Message;
 
     fn message(&self) -> Self::Message {
-        match self {
-            MenuAction::About => Message::MenuAction(MenuAction::About),
-            MenuAction::NewStudySet => Message::MenuAction(MenuAction::NewStudySet),
-            MenuAction::Backup => Message::MenuAction(MenuAction::Backup),
-            MenuAction::Import => Message::MenuAction(MenuAction::Import),
-            MenuAction::RenameStudySet => Message::MenuAction(MenuAction::RenameStudySet),
-            MenuAction::DeleteStudySet => Message::MenuAction(MenuAction::DeleteStudySet),
-            MenuAction::Settings => Message::MenuAction(MenuAction::Settings),
-        }
+        Message::MenuAction(*self)
     }
 }
 
@@ -52,43 +44,90 @@ impl menu::action::MenuAction for MenuAction {
 // https://github.com/pop-os/cosmic-edit/blob/master/src/menu.rs
 // https://github.com/pop-os/cosmic-edit/blob/master/src/main.rs
 //
+// GNOME (Mutter) workaround:
+// `responsive_menu_bar` opens its dropdowns as Wayland `xdg_popup` surfaces.
+// On GNOME Wayland those popups are dismissed immediately, so the menus never
+// open (see https://github.com/pop-os/libcosmic/issues/978). Outside COSMIC we
+// fall back to the classic `menu::bar`, which draws the dropdowns as overlays
+// inside the application window (they cannot extend past the window, and the
+// bar does not collapse into an overflow button on narrow widths).
+//
 
 static MENU_ID: LazyLock<cosmic::widget::Id> =
     LazyLock::new(|| cosmic::widget::Id::new("responsive-menu"));
 
+/// Whether the compositor is COSMIC, where popup-based menus work correctly.
+static USE_POPUP_MENUS: LazyLock<bool> = LazyLock::new(|| {
+    // Escape hatch for testing: COSMIC_APP_MENU_OVERLAY=1 forces overlay menus.
+    if std::env::var_os("COSMIC_APP_MENU_OVERLAY").is_some() {
+        return false;
+    }
+    std::env::var("XDG_CURRENT_DESKTOP")
+        .map(|desktops| {
+            desktops
+                .split(':')
+                .any(|d| d.eq_ignore_ascii_case("COSMIC"))
+        })
+        .unwrap_or(false)
+});
+
+/// Menu contents shared by both menu bar implementations.
+fn menu_entries() -> Vec<(String, Vec<MenuItem<MenuAction, String>>)> {
+    vec![
+        (
+            fl!("file"),
+            vec![
+                MenuItem::Button(fl!("new-studyset"), None, MenuAction::NewStudySet),
+                MenuItem::Button(fl!("backup"), None, MenuAction::Backup),
+                MenuItem::Button(fl!("import"), None, MenuAction::Import),
+            ],
+        ),
+        (
+            fl!("edit"),
+            vec![
+                MenuItem::Button(fl!("rename-studyset"), None, MenuAction::RenameStudySet),
+                MenuItem::Button(fl!("delete-studyset"), None, MenuAction::DeleteStudySet),
+            ],
+        ),
+        (
+            fl!("view"),
+            vec![
+                MenuItem::Button(fl!("about"), None, MenuAction::About),
+                MenuItem::Button(fl!("settings"), None, MenuAction::Settings),
+            ],
+        ),
+    ]
+}
+
 pub fn menu_bar<'a>(core: &Core, key_binds: &HashMap<KeyBind, MenuAction>) -> Element<'a, Message> {
-    responsive_menu_bar()
+    if *USE_POPUP_MENUS {
+        return responsive_menu_bar()
+            .item_height(ItemHeight::Dynamic(40))
+            .item_width(ItemWidth::Uniform(270))
+            .spacing(4.0)
+            .into_element(
+                core,
+                key_binds,
+                MENU_ID.clone(),
+                Message::Surface,
+                menu_entries(),
+            );
+    }
+
+    // GNOME / KDE / X11 / others: in-window overlay menus.
+    let trees = menu_entries()
+        .into_iter()
+        .map(|(label, items)| {
+            menu::Tree::with_children(
+                Element::<'static, Message>::from(menu::root(label)),
+                menu::items(key_binds, items),
+            )
+        })
+        .collect();
+
+    menu::bar(trees)
         .item_height(ItemHeight::Dynamic(40))
         .item_width(ItemWidth::Uniform(270))
         .spacing(4.0)
-        .into_element(
-            core,
-            key_binds,
-            MENU_ID.clone(),
-            Message::Surface, // You may need to add this message variant
-            vec![
-                (
-                    fl!("file"),
-                    vec![
-                        MenuItem::Button(fl!("new-studyset"), None, MenuAction::NewStudySet),
-                        MenuItem::Button(fl!("backup"), None, MenuAction::Backup),
-                        MenuItem::Button(fl!("import"), None, MenuAction::Import),
-                    ],
-                ),
-                (
-                    fl!("edit"),
-                    vec![
-                        MenuItem::Button(fl!("rename-studyset"), None, MenuAction::RenameStudySet),
-                        MenuItem::Button(fl!("delete-studyset"), None, MenuAction::DeleteStudySet),
-                    ],
-                ),
-                (
-                    fl!("view"),
-                    vec![
-                        MenuItem::Button(fl!("about"), None, MenuAction::About),
-                        MenuItem::Button(fl!("settings"), None, MenuAction::Settings),
-                    ],
-                ),
-            ],
-        )
+        .into()
 }
