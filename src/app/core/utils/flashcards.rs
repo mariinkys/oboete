@@ -151,7 +151,7 @@ pub fn update_fsrs_data(
     let current = current_day();
     let days_elapsed = flashcard
         .last_reviewed
-        .map(|last| (current - last) as u32)
+        .map(|last| (current - last).max(0) as u32)
         .unwrap_or(0);
 
     // Get next states from FSRS
@@ -196,7 +196,7 @@ pub fn update_fsrs_data(
     };
 
     // Force minimum 1 day interval to prevent infinite same-day loops
-    let effective_interval = interval_days.max(1.0) as i32;
+    let effective_interval = (interval_days.round() as i32).max(1);
     let new_due_date = current + effective_interval;
 
     Some((new_memory_state, new_due_date))
