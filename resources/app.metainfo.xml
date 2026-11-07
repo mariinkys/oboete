@@ -142,6 +142,15 @@
   </keywords>
 
   <releases>
+    <release version="0.2.8" date="2026-11-07">
+        <description>
+            <p>Fixed issue that prevented the menubar from working on GNOME</p>
+            <p>Improved FSRS implementation</p>
+            <p>Improved dialog handling</p>
+            <p>Added the possibility of having multi-line text on Flashcards</p>
+            <p>Updated dependencies</p>
+        </description>
+    </release>
     <release version="0.2.7" date="2026-09-19">
         <description>
             <p>Updated dependencies</p>
